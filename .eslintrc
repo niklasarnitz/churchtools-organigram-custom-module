@@ -1,0 +1,42 @@
+{
+	"env": {
+		"browser": true,
+		"es6": true
+	},
+	"plugins": ["react", "@typescript-eslint", "sort-imports-es6-autofix", "react-hooks", "sonarjs", "unicorn"],
+	"extends": [
+		"eslint:recommended",
+		"google",
+		"plugin:react/recommended",
+		"plugin:react-hooks/recommended",
+		"react-app",
+		"react-app/jest",
+		"prettier",
+		"plugin:sonarjs/recommended",
+		"plugin:unicorn/recommended",
+		"plugin:tailwindcss/recommended"
+	],
+	"parserOptions": {
+		"ecmaVersion": "latest",
+		"sourceType": "module"
+	},
+	"rules": {
+		"unicorn/filename-case": "off",
+		"require-jsdoc": "off",
+		"react/display-name": "off",
+		"@typescript-eslint/consistent-type-imports": "error",
+		"object-curly-spacing": "off",
+		"max-len": "off",
+		"no-tabs": "off",
+		"space-before-function-paren": "off",
+		"react/jsx-no-bind": "warn",
+		"sort-imports-es6-autofix/sort-imports-es6": [
+			2,
+			{
+				"ignoreCase": false,
+				"ignoreMemberSort": false,
+				"memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
+			}
+		]
+	}
+}

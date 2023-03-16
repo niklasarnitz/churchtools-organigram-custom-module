@@ -1,19 +1,31 @@
+import './index.css';
+import { churchtoolsClient } from '@churchtools/churchtools-client';
+import App from './App';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+	document.querySelector('#root') as HTMLElement
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+async function start() {
+	churchtoolsClient.setBaseUrl('https://asdf.church.tools'); // Replace with your login
+	await churchtoolsClient.post('/login', {
+		username: 'churchtools',
+		password: 'churchtools',
+	})
+
+	root.render(
+		<React.StrictMode>
+			<App />
+		</React.StrictMode>
+	);
+}
+
+
+// eslint-disable-next-line unicorn/prefer-top-level-await
+start();
+
+
+
+

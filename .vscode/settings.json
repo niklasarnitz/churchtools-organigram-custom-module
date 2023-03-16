@@ -1,0 +1,12 @@
+{
+	"editor.tabSize": 4,
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": true
+	},
+	"editor.formatOnPaste": true,
+	"editor.formatOnSave": true,
+	"eslint.validate": ["javascript", "typescript", "typescriptreact"],
+	"editor.defaultFormatter": "esbenp.prettier-vscode"
+}

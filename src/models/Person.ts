@@ -1,0 +1,20 @@
+export type Person = {
+	id: number;
+	relationships: any;
+	tags: any;
+	groups: any;
+	imageUrl: string;
+	birthday: string;
+	canChat: boolean;
+	campusId: number;
+	cmsUserId: string;
+	chatId: string;
+	securityLevelForPerson: number;
+	firstName: string;
+	lastName: string;
+	guid: string;
+	editSecurityLevelForPerson?: number;
+	sexId: number;
+	statusId: number;
+	logintoken?: string;
+};
