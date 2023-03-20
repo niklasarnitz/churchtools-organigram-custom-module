@@ -26,7 +26,7 @@ type GroupState = {
 	addRelation: (relation: Relation) => void;
 };
 
-export const useAppStore = create<GroupState>((set) => ({
+export const useAppStore = create<GroupState>((set, get) => ({
 	isLoading: false,
 	persons: [] as Person[],
 	personsById: {} as Record<number, Person>,

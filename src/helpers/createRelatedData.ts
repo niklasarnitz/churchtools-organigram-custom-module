@@ -1,19 +1,12 @@
 import { useAppStore } from './../state/useAppStore';
-import type { Group } from '../models/Group';
-import type { GroupMember } from '../models/GroupMember';
-import type { Hierarchy } from '../models/Hierarchy';
-import type { Person } from './../models/Person';
 import type { Relation } from './../models/Relation';
 
-export const createRelatedData = (
-	personsById: Record<number, Person>,
-	groups: Group[],
-	groupsById: Record<number, Group>,
-	groupMembers: Record<number, GroupMember[]>,
-	hierarchies: Hierarchy[],
-	// eslint-disable-next-line sonarjs/cognitive-complexity
-) => {
-	const returnValue: Relation[] = [];
+// TODO: Fix this complexity!
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export const createRelatedData = () => {
+	const { hierarchies, groupsById, groups, groupMembers, personsById } = useAppStore.getState();
+
+	const relations: Relation[] = [];
 
 	for (const hierarchy of hierarchies) {
 		const group = groupsById[hierarchy.groupId];
@@ -23,7 +16,7 @@ export const createRelatedData = (
 				const parentGroup = groupsById[parent];
 
 				if (parentGroup) {
-					returnValue.push({
+					relations.push({
 						source: parentGroup,
 						target: group,
 					});
@@ -34,7 +27,7 @@ export const createRelatedData = (
 				const childGroup = groupsById[child];
 
 				if (childGroup) {
-					returnValue.push({
+					relations.push({
 						source: group,
 						target: childGroup,
 					});
@@ -51,7 +44,7 @@ export const createRelatedData = (
 				const person = personsById[groupMember.personId];
 
 				if (person) {
-					returnValue.push({
+					relations.push({
 						source: group,
 						target: person,
 					});
@@ -60,5 +53,5 @@ export const createRelatedData = (
 		}
 	}
 
-	return returnValue;
+	return relations;
 };
