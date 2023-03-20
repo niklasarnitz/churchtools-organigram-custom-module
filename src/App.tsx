@@ -5,6 +5,7 @@ import { downloadTextFile } from './helpers/downloadTextFile';
 import { generateGraphMLFile } from './helpers/exporters/GraphMLExporter';
 import { useAppStore } from './state/useAppStore';
 import React, { useCallback, useEffect, useState } from 'react';
+import _ from 'lodash';
 import moment from 'moment';
 
 function App() {
@@ -45,7 +46,7 @@ function App() {
 					initialValue={groupRoles.map((groupRole) => String(groupRole.id))}
 					onChange={setSelectedRoles}
 				>
-					{groupRoles.map((groupRole) => {
+					{_.sortBy(groupRoles, (groupRole) => `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`).map((groupRole) => {
 						return (
 							<Select.Option key={groupRole.id} value={String(groupRole.id)}>
 								{`${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`}
