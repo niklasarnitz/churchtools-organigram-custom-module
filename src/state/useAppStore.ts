@@ -28,6 +28,9 @@ type GroupState = {
 	groupRoles: GroupRole[];
 	groupRolesByType: Record<number, GroupRole[]>;
 
+	selectedRoles: number[];
+	setSelectedRoles: (roles: string | string[]) => void;
+
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
@@ -49,6 +52,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groupTypesById: {} as Record<number, GroupType>,
 	groupRoles: [] as GroupRole[],
 	groupRolesByType: {} as Record<number, GroupRole[]>,
+	selectedRoles: [],
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
@@ -108,4 +112,6 @@ export const useAppStore = create<GroupState>((set, get) => ({
 			});
 		set({ isLoading: false });
 	},
+	setSelectedRoles: (roles: string | string[]) =>
+		set({ selectedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }),
 }));

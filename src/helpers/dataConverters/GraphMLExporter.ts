@@ -1,20 +1,20 @@
-import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
-import { useAppStore } from './../../state/useAppStore';
-import type { EnhancedGroupMember } from './../../models/EnhancedGroupMember';
+import { NodeType, determineIfIsGroupOrPerson } from '../determineIfIsGroupOrPerson';
+import { useAppStore } from '../../state/useAppStore';
+import type { EnhancedGroupMember } from '../../models/EnhancedGroupMember';
 import type { Group } from '../../models/Group';
 import type { Relation } from '../../models/Relation';
 
-const roleString = (member: EnhancedGroupMember) => {
+export const roleString = (member: EnhancedGroupMember) => {
 	return useAppStore.getState().groupRoles.find((role) => role.id === member.groupTypeRoleId)?.name || 'Unknown Role';
 };
 
-const roleIdentifier = (member: EnhancedGroupMember) => {
+export const roleIdentifier = (member: EnhancedGroupMember) => {
 	return `role-${member.groupTypeRoleId}-${member.group?.id}`;
 };
 
-const personIdentifier = (member: EnhancedGroupMember) => `person-${member.personId}`;
+export const personIdentifier = (member: EnhancedGroupMember) => `person-${member.personId}`;
 
-const groupIdentifier = (group: Group) => `group-${group.id}`;
+export const groupIdentifier = (group: Group) => `group-${group.id}`;
 
 const renderHeader = () => {
 	const XML_HEADER = '<?xml version="1.0" encoding="UTF-8"?>';
