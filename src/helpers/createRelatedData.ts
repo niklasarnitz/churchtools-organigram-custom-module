@@ -1,7 +1,7 @@
 import { useAppStore } from './../state/useAppStore';
 import _ from 'lodash';
+import type { EnhancedGroupMember } from './../models/EnhancedGroupMember';
 import type { Group } from '../models/Group';
-import type { GroupMember } from '../models/GroupMember';
 import type { Relation } from './../models/Relation';
 
 // TODO: Fix this complexity!
@@ -10,7 +10,7 @@ export const createData = (groupRoleIdsToExclude: number[]) => {
 	const { hierarchies, groupsById, groups, groupMembers } = useAppStore.getState();
 
 	const relations: Relation[] = [];
-	const nodes: (Group | GroupMember)[] = [];
+	const nodes: (Group | EnhancedGroupMember)[] = [];
 
 	for (const hierarchy of hierarchies) {
 		const group = groupsById[hierarchy.groupId];
@@ -41,11 +41,22 @@ export const createData = (groupRoleIdsToExclude: number[]) => {
 				if (!groupRoleIdsToExclude.includes(groupMember.groupTypeRoleId)) {
 					relations.push({
 						source: group,
-						target: groupMember,
+						target: {
+							...groupMember,
+							group,
+						},
 					});
 
-					if (!_.includes(nodes, groupMember)) {
-						nodes.push(groupMember);
+					if (
+						!_.includes(nodes, {
+							...groupMember,
+							group,
+						})
+					) {
+						nodes.push({
+							...groupMember,
+							group,
+						});
 					}
 
 					if (!_.includes(nodes, group)) {

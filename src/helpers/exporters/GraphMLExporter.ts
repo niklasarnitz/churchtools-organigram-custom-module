@@ -1,15 +1,18 @@
 import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
 import { useAppStore } from './../../state/useAppStore';
+import type { EnhancedGroupMember } from './../../models/EnhancedGroupMember';
 import type { Group } from '../../models/Group';
-import type { GroupMember } from './../../models/GroupMember';
 import type { Relation } from '../../models/Relation';
 
-const roleString = (member: GroupMember) =>
-	useAppStore.getState().groupRoles.find((role) => role.id === member.groupTypeRoleId)?.name || 'Unknown Role';
+const roleString = (member: EnhancedGroupMember) => {
+	return useAppStore.getState().groupRoles.find((role) => role.id === member.groupTypeRoleId)?.name || 'Unknown Role';
+};
 
-const roleIdentifier = (member: GroupMember) => `role-${member.groupTypeRoleId}`;
+const roleIdentifier = (member: EnhancedGroupMember) => {
+	return `role-${member.groupTypeRoleId}-${member.group?.id}`;
+};
 
-const personIdentifier = (member: GroupMember) => `person-${member.personId}`;
+const personIdentifier = (member: EnhancedGroupMember) => `person-${member.personId}`;
 
 const groupIdentifier = (group: Group) => `group-${group.id}`;
 
@@ -28,7 +31,7 @@ const renderHeader = () => {
 	return `${XML_HEADER}\n${GRAPHML_HEADER_YED}\n${KEYS_FOR_YED}\n${GRAPH_START}`;
 };
 
-const renderNodes = (nodes: (Group | GroupMember)[]) => {
+const renderNodes = (nodes: (Group | EnhancedGroupMember)[]) => {
 	if (nodes.length === 0) return '';
 
 	let renderedNodes = '';
@@ -46,7 +49,7 @@ const renderNodes = (nodes: (Group | GroupMember)[]) => {
 			</node>`;
 			renderedNodes += groupNode;
 		} else {
-			const member = node as GroupMember;
+			const member = node as EnhancedGroupMember;
 
 			if (!renderedNodes.includes(`id="${roleIdentifier(member)}"`)) {
 				renderedNodes += `<node id="${roleIdentifier(member)}">
@@ -118,7 +121,7 @@ export const generateGraphMLFile = ({
 	nodes,
 	relations,
 }: {
-	nodes: (Group | GroupMember)[];
+	nodes: (Group | EnhancedGroupMember)[];
 	relations: Relation[];
 }) => {
 	return renderHeader() + renderNodes(nodes) + renderEdges(relations) + renderFooter();
