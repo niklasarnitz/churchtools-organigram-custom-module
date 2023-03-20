@@ -1,14 +1,14 @@
 import type { Group } from '../models/Group';
-import type { Person } from '../models/Person';
+import type { GroupMember } from './../models/GroupMember';
 
 export enum NodeType {
-	PERSON = 'person',
+	MEMBER = 'member',
 	GROUP = 'group',
 }
 
-export const determineIfIsGroupOrPerson = (node: Group | Person) => {
-	if ('firstName' && 'lastName' in node) {
-		return NodeType.PERSON;
+export const determineIfIsGroupOrPerson = (node: Group | GroupMember) => {
+	if ('personId' in node) {
+		return NodeType.MEMBER;
 	}
 
 	return NodeType.GROUP;

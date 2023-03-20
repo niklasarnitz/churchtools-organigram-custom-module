@@ -1,4 +1,4 @@
-import { CssBaseline, GeistProvider, Loading, Select, Text } from '@geist-ui/core';
+import { ButtonDropdown, CssBaseline, GeistProvider, Loading, Select, Text } from '@geist-ui/core';
 import { Logger } from './globals/Logger';
 import { createData } from './helpers/createRelatedData';
 import { downloadTextFile } from './helpers/downloadTextFile';
@@ -38,9 +38,9 @@ function App() {
 	const renderGroupTypes = useCallback(() => {
 		return (
 			<div className="flex-col">
-				<Text h3>Zu exkludierende Gruppenrollen</Text>
+				<Text h5>Zu exkludierende Gruppenrollen</Text>
 				<Select
-					placeholder='Select a group type'
+					placeholder='Keine exkludierten Gruppenrollen ausgewählt'
 					value={selectedRoles}
 					multiple
 					initialValue={groupRoles.map((groupRole) => String(groupRole.id))}
@@ -76,10 +76,15 @@ function App() {
 	return (
 		<GeistProvider>
 			<CssBaseline />
-			<div className='h-full w-full flex-col'>
-				{isLoading && <Loading />}
-				{renderGroupTypes()}
-				<button onClick={didPressDownloadGraphML}>Download GraphML</button>
+			<div className='m-4'>
+				<div className='flex-col'>
+					{renderGroupTypes()}
+					{!isLoading && <ButtonDropdown>
+						<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>Export als GraphML Datei</ButtonDropdown.Item>
+						<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
+					</ButtonDropdown>}
+					{isLoading && <Loading>Daten werden geladen.</Loading>}
+				</div>
 			</div>
 		</GeistProvider>
 	);

@@ -1,7 +1,7 @@
 import type { Group } from './Group';
-import type { Person } from './Person';
+import type { GroupMember } from './GroupMember';
 
 export type Relation = {
 	source: Group;
-	target: Group | Person;
+	target: Group | GroupMember;
 };

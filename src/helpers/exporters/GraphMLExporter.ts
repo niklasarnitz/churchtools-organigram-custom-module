@@ -1,7 +1,17 @@
-import { determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
+import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
+import { useAppStore } from './../../state/useAppStore';
 import type { Group } from '../../models/Group';
-import type { Person } from './../../models/Person';
+import type { GroupMember } from './../../models/GroupMember';
 import type { Relation } from '../../models/Relation';
+
+const roleString = (member: GroupMember) =>
+	useAppStore.getState().groupRoles.find((role) => role.id === member.groupTypeRoleId)?.name || 'Unknown Role';
+
+const roleIdentifier = (member: GroupMember) => `role-${member.groupTypeRoleId}`;
+
+const personIdentifier = (member: GroupMember) => `person-${member.personId}`;
+
+const groupIdentifier = (group: Group) => `group-${group.id}`;
 
 const renderHeader = () => {
 	const XML_HEADER = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -18,41 +28,49 @@ const renderHeader = () => {
 	return `${XML_HEADER}\n${GRAPHML_HEADER_YED}\n${KEYS_FOR_YED}\n${GRAPH_START}`;
 };
 
-const renderNodes = (nodes: (Person | Group)[]) => {
+const renderNodes = (nodes: (Group | GroupMember)[]) => {
 	if (nodes.length === 0) return '';
 
 	let renderedNodes = '';
 
 	for (const node of nodes) {
-		if (determineIfIsGroupOrPerson(node) === 'group') {
+		if (determineIfIsGroupOrPerson(node) === NodeType.GROUP) {
 			const group = node as Group;
-			const groupNode = `<node id="group-${group.id}">
+			const groupNode = `<node id="${groupIdentifier(group)}">
 				<data key="d6">
 					<y:ShapeNode>
-						<y:Geometry height="30.0" width="30.0" x="0.0" y="0.0"/>
-						<y:Fill color="#FFCC00" transparent="false"/>
-						<y:BorderStyle color="#000000" type="line" width="1.0"/>
-						<y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="28.0" x="1.0" y="5.6494140625">${group.name}</y:NodeLabel>
-						<y:Shape type="ellipse"/>
+						<y:Shape type="roundrectangle"/>
+						<y:NodeLabel>${group.name}</y:NodeLabel>
 					</y:ShapeNode>
 				</data>
 			</node>`;
 			renderedNodes += groupNode;
 		} else {
-			const person = node as Person;
+			const member = node as GroupMember;
 
-			const personNode = `<node id="person-${person.id}">
+			if (!renderedNodes.includes(`id="${roleIdentifier(member)}"`)) {
+				renderedNodes += `<node id="${roleIdentifier(member)}">
+					<data key="d6">
+						<y:ShapeNode>
+							<y:Shape type="ellipse"/>
+							<y:NodeLabel>${roleString(member)}</y:NodeLabel>
+						</y:ShapeNode>
+					</data>
+				</node>`;
+			}
+
+			if (!renderedNodes.includes(`id="${personIdentifier(member)}"`)) {
+				const person = useAppStore.getState().personsById[member.personId];
+				const nameString = person ? `${person.firstName} ${person.lastName}` : 'Error: Person not found';
+
+				renderedNodes += `<node id="${personIdentifier(member)}">
 				<data key="d6">
 					<y:ShapeNode>
-						<y:Geometry height="30.0" width="30.0" x="0.0" y="0.0"/>
-						<y:Fill color="#FFCC00" transparent="false"/>
-						<y:BorderStyle color="#000000" type="line" width="1.0"/>
-						<y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="28.0" x="1.0" y="5.6494140625">${person.firstName} ${person.lastName}</y:NodeLabel>
-						<y:Shape type="roundrectangle"/>
+						<y:NodeLabel>${nameString}</y:NodeLabel>
 					</y:ShapeNode>
 				</data>
 			</node>`;
-			renderedNodes += personNode;
+			}
 		}
 	}
 
@@ -65,11 +83,26 @@ const renderEdges = (relations: Relation[]) => {
 	let renderedEdges = '';
 
 	for (const relation of relations) {
-		const sourceKey = determineIfIsGroupOrPerson(relation.source);
-		const targetKey = determineIfIsGroupOrPerson(relation.target);
-
-		const edge = `<edge source="${sourceKey}-${relation.source.id}" target="${targetKey}-${relation.target.id}"/>`;
-		renderedEdges += edge;
+		if (determineIfIsGroupOrPerson(relation.target) === NodeType.GROUP && 'id' in relation.target) {
+			renderedEdges += `<edge source="${groupIdentifier(relation.source)}" target="${groupIdentifier(
+				relation.target,
+			)}"/>`;
+		} else {
+			if (
+				determineIfIsGroupOrPerson(relation.source) === NodeType.GROUP &&
+				determineIfIsGroupOrPerson(relation.target) === NodeType.MEMBER &&
+				'groupTypeRoleId' in relation.target &&
+				'groupMemberStatus' in relation.target &&
+				'personId' in relation.target
+			) {
+				renderedEdges += `<edge source="${groupIdentifier(relation.source)}" target="${roleIdentifier(
+					relation.target,
+				)}"/>`;
+				renderedEdges += `<edge source="${roleIdentifier(relation.target)}" target="${personIdentifier(
+					relation.target,
+				)}"/>`;
+			}
+		}
 	}
 
 	return renderedEdges;
@@ -81,6 +114,12 @@ const renderFooter = () => {
 </graphml>`;
 };
 
-export const generateGraphMLFile = ({ nodes, relations }: { nodes: (Person | Group)[]; relations: Relation[] }) => {
+export const generateGraphMLFile = ({
+	nodes,
+	relations,
+}: {
+	nodes: (Group | GroupMember)[];
+	relations: Relation[];
+}) => {
 	return renderHeader() + renderNodes(nodes) + renderEdges(relations) + renderFooter();
 };
