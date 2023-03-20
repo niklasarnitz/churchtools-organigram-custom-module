@@ -1,12 +1,16 @@
 import { useAppStore } from './../state/useAppStore';
+import _ from 'lodash';
+import type { Group } from '../models/Group';
+import type { Person } from './../models/Person';
 import type { Relation } from './../models/Relation';
 
 // TODO: Fix this complexity!
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export const createRelatedData = () => {
+export const createData = (groupRoleIdsToExclude: number[]) => {
 	const { hierarchies, groupsById, groups, groupMembers, personsById } = useAppStore.getState();
 
 	const relations: Relation[] = [];
+	const nodes: (Group | Person)[] = [];
 
 	for (const hierarchy of hierarchies) {
 		const group = groupsById[hierarchy.groupId];
@@ -20,6 +24,10 @@ export const createRelatedData = () => {
 						source: parentGroup,
 						target: group,
 					});
+
+					if (!_.includes(nodes, group)) {
+						nodes.push(group);
+					}
 				}
 			}
 
@@ -31,6 +39,14 @@ export const createRelatedData = () => {
 						source: group,
 						target: childGroup,
 					});
+
+					if (!_.includes(nodes, group)) {
+						nodes.push(group);
+					}
+
+					if (!_.includes(nodes, childGroup)) {
+						nodes.push(childGroup);
+					}
 				}
 			}
 		}
@@ -43,15 +59,26 @@ export const createRelatedData = () => {
 			for (const groupMember of groupMembersForGroup) {
 				const person = personsById[groupMember.personId];
 
-				if (person) {
+				if (!groupRoleIdsToExclude.includes(groupMember.groupTypeRoleId) && person) {
 					relations.push({
 						source: group,
 						target: person,
 					});
+
+					if (!_.includes(nodes, group)) {
+						nodes.push(group);
+					}
+
+					if (!_.includes(nodes, person)) {
+						nodes.push(person);
+					}
 				}
 			}
 		}
 	}
 
-	return relations;
+	return {
+		relations,
+		nodes,
+	};
 };

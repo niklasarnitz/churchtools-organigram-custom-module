@@ -9,10 +9,10 @@ const root = ReactDOM.createRoot(
 );
 
 async function start() {
-	churchtoolsClient.setBaseUrl('https://test.church.tools'); // Replace with your login
+	churchtoolsClient.setBaseUrl(process.env.REACT_APP_CTURL ?? ""); // Replace with your login
 	await churchtoolsClient.post('/login', {
-		username: 'username',
-		password: 'password',
+		username: process.env.REACT_APP_USERNAME,
+		password: process.env.REACT_APP_PASSWORD,
 	})
 
 	root.render(

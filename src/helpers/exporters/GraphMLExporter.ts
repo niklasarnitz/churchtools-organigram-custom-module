@@ -1,5 +1,4 @@
 import { determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
-import { useAppStore } from '../../state/useAppStore';
 import type { Group } from '../../models/Group';
 import type { Person } from './../../models/Person';
 import type { Relation } from '../../models/Relation';
@@ -82,10 +81,6 @@ const renderFooter = () => {
 </graphml>`;
 };
 
-export const generateGraphMLFile = (relations: Relation[]) => {
-	const state = useAppStore.getState();
-
-	const nodes = [...state.persons, ...state.groups];
-
+export const generateGraphMLFile = ({ nodes, relations }: { nodes: (Person | Group)[]; relations: Relation[] }) => {
 	return renderHeader() + renderNodes(nodes) + renderEdges(relations) + renderFooter();
 };

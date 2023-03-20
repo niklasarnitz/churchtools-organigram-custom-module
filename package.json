@@ -4,6 +4,10 @@
 	"private": true,
 	"dependencies": {
 		"@churchtools/churchtools-client": "^1.2.14",
+		"@fortawesome/fontawesome-svg-core": "^6.3.0",
+		"@fortawesome/free-solid-svg-icons": "^6.3.0",
+		"@fortawesome/react-fontawesome": "^0.2.0",
+		"@geist-ui/core": "^2.3.8",
 		"@projectstorm/react-diagrams": "^7.0.2",
 		"@react-sigma/core": "^3.3.0",
 		"@react-sigma/layout-core": "^3.3.0",
@@ -53,6 +57,7 @@
 		]
 	},
 	"devDependencies": {
+		"@types/lodash": "^4.14.191",
 		"@typescript-eslint/eslint-plugin": "^5.54.1",
 		"autoprefixer": "^10.4.13",
 		"eslint": "^8.35.0",

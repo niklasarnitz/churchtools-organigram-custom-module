@@ -1,13 +1,17 @@
 import { create } from 'zustand';
 import { fetchGroupMembers } from '../api/routes/fetchGroupMembers';
+import { fetchGroupRoles } from '../api/routes/fetchGroupRoles';
+import { fetchGroupTypes } from '../api/routes/fetchGroupTypes';
 import { fetchGroups } from '../api/routes/fetchGroups';
 import { fetchHierarchies } from '../api/routes/fetchHierarchies';
 import { fetchPersons } from '../api/routes/fetchPersons';
+import _ from 'lodash';
 import type { Group } from '../models/Group';
 import type { GroupMember } from '../models/GroupMember';
+import type { GroupRole } from '../models/GroupRole';
+import type { GroupType } from '../models/GroupType';
 import type { Hierarchy } from '../models/Hierarchy';
 import type { Person } from '../models/Person';
-import type { Relation } from './../models/Relation';
 
 type GroupState = {
 	persons: Person[];
@@ -19,11 +23,17 @@ type GroupState = {
 	hierarchies: Hierarchy[];
 	hierarchiesByGroup: Record<number, Hierarchy>;
 	isLoading: boolean;
+	groupTypes: GroupType[];
+	groupTypesById: Record<number, GroupType>;
+	groupRoles: GroupRole[];
+	groupRolesByType: Record<number, GroupRole[]>;
+
+	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
 	fetchPersons: () => Promise<void>;
-	relations: Relation[];
-	addRelation: (relation: Relation) => void;
+	fetchGroupRoles: () => Promise<void>;
+	fetchGroupTypes: () => Promise<void>;
 };
 
 export const useAppStore = create<GroupState>((set, get) => ({
@@ -35,7 +45,10 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groupMembers: {} as Record<number, GroupMember[]>,
 	hierarchies: [] as Hierarchy[],
 	hierarchiesByGroup: {} as Record<number, Hierarchy>,
-	relations: [] as Relation[],
+	groupTypes: [] as GroupType[],
+	groupTypesById: {} as Record<number, GroupType>,
+	groupRoles: [] as GroupRole[],
+	groupRolesByType: {} as Record<number, GroupRole[]>,
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
@@ -75,9 +88,24 @@ export const useAppStore = create<GroupState>((set, get) => ({
 		if (persons) set({ persons, personsById: Object.fromEntries(persons.map((person) => [person.id, person])) });
 		set({ isLoading: false });
 	},
-	addRelation: (relation: Relation) => {
-		set((state) => ({
-			relations: [...state.relations, relation],
-		}));
+	fetchGroupTypes: async () => {
+		set({ isLoading: true });
+		const groupTypes = await fetchGroupTypes();
+		if (groupTypes)
+			set({
+				groupTypes,
+				groupTypesById: Object.fromEntries(groupTypes.map((groupType) => [groupType.id, groupType])),
+			});
+		set({ isLoading: false });
+	},
+	fetchGroupRoles: async () => {
+		set({ isLoading: true });
+		const groupRoles = await fetchGroupRoles();
+		if (groupRoles)
+			set({
+				groupRoles,
+				groupRolesByType: _.groupBy(groupRoles, 'groupTypeId'),
+			});
+		set({ isLoading: false });
 	},
 }));
