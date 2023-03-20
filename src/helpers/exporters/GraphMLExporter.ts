@@ -29,11 +29,11 @@ const renderNodes = (nodes: (Person | Group)[]) => {
 			const groupNode = `<node id="group-${group.id}">
 				<data key="d6">
 					<y:ShapeNode>
-						<y:Geometry height="30.0" width="30.0" x="0.0" y="0.0"/>
+						<y:Geometry height="100" width="550" x="0.0" y="0.0"/>
 						<y:Fill color="#FFCC00" transparent="false"/>
 						<y:BorderStyle color="#000000" type="line" width="1.0"/>
-						<y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="28.0" x="1.0" y="5.6494140625">${group.name}</y:NodeLabel>
-						<y:Shape type="ellipse"/>
+						<y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontSize="35" fontStyle="plain" hasLineColor="false" hasBackgroundColor="false" horizontalTextPosition="center">${group.name}</y:NodeLabel>
+						<y:Shape type="roundrectangle"/>
 					</y:ShapeNode>
 				</data>
 			</node>`;
@@ -44,11 +44,11 @@ const renderNodes = (nodes: (Person | Group)[]) => {
 			const personNode = `<node id="person-${person.id}">
 				<data key="d6">
 					<y:ShapeNode>
-						<y:Geometry height="30.0" width="30.0" x="0.0" y="0.0"/>
-						<y:Fill color="#FFCC00" transparent="false"/>
+						<y:Geometry height="100.0" width="400.0" x="0.0" y="0.0"/>
+						<y:Fill color="#FFCCFF" transparent="false"/>
 						<y:BorderStyle color="#000000" type="line" width="1.0"/>
-						<y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="28.0" x="1.0" y="5.6494140625">${person.firstName} ${person.lastName}</y:NodeLabel>
-						<y:Shape type="roundrectangle"/>
+						<y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontSize="35" fontStyle="plain" hasLineColor="false" hasBackgroundColor="false" horizontalTextPosition="center">${person.firstName} ${person.lastName}</y:NodeLabel>
+						<y:Shape type="polygon"/>
 					</y:ShapeNode>
 				</data>
 			</node>`;

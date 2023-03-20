@@ -16,20 +16,6 @@ export const createData = (groupRoleIdsToExclude: number[]) => {
 		const group = groupsById[hierarchy.groupId];
 
 		if (group) {
-			for (const parent of hierarchy.parents) {
-				const parentGroup = groupsById[parent];
-
-				if (parentGroup) {
-					relations.push({
-						source: parentGroup,
-						target: group,
-					});
-
-					if (!_.includes(nodes, group)) {
-						nodes.push(group);
-					}
-				}
-			}
 
 			for (const child of hierarchy.children) {
 				const childGroup = groupsById[child];
