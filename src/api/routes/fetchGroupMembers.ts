@@ -2,11 +2,11 @@ import { Logger } from '../../globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import type { GroupMember } from './../../models/GroupMember';
 
-export const fetchGroupMembers = async (groupId: number) => {
+export const fetchGroupMembers = async () => {
 	try {
-		Logger.log(`API: Fetching group members of group ${groupId}`);
+		Logger.log('API: Fetching group members');
 
-		return (await churchtoolsClient.getAllPages(`/groups/${groupId}/members`)) as GroupMember[];
+		return (await churchtoolsClient.get(`/groups/members`)) as GroupMember[];
 	} catch (error) {
 		console.error(error);
 	}

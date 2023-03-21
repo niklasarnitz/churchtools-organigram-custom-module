@@ -1,44 +1,47 @@
+import { MarkerType, Position } from 'reactflow';
 import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
-import { Position } from 'reactflow';
 import { groupIdentifier, personIdentifier, roleIdentifier } from './GraphMLConverter';
-import type { EnhancedGroupMember } from './../../models/EnhancedGroupMember';
-import type { Group } from './../../models/Group';
+import { useAppStore } from './../../state/useAppStore';
+import type { DataNode } from './../../models/DataNode';
 import type { Relation } from './../../models/Relation';
 
 const zeroPosition = { x: 0, y: 0 };
 const edgeType = 'smoothstep';
 
-export const getReflowNodes = (nodes: (Group | EnhancedGroupMember)[]) => {
+export const getReflowNodes = (nodes: DataNode[]) => {
 	const reflowNodes = [];
 
 	for (const node of nodes) {
 		if (determineIfIsGroupOrPerson(node) === NodeType.GROUP && 'name' in node) {
 			reflowNodes.push({
 				id: groupIdentifier(node),
-				sourcePosition: Position.Top,
-				targetPosition: Position.Bottom,
+				sourcePosition: Position.Bottom,
+				targetPosition: Position.Top,
 				data: {
 					label: node.name,
 				},
 				position: zeroPosition,
 			});
 		} else if ('groupTypeRoleId' in node) {
+			const person = useAppStore.getState().personsById[node.personId];
+			const group = useAppStore.getState().groupsById[node.groupId];
+
 			reflowNodes.push(
 				{
 					id: roleIdentifier(node),
-					sourcePosition: Position.Top,
-					targetPosition: Position.Bottom,
+					sourcePosition: Position.Bottom,
+					targetPosition: Position.Top,
 					data: {
-						label: node.group.name,
+						label: group.name,
 					},
 					position: zeroPosition,
 				},
 				{
 					id: personIdentifier(node),
-					sourcePosition: Position.Top,
-					targetPosition: Position.Bottom,
+					sourcePosition: Position.Bottom,
+					targetPosition: Position.Top,
 					data: {
-						label: `${node.person.firstName} ${node.person.lastName}`,
+						label: `${person.firstName} ${person.lastName}`,
 					},
 					position: zeroPosition,
 				},
@@ -59,6 +62,9 @@ export const getReflowEdges = (relations: Relation[]) => {
 				source: groupIdentifier(relation.source),
 				target: groupIdentifier(relation.target),
 				type: edgeType,
+				markerEnd: {
+					type: MarkerType.Arrow,
+				},
 			});
 		} else {
 			if (
@@ -74,12 +80,18 @@ export const getReflowEdges = (relations: Relation[]) => {
 						source: groupIdentifier(relation.source),
 						target: roleIdentifier(relation.target),
 						type: edgeType,
+						markerEnd: {
+							type: MarkerType.Arrow,
+						},
 					},
 					{
 						id: `${roleIdentifier(relation.target)}-${personIdentifier(relation.target)}`,
 						source: roleIdentifier(relation.target),
 						target: personIdentifier(relation.target),
 						type: edgeType,
+						markerEnd: {
+							type: MarkerType.Arrow,
+						},
 					},
 				);
 			}

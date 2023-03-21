@@ -18,8 +18,7 @@ type GroupState = {
 	personsById: Record<number, Person>;
 	groups: Group[];
 	groupsById: Record<number, Group>;
-	// Record<groupId, GroupMember[]>
-	groupMembers: Record<number, GroupMember[]>;
+	groupMembers: GroupMember[];
 	hierarchies: Hierarchy[];
 	hierarchiesByGroup: Record<number, Hierarchy>;
 	isLoading: boolean;
@@ -45,7 +44,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	personsById: {} as Record<number, Person>,
 	groups: [] as Group[],
 	groupsById: {} as Record<number, Group>,
-	groupMembers: {} as Record<number, GroupMember[]>,
+	groupMembers: [] as GroupMember[],
 	hierarchies: [] as Hierarchy[],
 	hierarchiesByGroup: {} as Record<number, Hierarchy>,
 	groupTypes: [] as GroupType[],
@@ -59,19 +58,10 @@ export const useAppStore = create<GroupState>((set, get) => ({
 
 		if (groups) set({ groups, groupsById: Object.fromEntries(groups.map((group) => [group.id, group])) });
 
-		if (withMembers && groups) {
-			for (const group of groups) {
-				const groupMembers = await fetchGroupMembers(group.id);
+		if (withMembers) {
+			const groupMembers = await fetchGroupMembers();
 
-				if (groupMembers) {
-					set((state) => ({
-						groupMembers: {
-							...state.groupMembers,
-							[group.id]: groupMembers,
-						},
-					}));
-				}
-			}
+			if (groupMembers) set({ groupMembers });
 		}
 
 		set({ isLoading: false });

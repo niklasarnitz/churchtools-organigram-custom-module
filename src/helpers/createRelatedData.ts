@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import type { EnhancedGroupMember } from './../models/EnhancedGroupMember';
 import type { Group } from '../models/Group';
 import type { GroupMember } from './../models/GroupMember';
 import type { Hierarchy } from './../models/Hierarchy';
@@ -11,12 +10,12 @@ export const createData = (
 	hierarchies: Hierarchy[],
 	groupsById: Record<number, Group>,
 	groups: Group[],
-	groupMembers: Record<number, GroupMember[]>,
+	groupMembers: GroupMember[],
 	groupRoleIdsToExclude: number[],
 	// eslint-disable-next-line sonarjs/cognitive-complexity
 ) => {
 	const relations: Relation[] = [];
-	const nodes: (Group | EnhancedGroupMember)[] = [];
+	const nodes: (Group | GroupMember)[] = [];
 
 	for (const hierarchy of hierarchies) {
 		const group = groupsById[hierarchy.groupId];
@@ -39,36 +38,21 @@ export const createData = (
 		}
 	}
 
-	for (const group of groups) {
-		const groupMembersForGroup = groupMembers[group.id];
+	for (const groupMember of groupMembers) {
+		if (!groupRoleIdsToExclude.includes(groupMember.groupTypeRoleId)) {
+			const group = groupsById[groupMember.groupId];
 
-		if (groupMembersForGroup) {
-			for (const groupMember of groupMembersForGroup) {
-				if (!groupRoleIdsToExclude.includes(groupMember.groupTypeRoleId)) {
-					relations.push({
-						source: group,
-						target: {
-							...groupMember,
-							group,
-						},
-					});
+			relations.push({
+				source: group,
+				target: groupMember,
+			});
 
-					if (
-						!_.includes(nodes, {
-							...groupMember,
-							group,
-						})
-					) {
-						nodes.push({
-							...groupMember,
-							group,
-						});
-					}
+			if (!_.includes(nodes, groupMember)) {
+				nodes.push(groupMember);
+			}
 
-					if (!_.includes(nodes, group)) {
-						nodes.push(group);
-					}
-				}
+			if (!_.includes(nodes, group)) {
+				nodes.push(group);
 			}
 		}
 	}

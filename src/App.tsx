@@ -8,6 +8,7 @@ import { useAppStore } from './state/useAppStore';
 import React, { useCallback, useEffect, useState } from 'react';
 import _ from 'lodash';
 import moment from 'moment';
+import type { GraphData } from './models/GraphData';
 
 function App() {
 	const fetchPersons = useAppStore((s) => s.fetchPersons);
@@ -32,15 +33,22 @@ function App() {
 
 	const isLoading = reducerIsLoading || localIsLoading;
 
+	const [graphData, setGraphData] = useState<GraphData | undefined>()
+
 	const didPressDownloadGraphML = useCallback(() => {
 		Logger.log('Downloading generated GraphML file.');
 		Logger.log('Updating GraphML data.');
-		downloadTextFile(
-			generateGraphMLData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles)),
-			`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
-			document,
-		);
-	}, [groupMembers, groups, groupsById, hierarchies, selectedRoles]);
+		const localGraphData = createData(hierarchies, groupsById, groups, groupMembers, selectedRoles)
+		setGraphData(localGraphData);
+
+		if (graphData) {
+			downloadTextFile(generateGraphMLData(localGraphData),
+				`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
+				document,
+			);
+		}
+
+	}, [graphData, groupMembers, groups, groupsById, hierarchies, selectedRoles]);
 
 	// Callbacks
 	const renderGroupTypes = useCallback(() => {
@@ -51,7 +59,6 @@ function App() {
 					placeholder="Keine exkludierten Gruppenrollen ausgewählt"
 					value={selectedRoles.map(String)}
 					multiple
-					initialValue={groupRoles.map((groupRole) => String(groupRole.id))}
 					onChange={setSelectedRoles}
 				>
 					{_.sortBy(
@@ -75,30 +82,45 @@ function App() {
 		Promise.all([fetchPersons(), fetchGroups(true), fetchHierarchies(), fetchGroupTypes(), fetchGroupRoles()]).then(
 			() => {
 				setLocalIsLoading(false);
+				setGraphData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles));
+				setSelectedRoles(groupRoles.filter((value) => !value.isLeader).map((groupRole) => String(groupRole.id)))
 			},
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	useEffect(() => {
+		setGraphData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles));
+	}, [groupMembers, groups, groupsById, hierarchies, selectedRoles]);
+
 	return (
 		<GeistProvider>
 			<CssBaseline />
-			<div className="m-4">
-				{renderGroupTypes()}
-				{!isLoading && (
-					<ButtonDropdown>
-						<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
-							Export als GraphML Datei
-						</ButtonDropdown.Item>
-						<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
-					</ButtonDropdown>
-				)}
-				{isLoading && <Loading>Daten werden geladen.</Loading>}
-				{!isLoading && (
-					<div className="h-[1000px]">
-						<PreviewGraph />
-					</div>
-				)}
+			<div className='m-2 flex'>
+				<nav
+					className='w-64 shrink-0 bg-white pr-3'
+				>
+					{renderGroupTypes()}
+					{!isLoading && (
+						<ButtonDropdown className='mt-3'>
+							<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
+								Export als GraphML Datei
+							</ButtonDropdown.Item>
+							<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
+						</ButtonDropdown>
+					)}
+					{isLoading && <Loading>Daten werden geladen.</Loading>}
+				</nav>
+				<main
+					className='w-[calc(100%-16rem)] flex-1 p-3'
+				>
+					{!isLoading && graphData && (
+						<div className="h-full min-h-full">
+							<Text h3>Export Vorschau</Text>
+							<PreviewGraph graphData={graphData} />
+						</div>
+					)}
+				</main>
 			</div>
 		</GeistProvider>
 	);

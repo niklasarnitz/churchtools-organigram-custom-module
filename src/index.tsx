@@ -8,23 +8,22 @@ const root = ReactDOM.createRoot(
 	document.querySelector('#root') as HTMLElement
 );
 
-async function start() {
-	churchtoolsClient.setBaseUrl(process.env.REACT_APP_CTURL ?? ""); // Replace with your login
+if (process.env.NODE_ENV === 'development') {
+	// eslint-disable-next-line no-inner-declarations
+	churchtoolsClient.setBaseUrl(process.env.REACT_APP_CTURL ?? "");
 	await churchtoolsClient.post('/login', {
 		username: process.env.REACT_APP_USERNAME,
 		password: process.env.REACT_APP_PASSWORD,
 	})
-
-	root.render(
-		<React.StrictMode>
-			<App />
-		</React.StrictMode>
-	);
 }
 
+root.render(
+	<React.StrictMode>
+		<App />
+	</React.StrictMode>
+);
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
-start();
+
 
 
 

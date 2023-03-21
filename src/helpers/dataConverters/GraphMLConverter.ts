@@ -1,18 +1,20 @@
 import { NodeType, determineIfIsGroupOrPerson } from '../determineIfIsGroupOrPerson';
 import { useAppStore } from '../../state/useAppStore';
-import type { EnhancedGroupMember } from '../../models/EnhancedGroupMember';
+import type { DataNode } from './../../models/DataNode';
+import type { GraphData } from './../../models/GraphData';
 import type { Group } from '../../models/Group';
+import type { GroupMember } from './../../models/GroupMember';
 import type { Relation } from '../../models/Relation';
 
-export const roleString = (member: EnhancedGroupMember) => {
+export const roleString = (member: GroupMember) => {
 	return useAppStore.getState().groupRoles.find((role) => role.id === member.groupTypeRoleId)?.name || 'Unknown Role';
 };
 
-export const roleIdentifier = (member: EnhancedGroupMember) => {
-	return `role-${member.groupTypeRoleId}-${member.group?.id}`;
+export const roleIdentifier = (member: GroupMember) => {
+	return `role-${member.groupTypeRoleId}-${member.groupId}`;
 };
 
-export const personIdentifier = (member: EnhancedGroupMember) => `person-${member.personId}`;
+export const personIdentifier = (member: GroupMember) => `person-${member.personId}`;
 
 export const groupIdentifier = (group: Group) => `group-${group.id}`;
 
@@ -31,7 +33,7 @@ const renderHeader = () => {
 	return `${XML_HEADER}\n${GRAPHML_HEADER_YED}\n${KEYS_FOR_YED}\n${GRAPH_START}`;
 };
 
-const renderNodes = (nodes: (Group | EnhancedGroupMember)[]) => {
+const renderNodes = (nodes: DataNode[]) => {
 	if (nodes.length === 0) return '';
 
 	let renderedNodes = '';
@@ -54,7 +56,7 @@ const renderNodes = (nodes: (Group | EnhancedGroupMember)[]) => {
 			</node>`;
 			renderedNodes += groupNode;
 		} else {
-			const member = node as EnhancedGroupMember;
+			const member = node as GroupMember;
 
 			if (!renderedNodes.includes(`id="${roleIdentifier(member)}"`)) {
 				renderedNodes += `<node id="${roleIdentifier(member)}">
@@ -126,12 +128,6 @@ const renderFooter = () => {
 </graphml>`;
 };
 
-export const generateGraphMLData = ({
-	nodes,
-	relations,
-}: {
-	nodes: (Group | EnhancedGroupMember)[];
-	relations: Relation[];
-}) => {
+export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 	return renderHeader() + renderNodes(nodes) + renderEdges(relations) + renderFooter();
 };
