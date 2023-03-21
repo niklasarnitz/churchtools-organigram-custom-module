@@ -1,6 +1,6 @@
 import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
 import { Position } from 'reactflow';
-import { groupIdentifier, personIdentifier, roleIdentifier } from './GraphMLExporter';
+import { groupIdentifier, personIdentifier, roleIdentifier } from './GraphMLConverter';
 import type { EnhancedGroupMember } from './../../models/EnhancedGroupMember';
 import type { Group } from './../../models/Group';
 import type { Relation } from './../../models/Relation';

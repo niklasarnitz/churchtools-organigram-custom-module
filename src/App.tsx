@@ -3,7 +3,7 @@ import { Logger } from './globals/Logger';
 import { PreviewGraph } from './components/PreviewGraph';
 import { createData } from './helpers/createRelatedData';
 import { downloadTextFile } from './helpers/downloadTextFile';
-import { generateGraphMLFile } from './helpers/dataConverters/GraphMLExporter';
+import { generateGraphMLData } from './helpers/dataConverters/GraphMLConverter';
 import { useAppStore } from './state/useAppStore';
 import React, { useCallback, useEffect, useState } from 'react';
 import _ from 'lodash';
@@ -36,7 +36,7 @@ function App() {
 		Logger.log('Downloading generated GraphML file.');
 		Logger.log('Updating GraphML data.');
 		downloadTextFile(
-			generateGraphMLFile(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles)),
+			generateGraphMLData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles)),
 			`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
 			document,
 		);
