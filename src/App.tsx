@@ -83,7 +83,7 @@ function App() {
 			() => {
 				setLocalIsLoading(false);
 				setGraphData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles));
-				setSelectedRoles(groupRoles.filter((value) => !value.isLeader).map((groupRole) => String(groupRole.id)))
+				setSelectedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((groupRole) => String(groupRole.id)))
 			},
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,7 +115,7 @@ function App() {
 					className='w-[calc(100%-16rem)] flex-1 p-3'
 				>
 					{!isLoading && graphData && (
-						<div className="h-full min-h-full">
+						<div className="h-[1000px]">
 							<Text h3>Export Vorschau</Text>
 							<PreviewGraph graphData={graphData} />
 						</div>

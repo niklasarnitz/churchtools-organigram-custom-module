@@ -7,6 +7,10 @@ export enum NodeType {
 }
 
 export const determineIfIsGroupOrPerson = (node: Group | GroupMember) => {
+	if (!node) {
+		return;
+	}
+
 	if ('personId' in node) {
 		return NodeType.MEMBER;
 	}
