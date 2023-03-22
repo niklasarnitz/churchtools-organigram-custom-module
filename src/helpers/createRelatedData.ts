@@ -39,20 +39,22 @@ export const createData = (
 	}
 
 	for (const groupMember of groupMembers) {
-		if (!groupRoleIdsToExclude.includes(groupMember.groupTypeRoleId)) {
+		if (groupMember && !groupRoleIdsToExclude.includes(groupMember.groupTypeRoleId)) {
 			const group = groupsById[groupMember.groupId];
 
-			relations.push({
-				source: group,
-				target: groupMember,
-			});
+			if (group) {
+				relations.push({
+					source: group,
+					target: groupMember,
+				});
 
-			if (!_.includes(nodes, groupMember)) {
-				nodes.push(groupMember);
-			}
+				if (!_.includes(nodes, groupMember)) {
+					nodes.push(groupMember);
+				}
 
-			if (!_.includes(nodes, group)) {
-				nodes.push(group);
+				if (!_.includes(nodes, group)) {
+					nodes.push(group);
+				}
 			}
 		}
 	}

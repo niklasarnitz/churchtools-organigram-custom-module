@@ -8,20 +8,22 @@ import ReactFlow, {
 	Controls
 } from 'reactflow';
 import dagre from 'dagre';
-import type { GraphData } from '../models/GraphData';
+import type { DataNode } from '../models/DataNode';
 import type {
 	Node
 } from 'reactflow';
+import type { Relation } from '../models/Relation';
 
 export type PreviewGraphProps = {
-	graphData: GraphData;
+	relations: Relation[];
+	nodes: DataNode[];
 }
 
-export const PreviewGraph = ({ graphData }: PreviewGraphProps) => {
+export const PreviewGraph = ({ relations, nodes }: PreviewGraphProps) => {
 	const layoutedNodes: Node[] = [];
 	const layoutedEdges: any[] = [];
-	layoutedEdges.push(...getReflowEdges(graphData.relations));
-	const bareNodes = getReflowNodes(graphData.nodes);
+	layoutedEdges.push(...getReflowEdges(relations));
+	const bareNodes = getReflowNodes(nodes);
 
 	const dagreGraph = new dagre.graphlib.Graph();
 	dagreGraph.setDefaultEdgeLabel(() => ({}));

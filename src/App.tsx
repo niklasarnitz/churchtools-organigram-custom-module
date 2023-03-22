@@ -1,4 +1,4 @@
-import { ButtonDropdown, CssBaseline, GeistProvider, Loading, Select, Text } from '@geist-ui/core';
+import { ButtonDropdown, Loading, Select } from '@geist-ui/core'
 import { Logger } from './globals/Logger';
 import { PreviewGraph } from './components/PreviewGraph';
 import { createData } from './helpers/createRelatedData';
@@ -36,30 +36,34 @@ function App() {
 	const [graphData, setGraphData] = useState<GraphData | undefined>()
 
 	const didPressDownloadGraphML = useCallback(() => {
-		Logger.log('Downloading generated GraphML file.');
 		Logger.log('Updating GraphML data.');
-		const localGraphData = createData(hierarchies, groupsById, groups, groupMembers, selectedRoles)
-		setGraphData(localGraphData);
 
-		if (graphData) {
+		const localGraphData = createData(hierarchies, groupsById, groups, groupMembers, selectedRoles)
+		// eslint-disable-next-line no-console
+
+		if (localGraphData) {
+			Logger.log('Downloading generated GraphML file.');
 			downloadTextFile(generateGraphMLData(localGraphData),
 				`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
 				document,
 			);
 		}
 
-	}, [graphData, groupMembers, groups, groupsById, hierarchies, selectedRoles]);
+		setGraphData(localGraphData);
+
+	}, [groupMembers, groups, groupsById, hierarchies, selectedRoles]);
 
 	// Callbacks
 	const renderGroupTypes = useCallback(() => {
 		return (
 			<div className="flex-col">
-				<Text h5>Zu exkludierende Gruppenrollen</Text>
+				<h5>Zu exkludierende Gruppenrollen</h5>
 				<Select
 					placeholder="Keine exkludierten Gruppenrollen ausgewählt"
 					value={selectedRoles.map(String)}
 					multiple
 					onChange={setSelectedRoles}
+					className="w-[17rem]"
 				>
 					{_.sortBy(
 						groupRoles,
@@ -72,7 +76,7 @@ function App() {
 						);
 					})}
 				</Select>
-			</div>
+			</div >
 		);
 	}, [groupRoles, groupTypesById, selectedRoles, setSelectedRoles]);
 
@@ -83,7 +87,7 @@ function App() {
 			() => {
 				setLocalIsLoading(false);
 				setGraphData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles));
-				setSelectedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((groupRole) => String(groupRole.id)))
+				setSelectedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((value) => String(value.id)));
 			},
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,35 +98,32 @@ function App() {
 	}, [groupMembers, groups, groupsById, hierarchies, selectedRoles]);
 
 	return (
-		<GeistProvider>
-			<CssBaseline />
-			<div className='m-2 flex h-full w-full'>
-				<nav
-					className='w-64 shrink-0 bg-white pr-3'
-				>
-					{renderGroupTypes()}
-					{!isLoading && (
-						<ButtonDropdown className='relative bottom-0 mt-3'>
-							<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
-								Export als GraphML Datei
-							</ButtonDropdown.Item>
-							<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
-						</ButtonDropdown>
-					)}
+		<div className='m-2 flex h-full w-full'>
+			<nav
+				className='w-[18rem] shrink-0 bg-white pr-3'
+			>
+				{renderGroupTypes()}
+				{!isLoading && (
+					<ButtonDropdown className='mt-3'>
+						<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
+							Export als GraphML Datei
+						</ButtonDropdown.Item>
+						<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
+					</ButtonDropdown>
+				)}
 
-				</nav>
-				<main
-					className=' w-[calc(100%-16rem)] flex-1 grow'
-				>
-					{isLoading && <Loading>Daten werden geladen.</Loading>}
-					{
-						!isLoading && graphData && <div className='h-screen'>
-							<PreviewGraph graphData={graphData} />
-						</div>
-					}
-				</main>
-			</div>
-		</GeistProvider>
+			</nav>
+			<main
+				className=' w-[calc(100%-18rem)] flex-1 grow'
+			>
+				{isLoading && <Loading>Daten werden geladen.</Loading>}
+				{
+					!isLoading && graphData && <div className='h-screen'>
+						<PreviewGraph relations={graphData.relations} nodes={graphData.nodes} />
+					</div>
+				}
+			</main>
+		</div>
 	);
 }
 

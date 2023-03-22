@@ -51,7 +51,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groupTypesById: {} as Record<number, GroupType>,
 	groupRoles: [] as GroupRole[],
 	groupRolesByType: {} as Record<number, GroupRole[]>,
-	selectedRoles: [],
+	selectedRoles: [] as number[],
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
