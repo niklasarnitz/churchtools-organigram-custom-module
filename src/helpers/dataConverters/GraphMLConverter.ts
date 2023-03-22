@@ -53,8 +53,12 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			const groupNode = graphML.createElement('node');
 			groupNode.setAttribute('id', groupIdentifier(group));
 
-			const data = graphML.createElement('data');
-			data.setAttribute('key', 'd6');
+			const data6 = graphML.createElement('data');
+			data6.setAttribute('key', 'd6');
+
+			const data5 =  graphML.createElement('data');
+			data5.setAttribute('key', 'd5');
+			data5.append("lieschen müller");
 
 			const shapeNode = graphML.createElement(graphMLShapeNodeTag);
 
@@ -74,7 +78,7 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			borderStyle.setAttribute('width', '1.0');
 
 			const nodeLabel = graphML.createElement(graphMLNodeLabelTag);
-			nodeLabel.setAttribute('alignment', 'center');
+			nodeLabel.setAttribute('alignment', 'top');
 			nodeLabel.setAttribute('autoSizePolicy', 'node_width');
 			nodeLabel.setAttribute('configuration', 'CroppingLabel');
 			nodeLabel.setAttribute('fontSize', '35');
@@ -93,9 +97,10 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			shapeNode.append(nodeLabel);
 			shapeNode.append(shape);
 
-			data.append(shapeNode);
+			data6.append(shapeNode);
 
-			groupNode.append(data);
+			groupNode.append(data6);
+			groupNode.append(data5);
 
 			graphElement.append(groupNode);
 		} else {
