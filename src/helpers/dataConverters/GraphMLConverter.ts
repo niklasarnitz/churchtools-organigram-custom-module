@@ -23,8 +23,11 @@ const graphMLNodeGeometryTag = 'y:Geometry';
 
 // This function looks like it's doing a lot, but it's just converting the data into a format that can be used by the graphML library.
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
+export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExclude: number[]) => {
 	const graphML = new Document();
+
+	const comment = graphML.createComment('Created by churchtools-organigram-custom-module');
+	graphML.append(comment);
 
 	const graphMLElement = graphML.createElement('graphml');
 	graphMLElement.setAttribute('xmlns', 'http://graphml.graphdrawing.org/xmlns');
@@ -59,9 +62,37 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 
 			const shapeNode = graphML.createElement(graphMLShapeNodeTag);
 
+			const groupMembers = useAppStore.getState().groupMembers.filter((member) => member.groupId === group.id);
+			const personsById = useAppStore.getState().personsById;
+
+			const roles = useAppStore.getState().groupRoles;
+
+			const groupRoles = [...new Set(groupMembers.map((member) => member.groupTypeRoleId))].filter(
+				(roleId) => !rolesToExclude.includes(roleId),
+			);
+
+			const groupMemberString = groupRoles
+				.map((roleId) => {
+					const personsWithRole = groupMembers.filter((member) => member.groupTypeRoleId === roleId);
+					const personsWithRoleNames = personsWithRole.map(
+						(member) =>
+							personsById[member.personId].firstName + ' ' + personsById[member.personId].lastName,
+					);
+
+					return `${roles.find((role) => role.id === roleId)?.name}: ${personsWithRoleNames.join(', ')}`;
+				})
+				.join('<br>');
+
+			const nodeString = `<html><div style="width=100%;"><p style="text-align: center;"><b>${group.name}</b><br><br>${groupMemberString}</p></div></html>`;
+
+			const nodeHeight =
+				nodeString.split('\n').length === 1
+					? String(2 * 20)
+					: String((nodeString.split('<br>').length + 3) * 20);
+
 			const geometry = graphML.createElement(graphMLNodeGeometryTag);
-			geometry.setAttribute('height', '100');
-			geometry.setAttribute('width', '550');
+			geometry.setAttribute('height', nodeHeight);
+			geometry.setAttribute('width', '100.0');
 			geometry.setAttribute('x', '0.0');
 			geometry.setAttribute('y', '0.0');
 
@@ -75,15 +106,20 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			borderStyle.setAttribute('width', '1.0');
 
 			const nodeLabel = graphML.createElement(graphMLNodeLabelTag);
-			nodeLabel.setAttribute('alignment', 'top');
+			nodeLabel.setAttribute('alignment', 'center');
 			nodeLabel.setAttribute('autoSizePolicy', 'node_width');
-			nodeLabel.setAttribute('configuration', 'CroppingLabel');
-			nodeLabel.setAttribute('fontSize', '35');
+			nodeLabel.setAttribute('fontSize', '20');
 			nodeLabel.setAttribute('fontStyle', 'plain');
 			nodeLabel.setAttribute('hasLineColor', 'false');
 			nodeLabel.setAttribute('hasBackgroundColor', 'false');
 			nodeLabel.setAttribute('horizontalTextPosition', 'center');
-			nodeLabel.textContent = group.name;
+			nodeLabel.setAttribute('modelName', 'internal');
+			nodeLabel.setAttribute('modelPosition', 't');
+			nodeLabel.setAttribute('textColor', '#000000');
+			nodeLabel.setAttribute('verticalTextPosition', 'top');
+			nodeLabel.setAttribute('visible', 'true');
+			nodeLabel.setAttribute('xml:space', 'preserve');
+			nodeLabel.textContent = nodeString;
 
 			const shape = graphML.createElement('y:Shape');
 			shape.setAttribute('type', 'roundrectangle');
@@ -99,102 +135,6 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			groupNode.append(data6);
 
 			graphElement.append(groupNode);
-		} else {
-			const member = node as GroupMember;
-
-			if (!graphElement.querySelector(`[id="${roleIdentifier(member)}"]`)) {
-				const roleNode = graphML.createElement('node');
-				roleNode.setAttribute('id', roleIdentifier(member));
-
-				const data = graphML.createElement('data');
-				data.setAttribute('key', 'd6');
-
-				const shapeNode = graphML.createElement(graphMLShapeNodeTag);
-				const geometry = graphML.createElement(graphMLNodeGeometryTag);
-				geometry.setAttribute('height', '100');
-				geometry.setAttribute('width', '550');
-				geometry.setAttribute('x', '0.0');
-				geometry.setAttribute('y', '0.0');
-				shapeNode.append(geometry);
-
-				const shape = graphML.createElement('y:Shape');
-				shape.setAttribute('type', 'ellipse');
-
-				const nodeLabel = graphML.createElement(graphMLNodeLabelTag);
-				nodeLabel.setAttribute('alignment', 'center');
-				nodeLabel.setAttribute('autoSizePolicy', 'node_width');
-				nodeLabel.setAttribute('configuration', 'CroppingLabel');
-				nodeLabel.setAttribute('fontSize', '35');
-				nodeLabel.setAttribute('fontStyle', 'plain');
-				nodeLabel.setAttribute('hasLineColor', 'false');
-				nodeLabel.setAttribute('hasBackgroundColor', 'false');
-				nodeLabel.setAttribute('horizontalTextPosition', 'center');
-				nodeLabel.textContent = roleString(member);
-
-				shapeNode.append(nodeLabel);
-				shapeNode.append(shape);
-
-				data.append(shapeNode);
-
-				roleNode.append(data);
-
-				graphElement.append(roleNode);
-			}
-
-			if (!graphElement.querySelector(`[id="${personIdentifier(member)}"]`)) {
-				const person = useAppStore.getState().personsById[member.personId];
-				const nameString = person ? `${person.firstName} ${person.lastName}` : 'Error: Person not found';
-
-				const personNode = graphML.createElement('node');
-				personNode.setAttribute('id', personIdentifier(member));
-
-				const data = graphML.createElement('data');
-				data.setAttribute('key', 'd6');
-
-				const shapeNode = graphML.createElement(graphMLShapeNodeTag);
-
-				const geometry = graphML.createElement(graphMLNodeGeometryTag);
-				geometry.setAttribute('height', '100');
-				geometry.setAttribute('width', '400');
-				geometry.setAttribute('x', '0.0');
-				geometry.setAttribute('y', '0.0');
-				shapeNode.append(geometry);
-
-				const fill = graphML.createElement('y:Fill');
-				fill.setAttribute('color', '#FFCCFF');
-				fill.setAttribute('transparent', 'false');
-
-				const borderStyle = graphML.createElement('y:BorderStyle');
-				borderStyle.setAttribute('color', '#000000');
-				borderStyle.setAttribute('type', 'line');
-				borderStyle.setAttribute('width', '1.0');
-
-				const nodeLabel = graphML.createElement(graphMLNodeLabelTag);
-				nodeLabel.setAttribute('alignment', 'center');
-				nodeLabel.setAttribute('autoSizePolicy', 'node_width');
-				nodeLabel.setAttribute('configuration', 'CroppingLabel');
-				nodeLabel.setAttribute('fontSize', '35');
-				nodeLabel.setAttribute('fontStyle', 'plain');
-				nodeLabel.setAttribute('hasLineColor', 'false');
-				nodeLabel.setAttribute('hasBackgroundColor', 'false');
-				nodeLabel.setAttribute('horizontalTextPosition', 'center');
-				nodeLabel.textContent = nameString;
-
-				const shape = graphML.createElement('y:Shape');
-				shape.setAttribute('type', 'polygon');
-
-				shapeNode.append(geometry);
-				shapeNode.append(fill);
-				shapeNode.append(borderStyle);
-				shapeNode.append(nodeLabel);
-				shapeNode.append(shape);
-
-				data.append(shapeNode);
-
-				personNode.append(data);
-
-				graphElement.append(personNode);
-			}
 		}
 	}
 
@@ -205,25 +145,6 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			edge.setAttribute('target', groupIdentifier(relation.target));
 
 			graphElement.append(edge);
-		} else {
-			if (
-				determineIfIsGroupOrPerson(relation.source) === NodeType.GROUP &&
-				determineIfIsGroupOrPerson(relation.target) === NodeType.MEMBER &&
-				'groupTypeRoleId' in relation.target &&
-				'groupMemberStatus' in relation.target &&
-				'personId' in relation.target
-			) {
-				const roleEdge = graphML.createElement('edge');
-				roleEdge.setAttribute('source', groupIdentifier(relation.source));
-				roleEdge.setAttribute('target', roleIdentifier(relation.target));
-
-				const personEdge = graphML.createElement('edge');
-				personEdge.setAttribute('source', roleIdentifier(relation.target));
-				personEdge.setAttribute('target', personIdentifier(relation.target));
-
-				graphElement.append(roleEdge);
-				graphElement.append(personEdge);
-			}
 		}
 	}
 

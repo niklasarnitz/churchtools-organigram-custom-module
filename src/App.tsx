@@ -45,7 +45,7 @@ function App() {
 
 		if (localGraphData) {
 			Logger.log('Downloading generated GraphML file.');
-			downloadTextFile(generateGraphMLData(localGraphData),
+			downloadTextFile(generateGraphMLData(localGraphData, selectedRoles),
 				`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
 				document,
 			);
