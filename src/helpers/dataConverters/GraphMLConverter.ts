@@ -109,6 +109,12 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 				data.setAttribute('key', 'd6');
 
 				const shapeNode = graphML.createElement(graphMLShapeNodeTag);
+				const geometry = graphML.createElement('y:Geometry');
+				geometry.setAttribute('height', '100');
+				geometry.setAttribute('width', '550');
+				geometry.setAttribute('x', '0.0');
+				geometry.setAttribute('y', '0.0');
+				shapeNode.append(geometry);
 
 				const shape = graphML.createElement('y:Shape');
 				shape.setAttribute('type', 'ellipse');
@@ -151,6 +157,7 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 				geometry.setAttribute('width', '400');
 				geometry.setAttribute('x', '0.0');
 				geometry.setAttribute('y', '0.0');
+				shapeNode.append(geometry);
 
 				const fill = graphML.createElement('y:Fill');
 				fill.setAttribute('color', '#FFCCFF');
