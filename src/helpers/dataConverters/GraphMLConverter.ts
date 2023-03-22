@@ -97,7 +97,6 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			data6.append(shapeNode);
 
 			groupNode.append(data6);
-			groupNode.append(data5);
 
 			graphElement.append(groupNode);
 		} else {
