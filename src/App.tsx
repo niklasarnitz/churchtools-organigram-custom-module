@@ -96,30 +96,30 @@ function App() {
 	return (
 		<GeistProvider>
 			<CssBaseline />
-			<div className='m-2 flex'>
+			<div className='m-2 flex h-full w-full'>
 				<nav
 					className='w-64 shrink-0 bg-white pr-3'
 				>
 					{renderGroupTypes()}
 					{!isLoading && (
-						<ButtonDropdown className='mt-3'>
+						<ButtonDropdown className='relative bottom-0 mt-3'>
 							<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
 								Export als GraphML Datei
 							</ButtonDropdown.Item>
 							<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
 						</ButtonDropdown>
 					)}
-					{isLoading && <Loading>Daten werden geladen.</Loading>}
+
 				</nav>
 				<main
-					className='w-[calc(100%-16rem)] flex-1 p-3'
+					className=' w-[calc(100%-16rem)] flex-1 grow'
 				>
-					{!isLoading && graphData && (
-						<div className="h-[1000px]">
-							<Text h3>Export Vorschau</Text>
+					{isLoading && <Loading>Daten werden geladen.</Loading>}
+					{
+						!isLoading && graphData && <div className='h-screen'>
 							<PreviewGraph graphData={graphData} />
 						</div>
-					)}
+					}
 				</main>
 			</div>
 		</GeistProvider>
