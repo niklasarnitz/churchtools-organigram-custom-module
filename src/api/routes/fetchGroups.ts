@@ -8,6 +8,6 @@ export const fetchGroups = async () => {
 
 		return (await churchtoolsClient.getAllPages('/groups')) as Group[];
 	} catch (error) {
-		console.error(error);
+		Logger.error(error);
 	}
 };

@@ -8,6 +8,6 @@ export const fetchGroupRoles = async () => {
 
 		return (await churchtoolsClient.get('/group/roles')) as GroupRole[];
 	} catch (error) {
-		console.error(error);
+		Logger.error(error);
 	}
 };

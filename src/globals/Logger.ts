@@ -1,8 +1,12 @@
+/* eslint-disable no-console */
+
+const logPrefix = '[CCM - churchtools-organigram-custom-module] ';
+
 export const Logger = {
-	log: (message: string) => {
-		console.log(message);
+	log: (message: any) => {
+		console.log(logPrefix + message);
 	},
 	error: (message: any) => {
-		console.error(message);
+		console.error(logPrefix + message);
 	},
 };

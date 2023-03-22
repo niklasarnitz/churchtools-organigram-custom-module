@@ -8,6 +8,6 @@ export const fetchHierarchies = async () => {
 
 		return (await churchtoolsClient.get('/groups/hierarchies')) as Hierarchy[];
 	} catch (error) {
-		console.error(error);
+		Logger.error(error);
 	}
 };
