@@ -12,7 +12,7 @@ export const getReflowNodes = (nodes: DataNode[]) => {
 	const reflowNodes = [];
 
 	for (const node of nodes) {
-		if (determineIfIsGroupOrPerson(node) === NodeType.GROUP && 'name' in node) {
+		if (node && determineIfIsGroupOrPerson(node) === NodeType.GROUP && 'name' in node) {
 			reflowNodes.push({
 				id: groupIdentifier(node),
 				sourcePosition: Position.Bottom,
@@ -22,7 +22,7 @@ export const getReflowNodes = (nodes: DataNode[]) => {
 				},
 				position: zeroPosition,
 			});
-		} else if ('groupTypeRoleId' in node) {
+		} else if (node && 'groupTypeRoleId' in node) {
 			const person = useAppStore.getState().personsById[node.personId];
 			const group = useAppStore.getState().groupsById[node.groupId];
 
