@@ -2,21 +2,38 @@ import { MarkerType, Position } from 'reactflow';
 import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
 import { groupIdentifier, personIdentifier, roleIdentifier } from './GraphMLConverter';
 import { useAppStore } from './../../state/useAppStore';
+import _ from 'lodash';
 import type { DataNode } from './../../models/DataNode';
+import type { Node } from 'reactflow';
 import type { Relation } from './../../models/Relation';
 
 const zeroPosition = { x: 0, y: 0 };
 const edgeType = 'smoothstep';
 
-export const getReflowNodes = (nodes: DataNode[]) => {
-	const reflowNodes = [];
+export const getReflowNodes = (nodes: DataNode[], displayDirection: 'LR' | 'TB') => {
+	const reflowNodes: Node[] = [];
+
+	const sourceTargetPositions =
+		displayDirection === 'LR'
+			? {
+					sourcePosition: Position.Right,
+					targetPosition: Position.Left,
+			  }
+			: {
+					sourcePosition: Position.Bottom,
+					targetPosition: Position.Top,
+			  };
 
 	for (const node of nodes) {
-		if (node && determineIfIsGroupOrPerson(node) === NodeType.GROUP && 'name' in node) {
+		if (
+			node &&
+			determineIfIsGroupOrPerson(node) === NodeType.GROUP &&
+			'name' in node &&
+			!_.some(reflowNodes, (n) => n.id === groupIdentifier(node))
+		) {
 			reflowNodes.push({
 				id: groupIdentifier(node),
-				sourcePosition: Position.Bottom,
-				targetPosition: Position.Top,
+				...sourceTargetPositions,
 				data: {
 					label: node.name,
 				},
@@ -26,12 +43,11 @@ export const getReflowNodes = (nodes: DataNode[]) => {
 			const person = useAppStore.getState().personsById[node.personId];
 			const group = useAppStore.getState().groupsById[node.groupId];
 
-			if (group && group.name) {
+			if (!_.some(reflowNodes, (n) => n.id === roleIdentifier(node)) && group && group.name) {
 				reflowNodes.push(
 					{
 						id: roleIdentifier(node),
-						sourcePosition: Position.Bottom,
-						targetPosition: Position.Top,
+						...sourceTargetPositions,
 						data: {
 							label: group.name,
 						},
@@ -39,8 +55,7 @@ export const getReflowNodes = (nodes: DataNode[]) => {
 					},
 					{
 						id: personIdentifier(node),
-						sourcePosition: Position.Bottom,
-						targetPosition: Position.Top,
+						...sourceTargetPositions,
 						data: {
 							label: `${person.firstName} ${person.lastName}`,
 						},

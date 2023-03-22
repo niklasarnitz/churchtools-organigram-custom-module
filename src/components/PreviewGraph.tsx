@@ -1,7 +1,6 @@
 import 'reactflow/dist/style.css';
-import 'reactflow/dist/style.css';
 import { getReflowEdges, getReflowNodes } from '../helpers/dataConverters/ReflowConverter';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactFlow, {
 	Background,
 	ConnectionLineType,
@@ -17,42 +16,50 @@ import type { Relation } from '../models/Relation';
 export type PreviewGraphProps = {
 	relations: Relation[];
 	nodes: DataNode[];
+	displayDirection?: 'LR' | 'TB';
 }
 
-export const PreviewGraph = ({ relations, nodes }: PreviewGraphProps) => {
-	const layoutedNodes: Node[] = [];
-	const layoutedEdges: any[] = [];
-	layoutedEdges.push(...getReflowEdges(relations));
-	const bareNodes = getReflowNodes(nodes);
+export const PreviewGraph = ({ relations, nodes, displayDirection = 'LR' }: PreviewGraphProps) => {
+	const [layoutedNodes, setLayoutedNodes] = useState<Node[]>([]);
+	const [layoutedEdges, setLayoutedEdges] = useState<any[]>([]);
 
-	const dagreGraph = new dagre.graphlib.Graph();
-	dagreGraph.setDefaultEdgeLabel(() => ({}));
-	dagreGraph.setGraph({ rankdir: "TB" });
+	useEffect(() => {
+		const bareNodes = getReflowNodes(nodes, displayDirection);
 
-	for (const node of bareNodes) {
-		dagreGraph.setNode(node.id, { width: 150, height: 50 });
-	}
+		const dagreGraph = new dagre.graphlib.Graph();
+		dagreGraph.setDefaultEdgeLabel(() => ({}));
+		dagreGraph.setGraph({ rankdir: displayDirection });
 
-	for (const edge of layoutedEdges) {
-		dagreGraph.setEdge(edge.source, edge.target);
-	}
-
-	dagre.layout(dagreGraph);
-
-	for (const node of dagreGraph.nodes()) {
-		const nodeWithPosition = dagreGraph.node(node);
-
-		const foundNode = bareNodes.find((n) => n.id === node);
-
-		if (!foundNode) {
-			continue;
+		for (const node of bareNodes) {
+			dagreGraph.setNode(node.id, { width: 150, height: 50 });
 		}
 
-		layoutedNodes.push({
-			...foundNode,
-			position: { x: nodeWithPosition.x, y: nodeWithPosition.y },
-		});
-	}
+		for (const edge of layoutedEdges) {
+			dagreGraph.setEdge(edge.source, edge.target);
+		}
+
+		dagre.layout(dagreGraph);
+
+		const localNodes = [];
+
+		for (const node of dagreGraph.nodes()) {
+			const nodeWithPosition = dagreGraph.node(node);
+
+			const foundNode = bareNodes.find((n) => n.id === node);
+
+			if (!foundNode) {
+				continue;
+			}
+
+			localNodes.push({
+				...foundNode,
+				position: { x: nodeWithPosition.x, y: nodeWithPosition.y },
+			});
+		}
+
+		setLayoutedNodes(localNodes);
+		setLayoutedEdges(getReflowEdges(relations));
+	}, [relations, nodes, displayDirection, layoutedEdges])
 
 
 	return (

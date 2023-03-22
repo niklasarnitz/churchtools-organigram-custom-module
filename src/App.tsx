@@ -1,4 +1,4 @@
-import { ButtonDropdown, Loading, Select } from '@geist-ui/core'
+import { Button, ButtonDropdown, ButtonGroup, Loading, Select } from '@geist-ui/core'
 import { Logger } from './globals/Logger';
 import { PreviewGraph } from './components/PreviewGraph';
 import { createData } from './helpers/createRelatedData';
@@ -32,6 +32,8 @@ function App() {
 	const [localIsLoading, setLocalIsLoading] = useState(false);
 
 	const isLoading = reducerIsLoading || localIsLoading;
+
+	const [graphDirection, setGraphDirection] = useState<'LR' | 'TB'>('LR');
 
 	const [graphData, setGraphData] = useState<GraphData | undefined>()
 
@@ -80,6 +82,14 @@ function App() {
 		);
 	}, [groupRoles, groupTypesById, selectedRoles, setSelectedRoles]);
 
+	const setLayoutHorizontal = useCallback(() => {
+		setGraphDirection('LR');
+	}, []);
+
+	const setLayoutVertical = useCallback(() => {
+		setGraphDirection('TB');
+	}, []);
+
 	// Effects
 	useEffect(() => {
 		setLocalIsLoading(true);
@@ -103,13 +113,18 @@ function App() {
 				className='w-[18rem] shrink-0 bg-white pr-3'
 			>
 				{renderGroupTypes()}
-				{!isLoading && (
+				{!isLoading && (<>
+					<ButtonGroup>
+						<Button onClick={setLayoutHorizontal} type={graphDirection === 'LR' ? 'success' : undefined}>Horizontal</Button>
+						<Button onClick={setLayoutVertical} type={graphDirection === 'TB' ? 'success' : undefined}>Vertikal</Button>
+					</ButtonGroup>
 					<ButtonDropdown className='mt-3'>
 						<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
 							Export als GraphML Datei
 						</ButtonDropdown.Item>
 						<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
 					</ButtonDropdown>
+				</>
 				)}
 
 			</nav>
@@ -119,7 +134,7 @@ function App() {
 				{isLoading && <Loading>Daten werden geladen.</Loading>}
 				{
 					!isLoading && graphData && <div className='h-screen'>
-						<PreviewGraph relations={graphData.relations} nodes={graphData.nodes} />
+						<PreviewGraph relations={graphData.relations} nodes={graphData.nodes} displayDirection={graphDirection} />
 					</div>
 				}
 			</main>

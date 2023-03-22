@@ -19,6 +19,7 @@ export const groupIdentifier = (group: Group) => `group-${group.id}`;
 
 const graphMLShapeNodeTag = 'y:ShapeNode';
 const graphMLNodeLabelTag = 'y:NodeLabel';
+const graphMLNodeGeometryTag = 'y:Geometry';
 
 // This function looks like it's doing a lot, but it's just converting the data into a format that can be used by the graphML library.
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -56,13 +57,9 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 			const data6 = graphML.createElement('data');
 			data6.setAttribute('key', 'd6');
 
-			const data5 =  graphML.createElement('data');
-			data5.setAttribute('key', 'd5');
-			data5.append("lieschen müller");
-
 			const shapeNode = graphML.createElement(graphMLShapeNodeTag);
 
-			const geometry = graphML.createElement('y:Geometry');
+			const geometry = graphML.createElement(graphMLNodeGeometryTag);
 			geometry.setAttribute('height', '100');
 			geometry.setAttribute('width', '550');
 			geometry.setAttribute('x', '0.0');
@@ -114,7 +111,7 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 				data.setAttribute('key', 'd6');
 
 				const shapeNode = graphML.createElement(graphMLShapeNodeTag);
-				const geometry = graphML.createElement('y:Geometry');
+				const geometry = graphML.createElement(graphMLNodeGeometryTag);
 				geometry.setAttribute('height', '100');
 				geometry.setAttribute('width', '550');
 				geometry.setAttribute('x', '0.0');
@@ -157,7 +154,7 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData) => {
 
 				const shapeNode = graphML.createElement(graphMLShapeNodeTag);
 
-				const geometry = graphML.createElement('y:Geometry');
+				const geometry = graphML.createElement(graphMLNodeGeometryTag);
 				geometry.setAttribute('height', '100');
 				geometry.setAttribute('width', '400');
 				geometry.setAttribute('x', '0.0');
