@@ -26,26 +26,28 @@ export const getReflowNodes = (nodes: DataNode[]) => {
 			const person = useAppStore.getState().personsById[node.personId];
 			const group = useAppStore.getState().groupsById[node.groupId];
 
-			reflowNodes.push(
-				{
-					id: roleIdentifier(node),
-					sourcePosition: Position.Bottom,
-					targetPosition: Position.Top,
-					data: {
-						label: group.name,
+			if (group && group.name) {
+				reflowNodes.push(
+					{
+						id: roleIdentifier(node),
+						sourcePosition: Position.Bottom,
+						targetPosition: Position.Top,
+						data: {
+							label: group.name,
+						},
+						position: zeroPosition,
 					},
-					position: zeroPosition,
-				},
-				{
-					id: personIdentifier(node),
-					sourcePosition: Position.Bottom,
-					targetPosition: Position.Top,
-					data: {
-						label: `${person.firstName} ${person.lastName}`,
+					{
+						id: personIdentifier(node),
+						sourcePosition: Position.Bottom,
+						targetPosition: Position.Top,
+						data: {
+							label: `${person.firstName} ${person.lastName}`,
+						},
+						position: zeroPosition,
 					},
-					position: zeroPosition,
-				},
-			);
+				);
+			}
 		}
 	}
 

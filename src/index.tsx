@@ -1,12 +1,20 @@
 import './index.css';
 import { Logger } from './globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
+import { fetchPermissions } from './api/routes/fetchPermissions';
 import { isDev } from './globals/isDev';
 import App from './App';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-const start = () => {
+const start = async () => {
+	const permissions = await fetchPermissions();
+
+	if (permissions && !permissions.churchcore['administer persons']) {
+		alert('You do not have the permission to administer persons. This right is needed to use this module.');
+		return;
+	}
+
 	const rootElement = document.querySelector('#root') as HTMLElement;
 
 	if (!rootElement) {
