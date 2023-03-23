@@ -25,4 +25,5 @@ npm run build:module
 ```
 
 You can then install the custom module in ChurchTools by uploading the `.zip` file.
-**Important: The shorty of the custom module must be `churchtools-organigram-custom-module`.
+
+**Important: The shorty of the custom module must be `churchtools-organigram-custom-module`.**
