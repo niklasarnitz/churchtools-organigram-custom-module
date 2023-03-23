@@ -1,6 +1,6 @@
-import { Button, ButtonDropdown, ButtonGroup, Loading, Select } from '@geist-ui/core'
+import "@fontsource/lato";
+import { ButtonDropdown, Loading, Select, Text } from '@geist-ui/core'
 import { Logger } from './globals/Logger';
-import { PreviewGraph } from './components/PreviewGraph';
 import { createData } from './helpers/createRelatedData';
 import { downloadTextFile } from './helpers/downloadTextFile';
 import { generateGraphMLData } from './helpers/dataConverters/GraphMLConverter';
@@ -8,7 +8,6 @@ import { useAppStore } from './state/useAppStore';
 import React, { useCallback, useEffect, useState } from 'react';
 import _ from 'lodash';
 import moment from 'moment';
-import type { GraphData } from './models/GraphData';
 
 function App() {
 	const fetchPersons = useAppStore((s) => s.fetchPersons);
@@ -33,9 +32,7 @@ function App() {
 
 	const isLoading = reducerIsLoading || localIsLoading;
 
-	const [graphDirection, setGraphDirection] = useState<'LR' | 'TB'>('LR');
 
-	const [graphData, setGraphData] = useState<GraphData | undefined>()
 
 	const didPressDownloadGraphML = useCallback(() => {
 		Logger.log('Updating GraphML data.');
@@ -50,9 +47,6 @@ function App() {
 				document,
 			);
 		}
-
-		setGraphData(localGraphData);
-
 	}, [groupMembers, groups, groupsById, hierarchies, selectedRoles]);
 
 	// Callbacks
@@ -65,7 +59,7 @@ function App() {
 					value={selectedRoles.map(String)}
 					multiple
 					onChange={setSelectedRoles}
-					className="w-[17rem]"
+					className="w-1/2"
 				>
 					{_.sortBy(
 						groupRoles,
@@ -82,62 +76,46 @@ function App() {
 		);
 	}, [groupRoles, groupTypesById, selectedRoles, setSelectedRoles]);
 
-	const setLayoutHorizontal = useCallback(() => {
-		setGraphDirection('LR');
-	}, []);
-
-	const setLayoutVertical = useCallback(() => {
-		setGraphDirection('TB');
-	}, []);
-
 	// Effects
 	useEffect(() => {
 		setLocalIsLoading(true);
 		Promise.all([fetchPersons(), fetchGroups(true), fetchHierarchies(), fetchGroupTypes(), fetchGroupRoles()]).then(
 			() => {
 				setLocalIsLoading(false);
-				setGraphData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles));
 				setSelectedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((value) => String(value.id)));
 			},
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	useEffect(() => {
-		setGraphData(createData(hierarchies, groupsById, groups, groupMembers, selectedRoles));
-	}, [groupMembers, groups, groupsById, hierarchies, selectedRoles]);
-
 	return (
-		<div className='m-2 flex h-full w-full'>
-			<nav
-				className='w-[18rem] shrink-0 bg-white pr-3'
-			>
-				{renderGroupTypes()}
-				{!isLoading && (<>
-					<ButtonGroup>
-						<Button onClick={setLayoutHorizontal} type={graphDirection === 'LR' ? 'success' : undefined}>Horizontal</Button>
-						<Button onClick={setLayoutVertical} type={graphDirection === 'TB' ? 'success' : undefined}>Vertikal</Button>
-					</ButtonGroup>
-					<ButtonDropdown className='mt-3'>
-						<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
-							Export als GraphML Datei
-						</ButtonDropdown.Item>
-						<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
-					</ButtonDropdown>
-				</>
-				)}
-
-			</nav>
-			<main
-				className=' w-[calc(100%-18rem)] flex-1 grow'
-			>
-				{isLoading && <Loading>Daten werden geladen.</Loading>}
-				{
-					!isLoading && graphData && <div className='h-screen'>
-						<PreviewGraph relations={graphData.relations} nodes={graphData.nodes} displayDirection={graphDirection} />
+		<div className='h-[100vh] w-full bg-slate-100'>
+			<div className='flex h-full w-full flex-col items-center justify-start p-4'>
+				<div className="flex w-full items-center justify-between gap-6 border-0 border-b border-solid px-6 py-3.5 text-lg">
+					<div className="flex grow gap-6 divide-x font-bold">
+						<div className="flex h-7 items-baseline gap-4">
+							<span>ChurchTools Organigramm</span>
+						</div>
 					</div>
-				}
-			</main>
+				</div>
+				<div className="w-1/2">
+					<div>
+						<Text h1>ChurchTools Organigramm Exporter</Text>
+						<Text h3>Exportiert das Organigramm aus ChurchTools als GraphML Datei.</Text>
+					</div>
+					{renderGroupTypes()}
+					{!isLoading && (<>
+						<ButtonDropdown className='mt-3'>
+							<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
+								Export als GraphML Datei
+							</ButtonDropdown.Item>
+							<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
+						</ButtonDropdown>
+					</>
+					)}
+					{isLoading && <Loading>Daten werden geladen.</Loading>}
+				</div>
+			</div>
 		</div>
 	);
 }
