@@ -1,7 +1,7 @@
 import { NodeType, determineIfIsGroupOrPerson } from '../determineIfIsGroupOrPerson';
+import { createData } from './../createRelatedData';
 import { useAppStore } from '../../state/useAppStore';
 import _ from 'lodash';
-import type { GraphData } from './../../models/GraphData';
 import type { Group } from '../../models/Group';
 import type { GroupMember } from './../../models/GroupMember';
 
@@ -20,7 +20,10 @@ export const groupIdentifier = (group: Group) => `group-${group.id}`;
 
 // This function looks like it's doing a lot, but it's just converting the data into a format that can be used by the graphML library.
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExclude: number[]) => {
+export const generateGraphMLData = () => {
+	const { relations, nodes } = createData();
+	const { excludedRoles } = useAppStore.getState();
+
 	const graphML = new Document();
 
 	const comment = graphML.createComment('Created by churchtools-organigram-custom-module');
@@ -65,7 +68,7 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExcl
 			const roles = _.sortBy(useAppStore.getState().groupRoles, 'sortKey');
 
 			const groupRoles = [...new Set(groupMembers.map((member) => member.groupTypeRoleId))].filter(
-				(roleId) => !rolesToExclude.includes(roleId),
+				(roleId) => !excludedRoles.includes(roleId),
 			);
 
 			const groupMemberString = groupRoles
