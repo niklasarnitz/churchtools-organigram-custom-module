@@ -2,8 +2,6 @@ import "@fontsource/lato";
 import { MainComponent } from "./components/MainComponent";
 import React from 'react';
 
-function App() {
+export const App = () => {
 	return <MainComponent />
 }
-
-export default App;

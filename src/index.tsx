@@ -1,9 +1,9 @@
 import './index.css';
+import { App } from './App';
 import { Logger } from './globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { fetchPermissions } from './api/routes/fetchPermissions';
 import { isDev } from './globals/isDev';
-import App from './App';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
