@@ -27,8 +27,11 @@ type GroupState = {
 	groupRoles: GroupRole[];
 	groupRolesByType: Record<number, GroupRole[]>;
 
-	selectedRoles: number[];
-	setSelectedRoles: (roles: string | string[]) => void;
+	excludedRoles: number[];
+	setExcludedRoles: (roles: string | string[]) => void;
+
+	excludedGroupTypes: number[];
+	setExcludedGroupTypes: (groups: string | string[]) => void;
 
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
@@ -51,7 +54,8 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groupTypesById: {} as Record<number, GroupType>,
 	groupRoles: [] as GroupRole[],
 	groupRolesByType: {} as Record<number, GroupRole[]>,
-	selectedRoles: [] as number[],
+	excludedRoles: [] as number[],
+	excludedGroupTypes: [] as number[],
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
@@ -102,6 +106,8 @@ export const useAppStore = create<GroupState>((set, get) => ({
 			});
 		set({ isLoading: false });
 	},
-	setSelectedRoles: (roles: string | string[]) =>
-		set({ selectedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }),
+	setExcludedRoles: (roles: string | string[]) =>
+		set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }),
+	setExcludedGroupTypes: (groups: string | string[]) =>
+		set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
 }));
