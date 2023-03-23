@@ -1,5 +1,6 @@
 import { NodeType, determineIfIsGroupOrPerson } from '../determineIfIsGroupOrPerson';
 import { useAppStore } from '../../state/useAppStore';
+import _ from 'lodash';
 import type { GraphData } from './../../models/GraphData';
 import type { Group } from '../../models/Group';
 import type { GroupMember } from './../../models/GroupMember';
@@ -17,10 +18,6 @@ export const personIdentifier = (member: GroupMember) => `person-${member.person
 
 export const groupIdentifier = (group: Group) => `group-${group.id}`;
 
-const graphMLShapeNodeTag = 'y:ShapeNode';
-const graphMLNodeLabelTag = 'y:NodeLabel';
-const graphMLNodeGeometryTag = 'y:Geometry';
-
 // This function looks like it's doing a lot, but it's just converting the data into a format that can be used by the graphML library.
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExclude: number[]) => {
@@ -31,6 +28,9 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExcl
 
 	const graphMLElement = graphML.createElement('graphml');
 	graphMLElement.setAttribute('xmlns', 'http://graphml.graphdrawing.org/xmlns');
+	graphMLElement.setAttribute('xmlns:java', 'http://www.yworks.com/xml/yfiles-common/1.0/java');
+	graphMLElement.setAttribute('xmlns:sys', 'http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0');
+	graphMLElement.setAttribute('xmlns:x', 'http://www.yworks.com/xml/yfiles-common/markup/2.0');
 	graphMLElement.setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
 	graphMLElement.setAttribute('xmlns:y', 'http://www.yworks.com/xml/graphml');
 	graphMLElement.setAttribute('xmlns:yed', 'http://www.yworks.com/xml/yed/3');
@@ -39,12 +39,17 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExcl
 		'http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd',
 	);
 
-	const graphKey = graphML.createElement('key');
-	graphKey.setAttribute('for', 'node');
-	graphKey.setAttribute('id', 'd6');
-	graphKey.setAttribute('yfiles.type', 'nodegraphics');
+	const nodeKey = graphML.createElement('key');
+	nodeKey.setAttribute('for', 'node');
+	nodeKey.setAttribute('id', 'd5');
+	nodeKey.setAttribute('yfiles.type', 'nodegraphics');
+	graphMLElement.append(nodeKey);
 
-	graphMLElement.append(graphKey);
+	const graphMLKey = graphML.createElement('key');
+	graphMLKey.setAttribute('for', 'graphml');
+	graphMLKey.setAttribute('id', 'd6');
+	graphMLKey.setAttribute('yfiles.type', 'resources');
+	graphMLElement.append(graphMLKey);
 
 	const graphElement = graphML.createElement('graph');
 	graphElement.setAttribute('id', 'G');
@@ -54,18 +59,10 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExcl
 		if (determineIfIsGroupOrPerson(node) === NodeType.GROUP) {
 			const group = node as Group;
 
-			const groupNode = graphML.createElement('node');
-			groupNode.setAttribute('id', groupIdentifier(group));
-
-			const data6 = graphML.createElement('data');
-			data6.setAttribute('key', 'd6');
-
-			const shapeNode = graphML.createElement(graphMLShapeNodeTag);
-
 			const groupMembers = useAppStore.getState().groupMembers.filter((member) => member.groupId === group.id);
 			const personsById = useAppStore.getState().personsById;
 
-			const roles = useAppStore.getState().groupRoles;
+			const roles = _.sortBy(useAppStore.getState().groupRoles, 'sortKey');
 
 			const groupRoles = [...new Set(groupMembers.map((member) => member.groupTypeRoleId))].filter(
 				(roleId) => !rolesToExclude.includes(roleId),
@@ -79,60 +76,100 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExcl
 							personsById[member.personId].firstName + ' ' + personsById[member.personId].lastName,
 					);
 
-					return `${roles.find((role) => role.id === roleId)?.name}: ${personsWithRoleNames.join(', ')}`;
+					return `${roles.find((role) => role.id === roleId)?.name}:\n${personsWithRoleNames.join(',\n')}`;
 				})
-				.join('<br>');
+				.join('\n');
 
-			const nodeString = `<html><div style="width=100%;"><p style="text-align: center;"><b>${group.name}</b><br><br>${groupMemberString}</p></div></html>`;
+			const longestLineGroupMemberString = Math.max(...groupMemberString.split('\n').map((line) => line.length));
+			const longestLineGroupNameString = Math.max(...group.name.split('\n').map((line) => line.length));
 
-			const nodeHeight =
-				nodeString.split('\n').length === 1
-					? String(2 * 20)
-					: String((nodeString.split('<br>').length + 3) * 20);
+			const groupNameFontSize = 18;
+			const groupNameFontFamily = 'Dialog';
+			const groupNameFontStyle = 'bold';
+			// FontSize * 1,42 = Height
+			const groupNameHeight = groupNameFontSize * 1.42;
 
-			const geometry = graphML.createElement(graphMLNodeGeometryTag);
-			geometry.setAttribute('height', nodeHeight);
-			geometry.setAttribute('width', '100.0');
-			geometry.setAttribute('x', '0.0');
-			geometry.setAttribute('y', '0.0');
+			const groupMetadataFontSize = 12;
+			const groupMetadataFontFamily = 'Dialog';
+			const groupMetadataFontStyle = 'plain';
+			// FontSize * 1,42 = Height
+			const groupMetadataHeight = groupMetadataFontSize * 1.42 * groupMemberString.split('\n').length;
 
-			const fill = graphML.createElement('y:Fill');
-			fill.setAttribute('color', '#FFCC00');
-			fill.setAttribute('transparent', 'false');
+			const nodeWidth =
+				longestLineGroupNameString > longestLineGroupMemberString
+					? (longestLineGroupNameString * groupNameFontSize) / 1.2
+					: (longestLineGroupMemberString * groupMetadataFontSize) / 1.2;
 
-			const borderStyle = graphML.createElement('y:BorderStyle');
-			borderStyle.setAttribute('color', '#000000');
-			borderStyle.setAttribute('type', 'line');
-			borderStyle.setAttribute('width', '1.0');
+			const groupNode = graphML.createElement('node');
+			groupNode.setAttribute('id', groupIdentifier(group));
 
-			const nodeLabel = graphML.createElement(graphMLNodeLabelTag);
-			nodeLabel.setAttribute('alignment', 'center');
-			nodeLabel.setAttribute('autoSizePolicy', 'node_width');
-			nodeLabel.setAttribute('fontSize', '20');
-			nodeLabel.setAttribute('fontStyle', 'plain');
-			nodeLabel.setAttribute('hasLineColor', 'false');
-			nodeLabel.setAttribute('hasBackgroundColor', 'false');
-			nodeLabel.setAttribute('horizontalTextPosition', 'center');
-			nodeLabel.setAttribute('modelName', 'internal');
-			nodeLabel.setAttribute('modelPosition', 't');
-			nodeLabel.setAttribute('textColor', '#000000');
-			nodeLabel.setAttribute('verticalTextPosition', 'top');
-			nodeLabel.setAttribute('visible', 'true');
-			nodeLabel.setAttribute('xml:space', 'preserve');
-			nodeLabel.textContent = nodeString;
+			const data4 = graphML.createElement('data');
+			data4.setAttribute('key', 'd4');
 
-			const shape = graphML.createElement('y:Shape');
-			shape.setAttribute('type', 'roundrectangle');
+			const data5 = graphML.createElement('data');
+			data5.setAttribute('key', 'd5');
 
-			shapeNode.append(geometry);
-			shapeNode.append(fill);
-			shapeNode.append(borderStyle);
-			shapeNode.append(nodeLabel);
-			shapeNode.append(shape);
+			const yGenericNode = graphML.createElement('y:GenericNode');
+			yGenericNode.setAttribute('configuration', 'ShinyPlateNode');
 
-			data6.append(shapeNode);
+			const yGeomety = graphML.createElement('y:Geometry');
+			yGeomety.setAttribute('height', String(groupMetadataHeight + groupNameHeight));
+			yGeomety.setAttribute('width', String(nodeWidth));
 
-			groupNode.append(data6);
+			const yFill = graphML.createElement('y:Fill');
+			yFill.setAttribute('color', '#FFCC00');
+			yFill.setAttribute('transparent', 'false');
+
+			const yBorderStyle = graphML.createElement('y:BorderStyle');
+			yBorderStyle.setAttribute('hasColor', 'false');
+			yBorderStyle.setAttribute('transparent', 'false');
+
+			const yNodeLabelGroupName = graphML.createElement('y:NodeLabel');
+			yNodeLabelGroupName.setAttribute('alignment', 'center');
+			yNodeLabelGroupName.setAttribute('autoSizePolicy', 'content');
+			yNodeLabelGroupName.setAttribute('fontFamily', groupNameFontFamily);
+			yNodeLabelGroupName.setAttribute('fontSize', groupNameFontSize.toString());
+			yNodeLabelGroupName.setAttribute('fontStyle', groupNameFontStyle);
+			yNodeLabelGroupName.setAttribute('hasBackgroupColor', 'false');
+			yNodeLabelGroupName.setAttribute('hasLineColor', 'false');
+			yNodeLabelGroupName.setAttribute('height', groupNameHeight.toString());
+			yNodeLabelGroupName.setAttribute('horizontalTextPosition', 'center');
+			yNodeLabelGroupName.setAttribute('iconTextGap', '4');
+			yNodeLabelGroupName.setAttribute('modelName', 'internal');
+			yNodeLabelGroupName.setAttribute('modelPosition', 't');
+			yNodeLabelGroupName.setAttribute('textColor', '#000000');
+			yNodeLabelGroupName.setAttribute('verticalTextPosition', 'top');
+			yNodeLabelGroupName.setAttribute('visible', 'true');
+			yNodeLabelGroupName.textContent = group.name;
+
+			const yNodeLabelGroupMetadata = graphML.createElement('y:NodeLabel');
+			yNodeLabelGroupMetadata.setAttribute('alignment', 'center');
+			yNodeLabelGroupMetadata.setAttribute('autoSizePolicy', 'content');
+			yNodeLabelGroupMetadata.setAttribute('fontFamily', groupMetadataFontFamily);
+			yNodeLabelGroupMetadata.setAttribute('fontSize', groupMetadataFontSize.toString());
+			yNodeLabelGroupMetadata.setAttribute('fontStyle', groupMetadataFontStyle);
+			yNodeLabelGroupMetadata.setAttribute('hasBackgroupColor', 'false');
+			yNodeLabelGroupMetadata.setAttribute('hasLineColor', 'false');
+			yNodeLabelGroupMetadata.setAttribute('height', groupMetadataHeight.toString());
+			yNodeLabelGroupMetadata.setAttribute('horizontalTextPosition', 'center');
+			yNodeLabelGroupMetadata.setAttribute('iconTextGap', '4');
+			yNodeLabelGroupMetadata.setAttribute('modelName', 'internal');
+			yNodeLabelGroupMetadata.setAttribute('modelPosition', 'b');
+			yNodeLabelGroupMetadata.setAttribute('textColor', '#000000');
+			yNodeLabelGroupMetadata.setAttribute('verticalTextPosition', 'top');
+			yNodeLabelGroupMetadata.setAttribute('visible', 'true');
+			yNodeLabelGroupMetadata.textContent = groupMemberString;
+
+			yGenericNode.append(yGeomety);
+			yGenericNode.append(yFill);
+			yGenericNode.append(yBorderStyle);
+			yGenericNode.append(yNodeLabelGroupName);
+			yGenericNode.append(yNodeLabelGroupMetadata);
+
+			data5.append(yGenericNode);
+
+			groupNode.append(data4);
+			groupNode.append(data5);
 
 			graphElement.append(groupNode);
 		}
@@ -149,6 +186,15 @@ export const generateGraphMLData = ({ relations, nodes }: GraphData, rolesToExcl
 	}
 
 	graphMLElement.append(graphElement);
+
+	const data6 = graphML.createElement('data');
+	data6.setAttribute('key', 'd6');
+
+	const yResources = graphML.createElement('y:Resources');
+
+	data6.append(yResources);
+
+	graphMLElement.append(data6);
 
 	graphML.append(graphMLElement);
 
