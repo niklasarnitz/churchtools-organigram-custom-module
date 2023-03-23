@@ -11,19 +11,18 @@ const start = async () => {
 	const permissions = await fetchPermissions();
 
 	if (permissions && !permissions.churchcore['administer persons']) {
-		alert('You do not have the permission to administer persons. This right is needed to use this module.');
+		alert('churchtools-organigram-custom-module: You do not have the permission to administer persons. This right is needed to use this module.');
 		return;
 	}
 
 	const rootElement = document.querySelector('#root') as HTMLElement;
 
 	if (!rootElement) {
-		alert('Failed initializing custom module.');
+		alert('churchtools-organigram-custom-module: Failed initializing custom module.');
 		throw new Error('No root element found');
 	}
 
 	Logger.log('Starting custom module...');
-	Logger.log(rootElement)
 
 	const root = ReactDOM.createRoot(rootElement);
 
@@ -34,7 +33,10 @@ const start = async () => {
 	);
 }
 
+// This is some logic to make the module work outside of churchtools for local development.
 if (isDev) {
+	Logger.log('Running in development mode.');
+
 	// eslint-disable-next-line no-inner-declarations
 	churchtoolsClient.setBaseUrl(process.env.REACT_APP_CTURL ?? "");
 	await churchtoolsClient.post('/login', {
