@@ -1,5 +1,5 @@
 import "@fontsource/lato";
-import { ButtonDropdown, Loading, Select, Text } from '@geist-ui/core'
+import { ButtonDropdown, Loading, Select } from '@geist-ui/core'
 import { Logger } from './globals/Logger';
 import { createData } from './helpers/createRelatedData';
 import { downloadTextFile } from './helpers/downloadTextFile';
@@ -99,10 +99,6 @@ function App() {
 					</div>
 				</div>
 				<div className="w-1/2">
-					<div>
-						<Text h1>ChurchTools Organigramm Exporter</Text>
-						<Text h3>Exportiert das Organigramm aus ChurchTools als GraphML Datei.</Text>
-					</div>
 					{renderGroupTypes()}
 					{!isLoading && (<>
 						<ButtonDropdown className='mt-3'>
