@@ -35,6 +35,7 @@ export const createData = () => {
 	for (const groupMember of groupMembers) {
 		if (
 			groupMember &&
+			groupsById[groupMember.groupId] &&
 			!excludedGroupTypes.includes(groupsById[groupMember.groupId].information.groupTypeId) &&
 			!excludedRoles.includes(groupMember.groupTypeRoleId)
 		) {
