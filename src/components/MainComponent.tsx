@@ -1,4 +1,4 @@
-import { ButtonDropdown, Loading, Select, Toggle } from "@geist-ui/core";
+import { Button, ButtonDropdown, Loading, Select, Toggle } from "@geist-ui/core";
 import { Logger } from "../globals/Logger";
 import { downloadTextFile } from "../helpers/downloadTextFile";
 import { generateGraphMLData } from "../helpers/dataConverters/GraphMLConverter";
@@ -25,12 +25,14 @@ export const MainComponent = React.memo(() => {
 	const groupTypes = useAppStore((s) => s.groupTypes);
 	const excludedGroups = useAppStore((s) => s.excludedGroups);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
+	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
 
 	//  State setters
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
 	const setExcludedGroups = useAppStore((s) => s.setExcludedGroups);
 	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
+	const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
 
 	// Local state variables
 	const [localIsLoading, setLocalIsLoading] = useState(false);
@@ -53,6 +55,11 @@ export const MainComponent = React.memo(() => {
 		setShowGroupTypes(!showGroupTypes);
 		Logger.log('showGroupTypesDidChange::' + !showGroupTypes);
 	}, [setShowGroupTypes, showGroupTypes]);
+
+	const clearGroupIdToStartWith = useCallback(() => {
+		// eslint-disable-next-line unicorn/no-useless-undefined
+		setGroupIdToStartWith(undefined);
+	}, [setGroupIdToStartWith]);
 
 	const renderSelectExcludedGroups = useCallback(() => {
 		return (
@@ -143,6 +150,35 @@ export const MainComponent = React.memo(() => {
 		</div>
 	}, [showGroupTypes, showGroupTypesDidChange])
 
+	const renderSelectGroupToStartWith = useCallback(() => {
+		return (
+			<div className="flex-col">
+				<h5>Gruppe, mit der gestartet werden soll</h5>
+
+				<Select
+					placeholder={<p>Keine Gruppe ausgewählt</p>}
+					value={groupIdToStartWith ?? ''}
+					onChange={setGroupIdToStartWith}
+					width="100%"
+
+				>
+					{_.sortBy(
+						useAppStore.getState().groups,
+						(g) => g?.name,
+					).map((group) => {
+						return (
+							<Select.Option key={group.id} value={String(group.id)}>
+								{group?.name}
+							</Select.Option>
+						);
+					})}
+				</Select>
+				{groupIdToStartWith && <Button onClick={clearGroupIdToStartWith}>Auswahl löschen</Button>}
+			</div >
+		);
+	}, [clearGroupIdToStartWith, groupIdToStartWith, setGroupIdToStartWith]);
+
+
 	// Effects
 	useEffect(() => {
 		const groupTypes = new Set(excludedGroupTypes.map((value) => groupTypesById[value]));
@@ -180,6 +216,7 @@ export const MainComponent = React.memo(() => {
 					</div>
 				</div>
 				<div className="w-1/2">
+					{renderSelectGroupToStartWith()}
 					{renderSelectExcludedGroupTypes()}
 					{renderSelectExcludedGroups()}
 					{renderSelectExcludedGroupRoles()}

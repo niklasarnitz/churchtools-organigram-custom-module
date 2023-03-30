@@ -1,8 +1,8 @@
-import { Logger } from './../globals/Logger';
 import { useAppStore } from '../state/useAppStore';
 import type { GraphData } from './../models/GraphData';
 import type { GraphNode } from './../models/GraphNode';
 import type { Group } from '../models/Group';
+import type { Hierarchy } from './../models/Hierarchy';
 import type { Relation } from './../models/Relation';
 
 // TODO: If group.information.groupTypeId is missing, get it from the API manually!
@@ -44,15 +44,46 @@ const includesGroup = (nodes: GraphNode[], group: Group) => {
 	);
 };
 
+// This is a really ugly function. If you want to change that, you're welcome to do so.
+const getHierarchiesForGroup = (groupId: number) => {
+	const { hierarchiesByGroup, hierarchies } = useAppStore.getState();
+
+	const localHierarchies: Hierarchy[] = [];
+	const localChildren: number[] = [];
+
+	const hierarchy = hierarchiesByGroup[groupId];
+
+	if (hierarchy) {
+		localHierarchies.push(hierarchy);
+		localChildren.push(...hierarchy.children);
+	}
+
+	while (localChildren.length > 0) {
+		const child = localChildren.pop();
+
+		if (child) {
+			const childHierarchy = hierarchies.find((h) => h.groupId === child);
+
+			if (childHierarchy) {
+				localHierarchies.push(childHierarchy);
+				localChildren.push(...childHierarchy.children);
+			}
+		}
+	}
+
+	return localHierarchies;
+};
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export const createData = () => {
-	Logger.log('Executing createData()');
-	const { hierarchies, groupsById } = useAppStore.getState();
+	const { hierarchies, groupsById, groupIdToStartWith } = useAppStore.getState();
+
+	const localHierarchies = groupIdToStartWith ? getHierarchiesForGroup(Number(groupIdToStartWith)) : hierarchies;
 
 	const relations: Relation[] = [];
 	const nodes: GraphNode[] = [];
 
-	for (const hierarchy of hierarchies) {
+	for (const hierarchy of localHierarchies) {
 		const group = groupsById[hierarchy.groupId];
 
 		if (shouldIncludeGroup(group)) {

@@ -41,6 +41,9 @@ type GroupState = {
 	showGroupTypes: boolean;
 	setShowGroupTypes: (show: boolean) => void;
 
+	groupIdToStartWith: string | undefined;
+	setGroupIdToStartWith: (groupId: string | string[] | undefined) => void;
+
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
@@ -66,7 +69,11 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	excludedRoles: [] as number[],
 	excludedGroupTypes: [] as number[],
 	excludedGroups: [] as number[],
-	showGroupTypes: false,
+
+	showGroupTypes: true,
+
+	groupIdToStartWith: undefined,
+
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
@@ -135,4 +142,6 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	setExcludedGroups: (groups: string | string[]) =>
 		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
 	setShowGroupTypes: (show: boolean) => set({ showGroupTypes: show }),
+	setGroupIdToStartWith: (groupIdToStartWith: string | string[] | undefined) =>
+		typeof groupIdToStartWith === 'string' ? set({ groupIdToStartWith }) : set({ groupIdToStartWith: undefined }),
 }));
