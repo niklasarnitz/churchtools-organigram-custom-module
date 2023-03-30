@@ -25,5 +25,4 @@ yarn-error.log*
 
 *.idea*
 *.iml
-
-churchtools-organigram-custom-module.zip
+*.zip
