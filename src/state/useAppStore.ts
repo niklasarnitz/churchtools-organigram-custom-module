@@ -19,6 +19,7 @@ type GroupState = {
 	groups: Group[];
 	groupsById: Record<number, Group>;
 	groupMembers: GroupMember[];
+	groupMembersByGroup: Record<number, GroupMember[]>;
 	hierarchies: Hierarchy[];
 	hierarchiesByGroup: Record<number, Hierarchy>;
 	isLoading: boolean;
@@ -36,6 +37,10 @@ type GroupState = {
 	excludedGroups: number[];
 	setExcludedGroups: (groups: string | string[]) => void;
 
+	// Display Options
+	showGroupTypes: boolean;
+	setShowGroupTypes: (show: boolean) => void;
+
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
@@ -51,6 +56,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groups: [] as Group[],
 	groupsById: {} as Record<number, Group>,
 	groupMembers: [] as GroupMember[],
+	groupMembersByGroup: {} as Record<number, GroupMember[]>,
 	hierarchies: [] as Hierarchy[],
 	hierarchiesByGroup: {} as Record<number, Hierarchy>,
 	groupTypes: [] as GroupType[],
@@ -60,6 +66,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	excludedRoles: [] as number[],
 	excludedGroupTypes: [] as number[],
 	excludedGroups: [] as number[],
+	showGroupTypes: false,
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
@@ -69,7 +76,18 @@ export const useAppStore = create<GroupState>((set, get) => ({
 		if (withMembers) {
 			const groupMembers = await fetchGroupMembers();
 
-			if (groupMembers) set({ groupMembers });
+			if (groupMembers) {
+				set({ groupMembers });
+
+				const groupMembersByGroup = {} as Record<number, GroupMember[]>;
+
+				for (const member of groupMembers) {
+					if (!groupMembersByGroup[member.groupId]) groupMembersByGroup[member.groupId] = [];
+					groupMembersByGroup[member.groupId].push(member);
+				}
+
+				set({ groupMembersByGroup });
+			}
 		}
 
 		set({ isLoading: false });
@@ -116,4 +134,5 @@ export const useAppStore = create<GroupState>((set, get) => ({
 		set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
 	setExcludedGroups: (groups: string | string[]) =>
 		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
+	setShowGroupTypes: (show: boolean) => set({ showGroupTypes: show }),
 }));

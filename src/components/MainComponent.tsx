@@ -1,4 +1,4 @@
-import { ButtonDropdown, Loading, Select } from "@geist-ui/core";
+import { ButtonDropdown, Loading, Select, Toggle } from "@geist-ui/core";
 import { Logger } from "../globals/Logger";
 import { downloadTextFile } from "../helpers/downloadTextFile";
 import { generateGraphMLData } from "../helpers/dataConverters/GraphMLConverter";
@@ -14,6 +14,7 @@ export const MainComponent = React.memo(() => {
 	const fetchGroups = useAppStore((s) => s.fetchGroups);
 	const fetchGroupTypes = useAppStore((s) => s.fetchGroupTypes);
 	const fetchGroupRoles = useAppStore((s) => s.fetchGroupRoles);
+	const fetchHierarchies = useAppStore((s) => s.fetchHierarchies);
 
 	//  State variables
 	const excludedRoles = useAppStore((s) => s.excludedRoles);
@@ -23,11 +24,13 @@ export const MainComponent = React.memo(() => {
 	const reducerIsLoading = useAppStore((s) => s.isLoading);
 	const groupTypes = useAppStore((s) => s.groupTypes);
 	const excludedGroups = useAppStore((s) => s.excludedGroups);
+	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 
 	//  State setters
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
 	const setExcludedGroups = useAppStore((s) => s.setExcludedGroups);
+	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
 
 	// Local state variables
 	const [localIsLoading, setLocalIsLoading] = useState(false);
@@ -36,15 +39,20 @@ export const MainComponent = React.memo(() => {
 	const isLoading = reducerIsLoading || localIsLoading;
 
 	// Callbacks
-	const didPressDownloadGraphML = useCallback(async () => {
+	const didPressDownloadGraphML = useCallback(() => {
 		Logger.log('Updating GraphML data.');
 
 		Logger.log('Downloading generated GraphML file.');
-		downloadTextFile(await generateGraphMLData(),
+		downloadTextFile(generateGraphMLData(),
 			`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
 			document,
 		);
 	}, []);
+
+	const showGroupTypesDidChange = useCallback(() => {
+		setShowGroupTypes(!showGroupTypes);
+		Logger.log('showGroupTypesDidChange::' + !showGroupTypes);
+	}, [setShowGroupTypes, showGroupTypes]);
 
 	const renderSelectExcludedGroups = useCallback(() => {
 		return (
@@ -125,6 +133,16 @@ export const MainComponent = React.memo(() => {
 		);
 	}, [excludedGroupTypes, excludedRoles, groupRoles, groupTypesById, setExcludedRoles]);
 
+	const renderDisplayOptions = useCallback(() => {
+		return <div className="flex-col">
+			<h5>Darstellungsoptionen</h5>
+			<div className="flex flex-row items-center gap-x-2">
+				<Toggle checked={showGroupTypes} onChange={showGroupTypesDidChange} />
+				Gruppentypen anzeigen
+			</div>
+		</div>
+	}, [showGroupTypes, showGroupTypesDidChange])
+
 	// Effects
 	useEffect(() => {
 		const groupTypes = new Set(excludedGroupTypes.map((value) => groupTypesById[value]));
@@ -142,7 +160,7 @@ export const MainComponent = React.memo(() => {
 
 	useEffect(() => {
 		setLocalIsLoading(true);
-		Promise.all([fetchPersons(), fetchGroups(true), fetchGroupTypes(), fetchGroupRoles()]).then(
+		Promise.all([fetchPersons(), fetchGroups(true), fetchGroupTypes(), fetchGroupRoles(), fetchHierarchies()]).then(
 			() => {
 				setLocalIsLoading(false);
 				setExcludedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((value) => String(value.id)));
@@ -165,6 +183,7 @@ export const MainComponent = React.memo(() => {
 					{renderSelectExcludedGroupTypes()}
 					{renderSelectExcludedGroups()}
 					{renderSelectExcludedGroupRoles()}
+					{renderDisplayOptions()}
 					{!isLoading && (<>
 						<ButtonDropdown className='mt-3'>
 							<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>

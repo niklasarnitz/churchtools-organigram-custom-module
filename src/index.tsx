@@ -37,7 +37,6 @@ const start = async () => {
 if (isDev) {
 	Logger.log('Running in development mode.');
 
-	// eslint-disable-next-line no-inner-declarations
 	churchtoolsClient.setBaseUrl(process.env.REACT_APP_CTURL ?? "");
 	await churchtoolsClient.post('/login', {
 		username: process.env.REACT_APP_USERNAME,
