@@ -1,5 +1,19 @@
 import { createData } from './../createRelatedData';
-import { getGroupMetadataString, getGroupNodeIdentifier, getGroupTitle } from './../GraphHelper';
+import {
+	getGroupMetadataHeight,
+	getGroupMetadataString,
+	getGroupNodeHeight,
+	getGroupNodeIdentifier,
+	getGroupNodeWidth,
+	getGroupTitle,
+	groupMetadataFontFamily,
+	groupMetadataFontSize,
+	groupMetadataFontStyle,
+	groupNameFontFamily,
+	groupNameFontSize,
+	groupNameFontStyle,
+	groupNameHeight,
+} from './../GraphHelper';
 import { useAppStore } from '../../state/useAppStore';
 
 export const generateGraphMLData = () => {
@@ -45,31 +59,9 @@ export const generateGraphMLData = () => {
 		const groupRoles = node.groupRoles;
 
 		const groupTitleString = getGroupTitle(node.group);
-		const groupMemberString = getGroupMetadataString(groupRoles, groupMembers, personsById);
+		const groupMetadataString = getGroupMetadataString(groupRoles, groupMembers, personsById);
 
 		// Some crude logic to calculate a rough length because auto width doesn't work properly.
-		const longestLineGroupMemberString = Math.max(...groupMemberString.split('\n').map((line) => line.length));
-		const longestLineGroupNameString = Math.max(...node.group.name.split('\n').map((line) => line.length));
-
-		const groupNameFontSize = 18;
-		const groupNameFontFamily = 'Dialog';
-		const groupNameFontStyle = 'bold';
-		// FontSize * 1,42 = Height
-		const groupNameHeight = groupNameFontSize * 1.42 * groupTitleString.split('\n').length;
-
-		const groupMetadataFontSize = 12;
-		const groupMetadataFontFamily = 'Dialog';
-		const groupMetadataFontStyle = 'plain';
-		// FontSize * 1,42 = Height
-		const groupMetadataHeight =
-			groupMetadataFontSize * 1.42 * groupMemberString.split('\n').length +
-			getGroupTitle(node.group).split('\n').length;
-
-		const nodeWidth =
-			longestLineGroupNameString > longestLineGroupMemberString
-				? (longestLineGroupNameString * groupNameFontSize) / 1.2
-				: (longestLineGroupMemberString * groupMetadataFontSize) / 1.2;
-
 		const groupNode = graphML.createElement('node');
 		groupNode.setAttribute('id', getGroupNodeIdentifier(node.group));
 
@@ -83,8 +75,8 @@ export const generateGraphMLData = () => {
 		yGenericNode.setAttribute('configuration', 'ShinyPlateNode');
 
 		const yGeometry = graphML.createElement('y:Geometry');
-		yGeometry.setAttribute('height', String(groupMetadataHeight + groupNameHeight));
-		yGeometry.setAttribute('width', String(nodeWidth));
+		yGeometry.setAttribute('height', String(getGroupNodeHeight(groupMetadataString, groupTitleString)));
+		yGeometry.setAttribute('width', String(getGroupNodeWidth(groupTitleString, groupMetadataString)));
 
 		const yFill = graphML.createElement('y:Fill');
 		yFill.setAttribute('color', '#FFCC00');
@@ -102,7 +94,7 @@ export const generateGraphMLData = () => {
 		yNodeLabelGroupName.setAttribute('fontStyle', groupNameFontStyle);
 		yNodeLabelGroupName.setAttribute('hasBackgroundColor', 'false');
 		yNodeLabelGroupName.setAttribute('hasLineColor', 'false');
-		yNodeLabelGroupName.setAttribute('height', groupNameHeight.toString());
+		yNodeLabelGroupName.setAttribute('height', groupNameHeight(groupTitleString).toString());
 		yNodeLabelGroupName.setAttribute('horizontalTextPosition', 'center');
 		yNodeLabelGroupName.setAttribute('iconTextGap', '4');
 		yNodeLabelGroupName.setAttribute('modelName', 'internal');
@@ -118,9 +110,9 @@ export const generateGraphMLData = () => {
 		yNodeLabelGroupMetadata.setAttribute('fontFamily', groupMetadataFontFamily);
 		yNodeLabelGroupMetadata.setAttribute('fontSize', groupMetadataFontSize.toString());
 		yNodeLabelGroupMetadata.setAttribute('fontStyle', groupMetadataFontStyle);
-		yNodeLabelGroupMetadata.setAttribute('hasBackgroupColor', 'false');
+		yNodeLabelGroupMetadata.setAttribute('hasBackgroundColor', 'false');
 		yNodeLabelGroupMetadata.setAttribute('hasLineColor', 'false');
-		yNodeLabelGroupMetadata.setAttribute('height', groupMetadataHeight.toString());
+		yNodeLabelGroupMetadata.setAttribute('height', getGroupMetadataHeight(groupMetadataString).toString());
 		yNodeLabelGroupMetadata.setAttribute('horizontalTextPosition', 'center');
 		yNodeLabelGroupMetadata.setAttribute('iconTextGap', '4');
 		yNodeLabelGroupMetadata.setAttribute('modelName', 'internal');
@@ -128,7 +120,7 @@ export const generateGraphMLData = () => {
 		yNodeLabelGroupMetadata.setAttribute('textColor', '#000000');
 		yNodeLabelGroupMetadata.setAttribute('verticalTextPosition', 'top');
 		yNodeLabelGroupMetadata.setAttribute('visible', 'true');
-		yNodeLabelGroupMetadata.textContent = groupMemberString;
+		yNodeLabelGroupMetadata.textContent = groupMetadataString;
 
 		yGenericNode.append(yGeometry);
 		yGenericNode.append(yFill);

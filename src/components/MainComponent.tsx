@@ -1,11 +1,16 @@
-import { Button, ButtonDropdown, Loading, Select, Toggle } from "@geist-ui/core";
-import { Logger } from "../globals/Logger";
-import { downloadTextFile } from "../helpers/downloadTextFile";
-import { generateGraphMLData } from "../helpers/dataConverters/GraphMLConverter";
-import { useAppStore } from "../state/useAppStore";
-import React, { useCallback, useEffect, useState } from "react";
-import _ from "lodash";
-import moment from "moment";
+import 'reactflow/dist/style.css';
+import { Button, ButtonDropdown, Collapse, Description, Loading, Select, Toggle } from '@geist-ui/core';
+import { Logger } from '../globals/Logger';
+import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
+import { downloadTextFile } from '../helpers/downloadTextFile';
+import { generateGraphMLData } from '../helpers/dataConverters/GraphMLConverter';
+import { generateReflowData } from '../helpers/dataConverters/ReflowConverter';
+import { useAppStore } from '../state/useAppStore';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ReactFlow, { Background, MiniMap, Panel } from 'reactflow';
+import _ from 'lodash';
+import moment from 'moment';
+import type { Node } from 'reactflow';
 
 export const MainComponent = React.memo(() => {
 	// Zustand
@@ -26,6 +31,9 @@ export const MainComponent = React.memo(() => {
 	const excludedGroups = useAppStore((s) => s.excludedGroups);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
+	const hierarchies = useAppStore((s) => s.hierarchies);
+	const groupsById = useAppStore((s) => s.groupsById);
+	const groups = useAppStore((s) => s.groups);
 
 	//  State setters
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
@@ -36,20 +44,36 @@ export const MainComponent = React.memo(() => {
 
 	// Local state variables
 	const [localIsLoading, setLocalIsLoading] = useState(false);
+	const [data, setData] = useState(generateReflowData());
 
 	// Helper values
 	const isLoading = reducerIsLoading || localIsLoading;
 
+	// Memoized
+	const nodeTypes = useMemo(
+		() => ({
+			previewGraphNode: PreviewGraphNode,
+		}),
+		[],
+	);
+
 	// Callbacks
 	const didPressDownloadGraphML = useCallback(() => {
+		const groupName = groupIdToStartWith
+			? (groupsById[Number(groupIdToStartWith)]
+				? groupsById[Number(groupIdToStartWith)].name
+				: undefined)
+			: undefined;
+
+		const fileName = groupIdToStartWith
+			? `Gruppen-Organigramm-${groupName}-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`
+			: `Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`;
+
 		Logger.log('Updating GraphML data.');
 
 		Logger.log('Downloading generated GraphML file.');
-		downloadTextFile(generateGraphMLData(),
-			`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
-			document,
-		);
-	}, []);
+		downloadTextFile(generateGraphMLData(), fileName, document);
+	}, [groupIdToStartWith, groupsById]);
 
 	const showGroupTypesDidChange = useCallback(() => {
 		setShowGroupTypes(!showGroupTypes);
@@ -60,6 +84,18 @@ export const MainComponent = React.memo(() => {
 		// eslint-disable-next-line unicorn/no-useless-undefined
 		setGroupIdToStartWith(undefined);
 	}, [setGroupIdToStartWith]);
+
+	const onNodeClick = useCallback(
+		(_: any, node: Node) => {
+			Logger.log('onNodeClick::' + node.id);
+
+			setGroupIdToStartWith(node.id);
+			didPressDownloadGraphML();
+			// eslint-disable-next-line unicorn/no-useless-undefined
+			setGroupIdToStartWith(undefined);
+		},
+		[didPressDownloadGraphML, setGroupIdToStartWith],
+	);
 
 	const renderSelectExcludedGroups = useCallback(() => {
 		return (
@@ -73,7 +109,9 @@ export const MainComponent = React.memo(() => {
 					width="100%"
 				>
 					{_.sortBy(
-						useAppStore.getState().groups.filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
+						useAppStore
+							.getState()
+							.groups.filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
 						(g) => g?.name,
 					).map((group) => {
 						return (
@@ -83,9 +121,8 @@ export const MainComponent = React.memo(() => {
 						);
 					})}
 				</Select>
-			</div >
+			</div>
 		);
-
 	}, [excludedGroupTypes, excludedGroups, setExcludedGroups]);
 
 	const renderSelectExcludedGroupTypes = useCallback(() => {
@@ -99,10 +136,7 @@ export const MainComponent = React.memo(() => {
 					onChange={setExcludedGroupTypes}
 					width="100%"
 				>
-					{_.sortBy(
-						groupTypes,
-						(g) => g?.sortKey,
-					).map((groupType) => {
+					{_.sortBy(groupTypes, (g) => g?.sortKey).map((groupType) => {
 						return (
 							<Select.Option key={groupType.id} value={String(groupType.id)}>
 								{groupType?.name}
@@ -110,9 +144,9 @@ export const MainComponent = React.memo(() => {
 						);
 					})}
 				</Select>
-			</div >
+			</div>
 		);
-	}, [excludedGroupTypes, groupTypes, setExcludedGroupTypes])
+	}, [excludedGroupTypes, groupTypes, setExcludedGroupTypes]);
 
 	const renderSelectExcludedGroupRoles = useCallback(() => {
 		return (
@@ -136,19 +170,21 @@ export const MainComponent = React.memo(() => {
 						);
 					})}
 				</Select>
-			</div >
+			</div>
 		);
 	}, [excludedGroupTypes, excludedRoles, groupRoles, groupTypesById, setExcludedRoles]);
 
 	const renderDisplayOptions = useCallback(() => {
-		return <div className="flex-col">
-			<h5>Darstellungsoptionen</h5>
-			<div className="flex flex-row items-center gap-x-2">
-				<Toggle checked={showGroupTypes} onChange={showGroupTypesDidChange} />
-				Gruppentypen anzeigen
+		return (
+			<div className="flex-col">
+				<h5>Darstellungsoptionen</h5>
+				<div className="flex flex-row items-center gap-x-2">
+					<Toggle checked={showGroupTypes} onChange={showGroupTypesDidChange} />
+					Gruppentypen anzeigen
+				</div>
 			</div>
-		</div>
-	}, [showGroupTypes, showGroupTypesDidChange])
+		);
+	}, [showGroupTypes, showGroupTypesDidChange]);
 
 	const renderSelectGroupToStartWith = useCallback(() => {
 		return (
@@ -160,12 +196,8 @@ export const MainComponent = React.memo(() => {
 					value={groupIdToStartWith ?? ''}
 					onChange={setGroupIdToStartWith}
 					width="100%"
-
 				>
-					{_.sortBy(
-						useAppStore.getState().groups,
-						(g) => g?.name,
-					).map((group) => {
+					{_.sortBy(useAppStore.getState().groups, (g) => g?.name).map((group) => {
 						return (
 							<Select.Option key={group.id} value={String(group.id)}>
 								{group?.name}
@@ -174,23 +206,27 @@ export const MainComponent = React.memo(() => {
 					})}
 				</Select>
 				{groupIdToStartWith && <Button onClick={clearGroupIdToStartWith}>Auswahl löschen</Button>}
-			</div >
+			</div>
 		);
 	}, [clearGroupIdToStartWith, groupIdToStartWith, setGroupIdToStartWith]);
-
 
 	// Effects
 	useEffect(() => {
 		const groupTypes = new Set(excludedGroupTypes.map((value) => groupTypesById[value]));
 
-		const roles = useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((value) => String(value.id))
+		const roles = useAppStore
+			.getState()
+			.groupRoles.filter((value) => !value.isLeader)
+			.map((value) => String(value.id));
 
 		setExcludedRoles(
-			roles.filter((value) => {
-				const groupRole = groupRoles.find((groupRole) => groupRole.id === Number(value));
-				return groupRole && !groupTypes.has(groupTypesById[groupRole.groupTypeId]);
-			}).map(String),
-		)
+			roles
+				.filter((value) => {
+					const groupRole = groupRoles.find((groupRole) => groupRole.id === Number(value));
+					return groupRole && !groupTypes.has(groupTypesById[groupRole.groupTypeId]);
+				})
+				.map(String),
+		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [excludedGroupTypes]);
 
@@ -199,40 +235,80 @@ export const MainComponent = React.memo(() => {
 		Promise.all([fetchPersons(), fetchGroups(true), fetchGroupTypes(), fetchGroupRoles(), fetchHierarchies()]).then(
 			() => {
 				setLocalIsLoading(false);
-				setExcludedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((value) => String(value.id)));
+				setExcludedRoles(
+					useAppStore
+						.getState()
+						.groupRoles.filter((value) => !value.isLeader)
+						.map((value) => String(value.id)),
+				);
 			},
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	useEffect(() => {
+		setData(generateReflowData());
+	}, [
+		hierarchies,
+		groups,
+		groupsById,
+		groupIdToStartWith,
+		showGroupTypes,
+		excludedRoles,
+		excludedGroupTypes,
+		excludedGroups,
+	]);
+
 	return (
-		<div className='h-[100vh] w-full bg-slate-100'>
-			<div className='flex h-full w-full flex-col items-center justify-start p-4'>
-				<div className="flex w-full items-center justify-between gap-6 border-0 border-b border-solid px-6 py-3.5 text-lg">
-					<div className="flex grow gap-6 divide-x font-bold">
-						<div className="flex h-7 items-baseline gap-4">
-							<span>ChurchTools Organigramm</span>
-						</div>
+		<div className="p-4">
+			<div className="flex w-full items-center justify-between gap-6 border-0 border-b border-solid px-6 py-3.5 text-lg">
+				<div className="flex grow gap-6 divide-x font-bold">
+					<div className="flex h-7 items-baseline gap-4">
+						<span>ChurchTools Organigramm</span>
 					</div>
 				</div>
-				<div className="w-1/2">
-					{renderSelectGroupToStartWith()}
-					{renderSelectExcludedGroupTypes()}
-					{renderSelectExcludedGroups()}
-					{renderSelectExcludedGroupRoles()}
-					{renderDisplayOptions()}
-					{!isLoading && (<>
-						<ButtonDropdown className='mt-3'>
-							<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
-								Export als GraphML Datei
-							</ButtonDropdown.Item>
-							<ButtonDropdown.Item>Export als FooBar</ButtonDropdown.Item>
-						</ButtonDropdown>
-					</>
-					)}
-					{isLoading && <Loading>Daten werden geladen.</Loading>}
-				</div>
 			</div>
+			{isLoading ? (
+				<div className='h-full w-full flex-col items-center justify-center'>
+					<Loading>Daten werden geladen.</Loading>
+				</div>
+			) : (
+				<div className="h-[calc(100vh-12.25rem)] w-full">
+					<ReactFlow
+						nodes={data.nodes}
+						edges={data.edges}
+						nodesDraggable={false}
+						zoomOnScroll
+						panOnDrag
+						fitView
+						edgesFocusable={false}
+						onNodeClick={onNodeClick}
+						nodeTypes={nodeTypes}
+					>
+						<MiniMap />
+						<Background />
+						{!isLoading && (
+							<Panel position="top-left" className="h-3/4 w-1/4">
+								<div
+									className="rounded-md border border-slate-100 bg-slate-50 p-2 shadow-sm"
+								>
+									{renderSelectGroupToStartWith()}
+									{renderSelectExcludedGroupTypes()}
+									{renderSelectExcludedGroups()}
+									{renderSelectExcludedGroupRoles()}
+									{renderDisplayOptions()}
+									<ButtonDropdown className="mt-3">
+										<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
+											Export als GraphML Datei
+										</ButtonDropdown.Item>
+									</ButtonDropdown>
+									<Description title="Section Title" content="Data about this section." className='pt-10' />
+								</div>
+							</Panel>
+						)}
+					</ReactFlow>
+				</div>
+			)}
 		</div>
 	);
-})
+});
