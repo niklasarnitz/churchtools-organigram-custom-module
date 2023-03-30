@@ -1,119 +1,74 @@
 import { MarkerType, Position } from 'reactflow';
-import { NodeType, determineIfIsGroupOrPerson } from './../determineIfIsGroupOrPerson';
-import { groupIdentifier, personIdentifier, roleIdentifier } from './GraphMLConverter';
-import { useAppStore } from './../../state/useAppStore';
-import _ from 'lodash';
-import type { DataNode } from './../../models/DataNode';
+import { createData } from '../createRelatedData';
+import { getGroupMetadataString, getGroupNodeWidth, getGroupTitle, getReflowGroupNodeHeight } from './../GraphHelper';
+import { useAppStore } from '../../state/useAppStore';
+import dagre from 'dagre';
+import type { Edge } from './../../../node_modules/@reactflow/core/dist/esm/types/edges.d';
 import type { Node } from 'reactflow';
-import type { Relation } from './../../models/Relation';
 
-const zeroPosition = { x: 0, y: 0 };
-const edgeType = 'smoothstep';
+export const generateReflowData = () => {
+	const { relations, nodes } = createData();
+	const { personsById } = useAppStore.getState();
 
-export const getReflowNodes = (nodes: DataNode[], displayDirection: 'LR' | 'TB') => {
-	const reflowNodes: Node[] = [];
-
-	const sourceTargetPositions =
-		displayDirection === 'LR'
-			? {
-					sourcePosition: Position.Right,
-					targetPosition: Position.Left,
-			  }
-			: {
-					sourcePosition: Position.Bottom,
-					targetPosition: Position.Top,
-			  };
+	const dagreGraph = new dagre.graphlib.Graph();
+	dagreGraph.setDefaultEdgeLabel(() => ({}));
+	dagreGraph.setGraph({
+		rankdir: 'LR',
+	});
 
 	for (const node of nodes) {
-		if (
-			node &&
-			determineIfIsGroupOrPerson(node) === NodeType.GROUP &&
-			'name' in node &&
-			!_.some(reflowNodes, (n) => n.id === groupIdentifier(node))
-		) {
-			reflowNodes.push({
-				id: groupIdentifier(node),
-				...sourceTargetPositions,
-				data: {
-					label: node.name,
-				},
-				position: zeroPosition,
-			});
-		} else if (node && 'groupTypeRoleId' in node) {
-			const person = useAppStore.getState().personsById[node.personId];
-			const group = useAppStore.getState().groupsById[node.groupId];
+		const groupNodeTitleString = getGroupTitle(node.group);
+		const groupNodeMetadataString = getGroupMetadataString(node.groupRoles, node.members, personsById);
 
-			if (!_.some(reflowNodes, (n) => n.id === roleIdentifier(node)) && group && group.name) {
-				reflowNodes.push(
-					{
-						id: roleIdentifier(node),
-						...sourceTargetPositions,
-						data: {
-							label: group.name,
-						},
-						position: zeroPosition,
-					},
-					{
-						id: personIdentifier(node),
-						...sourceTargetPositions,
-						data: {
-							label: `${person.firstName} ${person.lastName}`,
-						},
-						position: zeroPosition,
-					},
-				);
-			}
-		}
+		dagreGraph.setNode(node.group.id.toString(), {
+			width: Number(getGroupNodeWidth(groupNodeTitleString, groupNodeMetadataString)),
+			height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeMetadataString) + 32,
+		});
 	}
 
-	return reflowNodes;
-};
-
-export const getReflowEdges = (relations: Relation[]) => {
-	const reflowEdges = [];
-
 	for (const relation of relations) {
-		if (determineIfIsGroupOrPerson(relation.target) === NodeType.GROUP && 'id' in relation.target) {
-			reflowEdges.push({
-				id: `${groupIdentifier(relation.source)}-${groupIdentifier(relation.target)}`,
-				source: groupIdentifier(relation.source),
-				target: groupIdentifier(relation.target),
-				type: edgeType,
+		dagreGraph.setEdge(relation.source.id.toString(), relation.target.id.toString());
+	}
+
+	dagre.layout(dagreGraph);
+
+	const localReflowNodes: (Node | undefined)[] = dagreGraph.nodes().map((nodeId) => {
+		const node = nodes.find((node) => node.group.id === Number(nodeId));
+		return node
+			? {
+					id: nodeId,
+					targetPosition: Position.Left,
+					sourcePosition: Position.Right,
+					data: {
+						label: `${getGroupTitle(node.group)}\n\n${getGroupMetadataString(
+							node?.groupRoles,
+							node?.members,
+							personsById,
+						)}`,
+					},
+					type: 'previewGraphNode',
+					position: {
+						x: dagreGraph.node(nodeId).x,
+						y: dagreGraph.node(nodeId).y,
+					},
+			  }
+			: undefined;
+	});
+
+	return {
+		nodes: localReflowNodes.filter((node) => node !== undefined) as Node[],
+		edges: relations.map((relation) => {
+			return {
+				id: `${relation.source.id}-${relation.target.id}`,
+				source: relation.source.id.toString(),
+				target: relation.target.id.toString(),
+				type: 'smoothstep',
+				animated: true,
+				className: 'black-100',
 				markerEnd: {
 					type: MarkerType.Arrow,
 				},
-			});
-		} else {
-			if (
-				determineIfIsGroupOrPerson(relation.source) === NodeType.GROUP &&
-				determineIfIsGroupOrPerson(relation.target) === NodeType.MEMBER &&
-				'groupTypeRoleId' in relation.target &&
-				'groupMemberStatus' in relation.target &&
-				'personId' in relation.target
-			) {
-				reflowEdges.push(
-					{
-						id: `${groupIdentifier(relation.source)}-${roleIdentifier(relation.target)}`,
-						source: groupIdentifier(relation.source),
-						target: roleIdentifier(relation.target),
-						type: edgeType,
-						markerEnd: {
-							type: MarkerType.Arrow,
-						},
-					},
-					{
-						id: `${roleIdentifier(relation.target)}-${personIdentifier(relation.target)}`,
-						source: roleIdentifier(relation.target),
-						target: personIdentifier(relation.target),
-						type: edgeType,
-						markerEnd: {
-							type: MarkerType.Arrow,
-						},
-					},
-				);
-			}
-		}
-	}
-
-	return reflowEdges;
+			} as Edge;
+		}),
+	};
 };
