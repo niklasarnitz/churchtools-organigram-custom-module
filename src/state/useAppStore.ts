@@ -33,6 +33,9 @@ type GroupState = {
 	excludedGroupTypes: number[];
 	setExcludedGroupTypes: (groups: string | string[]) => void;
 
+	excludedGroups: number[];
+	setExcludedGroups: (groups: string | string[]) => void;
+
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
@@ -56,6 +59,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groupRolesByType: {} as Record<number, GroupRole[]>,
 	excludedRoles: [] as number[],
 	excludedGroupTypes: [] as number[],
+	excludedGroups: [] as number[],
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
 		const groups = await fetchGroups();
@@ -110,4 +114,6 @@ export const useAppStore = create<GroupState>((set, get) => ({
 		set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }),
 	setExcludedGroupTypes: (groups: string | string[]) =>
 		set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
+	setExcludedGroups: (groups: string | string[]) =>
+		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
 }));

@@ -20,8 +20,8 @@ export const groupIdentifier = (group: Group) => `group-${group.id}`;
 
 // This function looks like it's doing a lot, but it's just converting the data into a format that can be used by the graphML library.
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export const generateGraphMLData = () => {
-	const { relations, nodes } = createData();
+export const generateGraphMLData = async () => {
+	const { relations, nodes } = await createData();
 	const { excludedRoles } = useAppStore.getState();
 
 	const graphML = new Document();

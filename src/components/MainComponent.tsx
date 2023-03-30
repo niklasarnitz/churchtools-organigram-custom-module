@@ -12,7 +12,6 @@ export const MainComponent = React.memo(() => {
 	//  Fetch functions
 	const fetchPersons = useAppStore((s) => s.fetchPersons);
 	const fetchGroups = useAppStore((s) => s.fetchGroups);
-	const fetchHierarchies = useAppStore((s) => s.fetchHierarchies);
 	const fetchGroupTypes = useAppStore((s) => s.fetchGroupTypes);
 	const fetchGroupRoles = useAppStore((s) => s.fetchGroupRoles);
 
@@ -23,10 +22,12 @@ export const MainComponent = React.memo(() => {
 	const groupTypesById = useAppStore((s) => s.groupTypesById);
 	const reducerIsLoading = useAppStore((s) => s.isLoading);
 	const groupTypes = useAppStore((s) => s.groupTypes);
+	const excludedGroups = useAppStore((s) => s.excludedGroups);
 
 	//  State setters
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
+	const setExcludedGroups = useAppStore((s) => s.setExcludedGroups);
 
 	// Local state variables
 	const [localIsLoading, setLocalIsLoading] = useState(false);
@@ -35,15 +36,42 @@ export const MainComponent = React.memo(() => {
 	const isLoading = reducerIsLoading || localIsLoading;
 
 	// Callbacks
-	const didPressDownloadGraphML = useCallback(() => {
+	const didPressDownloadGraphML = useCallback(async () => {
 		Logger.log('Updating GraphML data.');
 
 		Logger.log('Downloading generated GraphML file.');
-		downloadTextFile(generateGraphMLData(),
+		downloadTextFile(await generateGraphMLData(),
 			`Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`,
 			document,
 		);
 	}, []);
+
+	const renderSelectExcludedGroups = useCallback(() => {
+		return (
+			<div className="flex-col">
+				<h5>Zu exkludierende Gruppen</h5>
+				<Select
+					placeholder={<p>Keine exkludierten Gruppen ausgewählt</p>}
+					value={excludedGroups.map(String)}
+					multiple
+					onChange={setExcludedGroups}
+					width="100%"
+				>
+					{_.sortBy(
+						useAppStore.getState().groups.filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
+						(g) => g?.name,
+					).map((group) => {
+						return (
+							<Select.Option key={group.id} value={String(group.id)}>
+								{group?.name}
+							</Select.Option>
+						);
+					})}
+				</Select>
+			</div >
+		);
+
+	}, [excludedGroupTypes, excludedGroups, setExcludedGroups]);
 
 	const renderSelectExcludedGroupTypes = useCallback(() => {
 		return (
@@ -114,7 +142,7 @@ export const MainComponent = React.memo(() => {
 
 	useEffect(() => {
 		setLocalIsLoading(true);
-		Promise.all([fetchPersons(), fetchGroups(true), fetchHierarchies(), fetchGroupTypes(), fetchGroupRoles()]).then(
+		Promise.all([fetchPersons(), fetchGroups(true), fetchGroupTypes(), fetchGroupRoles()]).then(
 			() => {
 				setLocalIsLoading(false);
 				setExcludedRoles(useAppStore.getState().groupRoles.filter((value) => !value.isLeader).map((value) => String(value.id)));
@@ -135,6 +163,7 @@ export const MainComponent = React.memo(() => {
 				</div>
 				<div className="w-1/2">
 					{renderSelectExcludedGroupTypes()}
+					{renderSelectExcludedGroups()}
 					{renderSelectExcludedGroupRoles()}
 					{!isLoading && (<>
 						<ButtonDropdown className='mt-3'>

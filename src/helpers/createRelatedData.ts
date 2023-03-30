@@ -33,29 +33,7 @@ export const createData = () => {
 	}
 
 	for (const groupMember of groupMembers) {
-		if (
-			groupMember &&
-			groupsById[groupMember.groupId] &&
-			!excludedGroupTypes.includes(groupsById[groupMember.groupId].information.groupTypeId) &&
-			!excludedRoles.includes(groupMember.groupTypeRoleId)
-		) {
-			const group = groupsById[groupMember.groupId];
-
-			if (group) {
-				relations.push({
-					source: group,
-					target: groupMember,
-				});
-
-				if (!_.includes(nodes, groupMember)) {
-					nodes.push(groupMember);
-				}
-
-				if (!_.includes(nodes, group)) {
-					nodes.push(group);
-				}
-			}
-		}
+		if(groupMember && !excludedRoles.includes(groupMember.groupTypeRoleId) && ) {
 	}
 
 	return {
