@@ -2,7 +2,7 @@
 	"name": "churchtools-organigram-custom-module",
 	"version": "0.1.0",
 	"private": true,
-	"homepage": "/ccm/churchtools-organigram-custom-module",
+	"homepage": "/ccm/organigram",
 	"dependencies": {
 		"@churchtools/churchtools-client": "^1.2.14",
 		"@fontsource/lato": "^4.5.10",
@@ -35,7 +35,7 @@
 	"scripts": {
 		"start": "craco start",
 		"build": "craco build",
-		"build:module": "rm -rf build/* && rm -rf churchtools-organigram-custom-module.zip && npm run build && zip -r churchtools-organigram-custom-module-$RANDOM.zip build/ && echo '\n\nYou can now upload the churchtools-organigram-custom-module.zip to your churchtools instance.\n\u001b[0;31mHint: Please keep in mind to use churchtools-organigram-custom-module as the shorty.\u001b[0m'",
+		"build:module": "rm -rf build/* && rm -rf organigram.zip && npm run build && zip -r organigram-$RANDOM.zip build/ && echo '\n\nYou can now upload the organigram.zip to your churchtools instance.\n\u001b[0;31mHint: Please keep in mind to use organigram as the shorty.\u001b[0m'",
 		"test": "craco test",
 		"eslint": "eslint --ext .js,.jsx,.ts,.tsx src/",
 		"ci": "npm run eslint"
