@@ -28,7 +28,7 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
 
 	return <>
 		<Handle type="target" position={Position.Left} />
-		<div className="flex-col items-center justify-center rounded bg-gray-200 p-4">
+		<div className="flex-col items-center justify-center rounded bg-gray-50 p-4">
 			{renderText()}
 		</div>
 		<Handle type="source" position={Position.Right} />

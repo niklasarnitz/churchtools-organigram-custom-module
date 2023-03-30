@@ -22,7 +22,7 @@ export const generateReflowData = () => {
 
 		dagreGraph.setNode(node.group.id.toString(), {
 			width: Number(getGroupNodeWidth(groupNodeTitleString, groupNodeMetadataString)),
-			height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeMetadataString) + 32,
+			height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeMetadataString) * 2 + 32,
 		});
 	}
 

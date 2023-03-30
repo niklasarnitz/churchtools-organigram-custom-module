@@ -281,7 +281,7 @@ export const MainComponent = React.memo(() => {
 					<Loading>Daten werden geladen.</Loading>
 				</div>
 			) : (
-				<div className="h-[calc(100vh-12.25rem)] w-full">
+				<div className="h-[calc(100vh-14.25rem)] w-full">
 					<ReactFlow
 						nodes={data.nodes}
 						edges={data.edges}
