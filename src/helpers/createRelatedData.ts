@@ -46,7 +46,7 @@ const includesGroup = (nodes: GraphNode[], group: Group) => {
 
 // This is a really ugly function. If you want to change that, you're welcome to do so.
 const getHierarchiesForGroup = (groupId: number) => {
-	const { hierarchiesByGroup, hierarchies } = useAppStore.getState();
+	const { hierarchiesByGroup } = useAppStore.getState();
 
 	const localHierarchies: Hierarchy[] = [];
 	const localChildren: number[] = [];
@@ -62,7 +62,7 @@ const getHierarchiesForGroup = (groupId: number) => {
 		const child = localChildren.pop();
 
 		if (child) {
-			const childHierarchy = hierarchies.find((h) => h.groupId === child);
+			const childHierarchy = hierarchiesByGroup[child];
 
 			if (childHierarchy) {
 				localHierarchies.push(childHierarchy);
