@@ -1,5 +1,4 @@
 import { Handle, Position } from "reactflow";
-import { Logger } from "../../globals/Logger";
 import { useAppStore } from "../../state/useAppStore";
 import React, { useCallback } from "react";
 

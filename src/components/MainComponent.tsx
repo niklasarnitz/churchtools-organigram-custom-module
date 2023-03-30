@@ -1,7 +1,6 @@
 import 'reactflow/dist/style.css';
 import { Button, ButtonDropdown, Description, Loading, Select, Toggle } from '@geist-ui/core';
 import { ChevronDown, ChevronUp } from '@geist-ui/icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Logger } from '../globals/Logger';
 import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
 import { Strings } from '../globals/Strings';
@@ -294,7 +293,7 @@ export const MainComponent = React.memo(() => {
 						onNodeClick={onNodeClick}
 						nodeTypes={nodeTypes}
 					>
-						<MiniMap />
+						<MiniMap zoomable pannable />
 						<Background />
 						{!isLoading && (
 							<Panel position="top-left" className="h-3/4 w-1/4">
