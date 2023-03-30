@@ -70,7 +70,7 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	excludedGroupTypes: [] as number[],
 	excludedGroups: [] as number[],
 
-	showGroupTypes: true,
+	showGroupTypes: false,
 
 	groupIdToStartWith: undefined,
 

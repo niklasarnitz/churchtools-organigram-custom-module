@@ -1,7 +1,11 @@
 import 'reactflow/dist/style.css';
-import { Button, ButtonDropdown, Collapse, Description, Loading, Select, Toggle } from '@geist-ui/core';
+import { Button, ButtonDropdown, Description, Loading, Select, Toggle } from '@geist-ui/core';
+import { ChevronDown, ChevronUp } from '@geist-ui/icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Logger } from '../globals/Logger';
 import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
+import { Strings } from '../globals/Strings';
+import { UnmountClosed } from 'react-collapse';
 import { downloadTextFile } from '../helpers/downloadTextFile';
 import { generateGraphMLData } from '../helpers/dataConverters/GraphMLConverter';
 import { generateReflowData } from '../helpers/dataConverters/ReflowConverter';
@@ -45,6 +49,7 @@ export const MainComponent = React.memo(() => {
 	// Local state variables
 	const [localIsLoading, setLocalIsLoading] = useState(false);
 	const [data, setData] = useState(generateReflowData());
+	const [isHelpOpen, setIsHelpOpen] = useState(false);
 
 	// Helper values
 	const isLoading = reducerIsLoading || localIsLoading;
@@ -84,6 +89,10 @@ export const MainComponent = React.memo(() => {
 		// eslint-disable-next-line unicorn/no-useless-undefined
 		setGroupIdToStartWith(undefined);
 	}, [setGroupIdToStartWith]);
+
+	const didPressToggleHelp = useCallback(() => {
+		setIsHelpOpen(!isHelpOpen);
+	}, [isHelpOpen]);
 
 	const onNodeClick = useCallback(
 		(_: any, node: Node) => {
@@ -269,7 +278,7 @@ export const MainComponent = React.memo(() => {
 				</div>
 			</div>
 			{isLoading ? (
-				<div className='h-full w-full flex-col items-center justify-center'>
+				<div className="h-full w-full flex-col items-center justify-center">
 					<Loading>Daten werden geladen.</Loading>
 				</div>
 			) : (
@@ -289,9 +298,7 @@ export const MainComponent = React.memo(() => {
 						<Background />
 						{!isLoading && (
 							<Panel position="top-left" className="h-3/4 w-1/4">
-								<div
-									className="rounded-md border border-slate-100 bg-slate-50 p-2 shadow-sm"
-								>
+								<div className="rounded-md border border-slate-100 bg-slate-50 p-2 shadow-sm">
 									{renderSelectGroupToStartWith()}
 									{renderSelectExcludedGroupTypes()}
 									{renderSelectExcludedGroups()}
@@ -302,7 +309,37 @@ export const MainComponent = React.memo(() => {
 											Export als GraphML Datei
 										</ButtonDropdown.Item>
 									</ButtonDropdown>
-									<Description title="Section Title" content="Data about this section." className='pt-10' />
+									<Button
+										marginTop={1}
+										iconRight={
+											isHelpOpen ? (
+												<ChevronUp />
+											) : (
+												<ChevronDown />
+											)
+										}
+										onClick={didPressToggleHelp}
+										scale={1 / 2}
+									>
+										<p className='pr-0.5'>{isHelpOpen ? Strings.hideHelp : Strings.showHelp}</p>
+									</Button>
+									<UnmountClosed isOpened={isHelpOpen}>
+										<Description
+											title={Strings.helpTitle}
+											content={Strings.helpText}
+											paddingTop={1}
+										/>
+									</UnmountClosed>
+									<Description
+										title={Strings.versionTitle}
+										content={process.env.REACT_APP_VERSION}
+										paddingTop={1}
+									/>
+									<Description
+										title={Strings.aboutTitle}
+										content={Strings.aboutText}
+										paddingTop={1}
+									/>
 								</div>
 							</Panel>
 						)}
