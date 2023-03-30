@@ -32,7 +32,7 @@
 	"scripts": {
 		"start": "craco start",
 		"build": "craco build",
-		"build:module": "rm -rf build/* && rm -rf organigram.zip && npm run build && zip -r organigram-$RANDOM.zip build/ && echo '\n\nYou can now upload the organigram.zip to your churchtools instance.\n\u001b[0;31mHint: Please keep in mind to use organigram as the shorty.\u001b[0m'",
+		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo '\n\nYou can now upload the organigram.zip to your churchtools instance.\n\u001b[0;31mHint: Please keep in mind to use organigram as the shorty.\u001b[0m'",
 		"test": "craco test",
 		"eslint": "eslint --ext .js,.jsx,.ts,.tsx src/",
 		"ci": "npm run eslint"
