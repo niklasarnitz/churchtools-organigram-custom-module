@@ -303,25 +303,29 @@ export const MainComponent = React.memo(() => {
 									{renderSelectExcludedGroups()}
 									{renderSelectExcludedGroupRoles()}
 									{renderDisplayOptions()}
-									<ButtonDropdown className="mt-3">
-										<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
-											Export als GraphML Datei
-										</ButtonDropdown.Item>
-									</ButtonDropdown>
-									<Button
-										marginTop={1}
-										iconRight={
-											isHelpOpen ? (
-												<ChevronUp />
-											) : (
-												<ChevronDown />
-											)
-										}
-										onClick={didPressToggleHelp}
-										scale={1 / 2}
-									>
-										<p className='pr-0.5'>{isHelpOpen ? Strings.hideHelp : Strings.showHelp}</p>
-									</Button>
+									<div className='flex-col'>
+										<ButtonDropdown className="mt-3 flex-row">
+											<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
+												Export als GraphML Datei
+											</ButtonDropdown.Item>
+										</ButtonDropdown>
+									</div>
+									<div className='flex-col'>
+										<Button
+											marginTop={1}
+											iconRight={
+												isHelpOpen ? (
+													<ChevronUp />
+												) : (
+													<ChevronDown />
+												)
+											}
+											onClick={didPressToggleHelp}
+											scale={1 / 2}
+										>
+											<p className='pr-0.5'>{isHelpOpen ? Strings.hideHelp : Strings.showHelp}</p>
+										</Button>
+									</div>
 									<UnmountClosed isOpened={isHelpOpen}>
 										<Description
 											title={Strings.helpTitle}
