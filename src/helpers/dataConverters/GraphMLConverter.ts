@@ -1,4 +1,5 @@
 import { createData } from './../createRelatedData';
+import { getColorForGroupType } from '../../globals/Colors';
 import {
 	getGroupMetadataHeight,
 	getGroupMetadataString,
@@ -72,14 +73,14 @@ export const generateGraphMLData = () => {
 		data5.setAttribute('key', 'd5');
 
 		const yGenericNode = graphML.createElement('y:GenericNode');
-		yGenericNode.setAttribute('configuration', 'ShinyPlateNode');
+		yGenericNode.setAttribute('configuration', 'BevelNodeWithShadow');
 
 		const yGeometry = graphML.createElement('y:Geometry');
 		yGeometry.setAttribute('height', String(getGroupNodeHeight(groupMetadataString, groupTitleString)));
 		yGeometry.setAttribute('width', String(getGroupNodeWidth(groupTitleString, groupMetadataString)));
 
 		const yFill = graphML.createElement('y:Fill');
-		yFill.setAttribute('color', '#FFCC00');
+		yFill.setAttribute('color', getColorForGroupType(node.group.information.groupTypeId).shades[100]);
 		yFill.setAttribute('transparent', 'false');
 
 		const yBorderStyle = graphML.createElement('y:BorderStyle');
