@@ -63,21 +63,13 @@ export const MainComponent = React.memo(() => {
 
 	// Callbacks
 	const didPressDownloadGraphML = useCallback(() => {
-		const groupName = groupIdToStartWith
-			? (groupsById[Number(groupIdToStartWith)]
-				? groupsById[Number(groupIdToStartWith)].name
-				: undefined)
-			: undefined;
-
-		const fileName = groupIdToStartWith
-			? `Gruppen-Organigramm-${groupName}-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`
-			: `Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`;
+		const fileName = `Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`;
 
 		Logger.log('Updating GraphML data.');
 
 		Logger.log('Downloading generated GraphML file.');
 		downloadTextFile(generateGraphMLData(), fileName, document);
-	}, [groupIdToStartWith, groupsById]);
+	}, []);
 
 	const showGroupTypesDidChange = useCallback(() => {
 		setShowGroupTypes(!showGroupTypes);
@@ -96,13 +88,20 @@ export const MainComponent = React.memo(() => {
 	const onNodeClick = useCallback(
 		(_: any, node: Node) => {
 			Logger.log('onNodeClick::' + node.id);
+			const groupName = node.id
+				? (groupsById[Number(node.id)]
+					? groupsById[Number(node.id)].name
+					: undefined)
+				: undefined;
+
+			const fileName = `Gruppenorganigramm-${groupName}-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`;
 
 			setGroupIdToStartWith(node.id);
-			didPressDownloadGraphML();
+			downloadTextFile(generateGraphMLData(), fileName, document);
 			// eslint-disable-next-line unicorn/no-useless-undefined
 			setGroupIdToStartWith(undefined);
 		},
-		[didPressDownloadGraphML, setGroupIdToStartWith],
+		[groupsById, setGroupIdToStartWith],
 	);
 
 	const renderSelectExcludedGroups = useCallback(() => {
