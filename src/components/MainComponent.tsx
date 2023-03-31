@@ -15,6 +15,7 @@ import _ from 'lodash';
 import moment from 'moment';
 import type { Node } from 'reactflow';
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export const MainComponent = React.memo(() => {
 	// Zustand
 	//  Fetch functions
@@ -63,13 +64,19 @@ export const MainComponent = React.memo(() => {
 
 	// Callbacks
 	const didPressDownloadGraphML = useCallback(() => {
-		const fileName = `Organigramm-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`;
+		const groupName = groupIdToStartWith
+			? (groupsById[Number(groupIdToStartWith)]
+				? groupsById[Number(groupIdToStartWith)].name
+				: undefined)
+			: undefined;
+
+		const fileName = groupName ? `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml` : `Organigramm-${moment().format('LD')}.graphml`;
 
 		Logger.log('Updating GraphML data.');
 
 		Logger.log('Downloading generated GraphML file.');
 		downloadTextFile(generateGraphMLData(), fileName, document);
-	}, []);
+	}, [groupIdToStartWith, groupsById]);
 
 	const showGroupTypesDidChange = useCallback(() => {
 		setShowGroupTypes(!showGroupTypes);
@@ -94,7 +101,7 @@ export const MainComponent = React.memo(() => {
 					: undefined)
 				: undefined;
 
-			const fileName = `Gruppenorganigramm-${groupName}-${moment().format('DD-MM-YYYY-hh:mm:ss')}.graphml`;
+			const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
 			setGroupIdToStartWith(node.id);
 			downloadTextFile(generateGraphMLData(), fileName, document);

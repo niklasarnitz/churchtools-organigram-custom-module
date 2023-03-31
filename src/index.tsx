@@ -6,8 +6,10 @@ import { fetchPermissions } from './api/routes/fetchPermissions';
 import { isDev } from './globals/isDev';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import moment from 'moment';
 
 const start = async () => {
+	moment.locale('de');
 	const permissions = await fetchPermissions();
 
 	if (permissions && !permissions.churchcore['administer persons']) {
