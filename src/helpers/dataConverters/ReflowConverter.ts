@@ -46,7 +46,7 @@ export const generateReflowData = () => {
 							title: getGroupTitle(node.group, true),
 							groupTypeName: groupTypesById[node.group.information.groupTypeId].name,
 							metadata: getGroupMetadataString(node?.groupRoles, node?.members, personsById),
-							color: getColorForGroupType(node.group.id),
+							color: getColorForGroupType(node.group.information.groupTypeId),
 						}),
 					},
 					type: 'previewGraphNode',
