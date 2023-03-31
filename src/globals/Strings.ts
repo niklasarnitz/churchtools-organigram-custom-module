@@ -5,6 +5,7 @@ export const Strings = {
 	hideHelp: 'Hilfe ausblenden',
 	showHelp: 'Hilfe anzeigen',
 	aboutTitle: 'Über',
-	aboutText: 'Dies ist ein ChurchTools Custom Module, welches von Niklas Arnitz und Thomas Böhme entwickelt wird.',
+	aboutText:
+		'Dies ist ein ChurchTools Custom Module, welches von Niklas Arnitz und Bernhard Weichel entwickelt wird.',
 	versionTitle: 'Version',
 };

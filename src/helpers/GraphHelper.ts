@@ -46,10 +46,13 @@ export const getGroupMetadataString = (
 		.join('\n');
 };
 
-export const getGroupTitle = (group: Group) => {
+export const getGroupTitle = (group: Group, reflow = false) => {
 	const { showGroupTypes, groupTypesById } = useAppStore.getState();
 
 	if (showGroupTypes && group.information.groupTypeId) {
+		if (reflow) {
+			return `${group.name}`;
+		}
 		return `${group.name}\n(${groupTypesById[group.information.groupTypeId].name})`;
 	}
 

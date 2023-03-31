@@ -1,5 +1,6 @@
 import { MarkerType, Position } from 'reactflow';
 import { createData } from '../createRelatedData';
+import { getColorForGroupType } from '../../globals/Colors';
 import { getGroupMetadataString, getGroupNodeWidth, getGroupTitle, getReflowGroupNodeHeight } from './../GraphHelper';
 import { useAppStore } from '../../state/useAppStore';
 import dagre from 'dagre';
@@ -8,7 +9,7 @@ import type { Node } from 'reactflow';
 
 export const generateReflowData = () => {
 	const { relations, nodes } = createData();
-	const { personsById } = useAppStore.getState();
+	const { personsById, groupTypesById } = useAppStore.getState();
 
 	const dagreGraph = new dagre.graphlib.Graph();
 	dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -22,7 +23,7 @@ export const generateReflowData = () => {
 
 		dagreGraph.setNode(node.group.id.toString(), {
 			width: Number(getGroupNodeWidth(groupNodeTitleString, groupNodeMetadataString)),
-			height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeMetadataString) * 2 + 32,
+			height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeMetadataString) * 2,
 		});
 	}
 
@@ -40,11 +41,13 @@ export const generateReflowData = () => {
 					targetPosition: Position.Left,
 					sourcePosition: Position.Right,
 					data: {
-						label: `${getGroupTitle(node.group)}\n\n${getGroupMetadataString(
-							node?.groupRoles,
-							node?.members,
-							personsById,
-						)}`,
+						label: JSON.stringify({
+							id: node.group.id,
+							title: getGroupTitle(node.group, true),
+							groupTypeName: groupTypesById[node.group.information.groupTypeId].name,
+							metadata: getGroupMetadataString(node?.groupRoles, node?.members, personsById),
+							color: getColorForGroupType(node.group.id),
+						}),
 					},
 					type: 'previewGraphNode',
 					position: {
