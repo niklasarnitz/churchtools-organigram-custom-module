@@ -107,15 +107,6 @@ export const MainComponent = React.memo(() => {
 		setIsHelpOpen(!isHelpOpen);
 	}, [isHelpOpen]);
 
-	const onNodeClick = useCallback(
-		(_: any, node: Node) => {
-			Logger.log('onNodeClick::' + node.id);
-
-			downloadGroupOrganigram(Number(node.id));
-		},
-		[groupsById, setGroupIdToStartWith],
-	);
-
 	const downloadGroupOrganigram = useCallback((groupId: number) => {
 		const groupName = groupId
 			? (groupsById[groupId]
@@ -129,7 +120,16 @@ export const MainComponent = React.memo(() => {
 		downloadTextFile(generateGraphMLData(), fileName, document);
 		// eslint-disable-next-line unicorn/no-useless-undefined
 		setGroupIdToStartWith(undefined);
-	}, []);
+	}, [groupsById, setGroupIdToStartWith]);
+
+	const onNodeClick = useCallback(
+		(_: any, node: Node) => {
+			Logger.log('onNodeClick::' + node.id);
+
+			downloadGroupOrganigram(Number(node.id));
+		},
+		[downloadGroupOrganigram],
+	);
 
 	const renderSelectExcludedGroups = useCallback(() => {
 		return (
