@@ -1,6 +1,9 @@
+import "react-contexify/dist/ReactContexify.css";
 import 'reactflow/dist/style.css';
 import { Button, ButtonDropdown, Description, Loading, Select, Toggle } from '@geist-ui/core';
-import { ChevronDown, ChevronUp } from '@geist-ui/icons'
+import { ChevronDown, ChevronUp } from '@geist-ui/icons';
+import { Constants } from '../globals/Constants';
+import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
 import { Logger } from '../globals/Logger';
 import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
 import { Strings } from '../globals/Strings';
@@ -13,10 +16,20 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, { Background, MiniMap, Panel } from 'reactflow';
 import _ from 'lodash';
 import moment from 'moment';
+import type { ItemParams } from 'react-contexify';
 import type { Node } from 'reactflow';
+import type { MouseEvent as ReactMouseEvent } from 'react';
+
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export const MainComponent = React.memo(() => {
+	// Context Menu
+	const { show } = useContextMenu({
+		id: Constants.contextMenuId,
+	});
+
+
+
 	// Zustand
 	//  Fetch functions
 	const fetchPersons = useAppStore((s) => s.fetchPersons);
@@ -70,7 +83,9 @@ export const MainComponent = React.memo(() => {
 				: undefined)
 			: undefined;
 
-		const fileName = groupName ? `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml` : `Organigramm-${moment().format('LD')}.graphml`;
+		const fileName = groupName
+			? `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`
+			: `Organigramm-${moment().format('LD')}.graphml`;
 
 		Logger.log('Updating GraphML data.');
 
@@ -95,21 +110,26 @@ export const MainComponent = React.memo(() => {
 	const onNodeClick = useCallback(
 		(_: any, node: Node) => {
 			Logger.log('onNodeClick::' + node.id);
-			const groupName = node.id
-				? (groupsById[Number(node.id)]
-					? groupsById[Number(node.id)].name
-					: undefined)
-				: undefined;
 
-			const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
-
-			setGroupIdToStartWith(node.id);
-			downloadTextFile(generateGraphMLData(), fileName, document);
-			// eslint-disable-next-line unicorn/no-useless-undefined
-			setGroupIdToStartWith(undefined);
+			downloadGroupOrganigram(Number(node.id));
 		},
 		[groupsById, setGroupIdToStartWith],
 	);
+
+	const downloadGroupOrganigram = useCallback((groupId: number) => {
+		const groupName = groupId
+			? (groupsById[groupId]
+				? groupsById[groupId].name
+				: undefined)
+			: undefined;
+
+		const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
+
+		setGroupIdToStartWith(groupId.toString());
+		downloadTextFile(generateGraphMLData(), fileName, document);
+		// eslint-disable-next-line unicorn/no-useless-undefined
+		setGroupIdToStartWith(undefined);
+	}, []);
 
 	const renderSelectExcludedGroups = useCallback(() => {
 		return (
@@ -224,6 +244,47 @@ export const MainComponent = React.memo(() => {
 		);
 	}, [clearGroupIdToStartWith, groupIdToStartWith, setGroupIdToStartWith]);
 
+	const onContextMenu = useCallback((e: ReactMouseEvent, node: any) => {
+		e.preventDefault();
+
+		if (node && node.id) {
+			show({
+				event: e,
+				props: {
+					groupId: node.id,
+				}
+			})
+		}
+	}, [show]);
+
+	// Context Menu Callbacks
+	const didClickOpenGroup = useCallback((params: ItemParams) => {
+		if (params && params.props && 'groupId' in params.props) {
+			// eslint-disable-next-line react/prop-types
+			const { groupId } = params.props;
+
+			window.location.href = `/groups/${groupId}`;
+		}
+	}, []);
+
+	const didClickSetGroupAsStartGroup = useCallback((params: ItemParams) => {
+		if (params && params.props && 'groupId' in params.props) {
+			// eslint-disable-next-line react/prop-types
+			const { groupId } = params.props;
+
+			setGroupIdToStartWith(String(groupId));
+		}
+	}, [setGroupIdToStartWith]);
+
+	const didClickDownloadGroupOrganigram = useCallback((params: ItemParams) => {
+		if (params && params.props && 'groupId' in params.props) {
+			// eslint-disable-next-line react/prop-types
+			const { groupId } = params.props;
+
+			downloadGroupOrganigram(groupId);
+		}
+	}, [downloadGroupOrganigram]);
+
 	// Effects
 	useEffect(() => {
 		const groupTypes = new Set(excludedGroupTypes.map((value) => groupTypesById[value]));
@@ -297,8 +358,22 @@ export const MainComponent = React.memo(() => {
 						fitView
 						edgesFocusable={false}
 						onNodeClick={onNodeClick}
+						onNodeContextMenu={onContextMenu}
 						nodeTypes={nodeTypes}
 					>
+						<Menu id={Constants.contextMenuId} animation="scale">
+							<Item onClick={didClickOpenGroup}>
+								Gruppe aufrufen
+							</Item>
+							<Item onClick={didClickSetGroupAsStartGroup}>
+								Gruppe als Startgruppe setzen
+							</Item>
+							<Submenu label="Organigramm für Gruppe Exportieren">
+								<Item onClick={didClickDownloadGroupOrganigram}>
+									Export als GraphML Datei
+								</Item>
+							</Submenu>
+						</Menu>
 						<MiniMap zoomable pannable />
 						<Background />
 						{!isLoading && (
@@ -309,27 +384,21 @@ export const MainComponent = React.memo(() => {
 									{renderSelectExcludedGroups()}
 									{renderSelectExcludedGroupRoles()}
 									{renderDisplayOptions()}
-									<div className='flex-col'>
+									<div className="flex-col">
 										<ButtonDropdown className="mt-3 flex-row">
 											<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
 												Export als GraphML Datei
 											</ButtonDropdown.Item>
 										</ButtonDropdown>
 									</div>
-									<div className='flex-col'>
+									<div className="flex-col">
 										<Button
 											marginTop={1}
-											iconRight={
-												isHelpOpen ? (
-													<ChevronUp />
-												) : (
-													<ChevronDown />
-												)
-											}
+											iconRight={isHelpOpen ? <ChevronUp /> : <ChevronDown />}
 											onClick={didPressToggleHelp}
 											scale={1 / 2}
 										>
-											<p className='pr-0.5'>{isHelpOpen ? Strings.hideHelp : Strings.showHelp}</p>
+											<p className="pr-0.5">{isHelpOpen ? Strings.hideHelp : Strings.showHelp}</p>
 										</Button>
 									</div>
 									<UnmountClosed isOpened={isHelpOpen}>
