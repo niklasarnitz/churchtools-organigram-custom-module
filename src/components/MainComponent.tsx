@@ -50,6 +50,7 @@ export const MainComponent = React.memo(() => {
 	const hierarchies = useAppStore((s) => s.hierarchies);
 	const groupsById = useAppStore((s) => s.groupsById);
 	const groups = useAppStore((s) => s.groups);
+	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
 
 	//  State setters
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
@@ -376,6 +377,7 @@ export const MainComponent = React.memo(() => {
 		excludedRoles,
 		excludedGroupTypes,
 		excludedGroups,
+		layoutAlgorithm,
 	]);
 
 	return (

@@ -1,3 +1,4 @@
+import { LayoutAlgorithm } from '../models/LayoutAlgorithm';
 import { create } from 'zustand';
 import { fetchGroupMembers } from '../api/routes/fetchGroupMembers';
 import { fetchGroupRoles } from '../api/routes/fetchGroupRoles';
@@ -44,6 +45,9 @@ type GroupState = {
 	groupIdToStartWith: string | undefined;
 	setGroupIdToStartWith: (groupId: string | string[] | undefined) => void;
 
+	layoutAlgorithm: LayoutAlgorithm;
+	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
+
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
@@ -73,6 +77,8 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	showGroupTypes: false,
 
 	groupIdToStartWith: undefined,
+
+	layoutAlgorithm: LayoutAlgorithm.dagre,
 
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
@@ -144,4 +150,6 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	setShowGroupTypes: (show: boolean) => set({ showGroupTypes: show }),
 	setGroupIdToStartWith: (groupIdToStartWith: string | string[] | undefined) =>
 		typeof groupIdToStartWith === 'string' ? set({ groupIdToStartWith }) : set({ groupIdToStartWith: undefined }),
+
+	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => set({ layoutAlgorithm: algorithm }),
 }));
