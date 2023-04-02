@@ -66,7 +66,6 @@ export const generateReflowData = () => {
 				source: relation.source.id.toString(),
 				target: relation.target.id.toString(),
 				type: 'smoothstep',
-				animated: true,
 				className: 'black-100',
 				markerEnd: {
 					type: MarkerType.Arrow,

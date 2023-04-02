@@ -1,4 +1,4 @@
-import "react-contexify/dist/ReactContexify.css";
+import 'react-contexify/dist/ReactContexify.css';
 import 'reactflow/dist/style.css';
 import { Button, ButtonDropdown, Description, Loading, Select, Toggle } from '@geist-ui/core';
 import { ChevronDown, ChevronUp } from '@geist-ui/icons';
@@ -8,9 +8,11 @@ import { Logger } from '../globals/Logger';
 import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
 import { Strings } from '../globals/Strings';
 import { UnmountClosed } from 'react-collapse';
+import { downloadImage } from '../globals/downloadImage';
 import { downloadTextFile } from '../helpers/downloadTextFile';
 import { generateGraphMLData } from '../helpers/dataConverters/GraphMLConverter';
 import { generateReflowData } from '../helpers/dataConverters/ReflowConverter';
+import { toPng } from 'html-to-image';
 import { useAppStore } from '../state/useAppStore';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, { Background, MiniMap, Panel } from 'reactflow';
@@ -20,15 +22,12 @@ import type { ItemParams } from 'react-contexify';
 import type { Node } from 'reactflow';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
-
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export const MainComponent = React.memo(() => {
 	// Context Menu
 	const { show } = useContextMenu({
 		id: Constants.contextMenuId,
 	});
-
-
 
 	// Zustand
 	//  Fetch functions
@@ -107,28 +106,52 @@ export const MainComponent = React.memo(() => {
 		setIsHelpOpen(!isHelpOpen);
 	}, [isHelpOpen]);
 
-	const downloadGroupOrganigram = useCallback((groupId: number) => {
-		const groupName = groupId
-			? (groupsById[groupId]
-				? groupsById[groupId].name
-				: undefined)
-			: undefined;
+	const downloadGroupOrganigramAsGraphML = useCallback(
+		(groupId: number) => {
+			const groupName = groupId ? (groupsById[groupId] ? groupsById[groupId].name : undefined) : undefined;
 
-		const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
+			const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
-		setGroupIdToStartWith(groupId.toString());
-		downloadTextFile(generateGraphMLData(), fileName, document);
-		// eslint-disable-next-line unicorn/no-useless-undefined
-		setGroupIdToStartWith(undefined);
-	}, [groupsById, setGroupIdToStartWith]);
+			setGroupIdToStartWith(groupId.toString());
+			downloadTextFile(generateGraphMLData(), fileName, document);
+			// eslint-disable-next-line unicorn/no-useless-undefined
+			setGroupIdToStartWith(undefined);
+		},
+		[groupsById, setGroupIdToStartWith],
+	);
+
+	const downloadGroupOrganigramAsPNG = useCallback(
+		(groupId: number) => {
+			setGroupIdToStartWith(groupId.toString());
+
+			setData(generateReflowData());
+
+			const reactFlow = document.querySelector('.react-flow');
+
+			if (reactFlow)
+				toPng(reactFlow as HTMLElement, {
+					filter: (node: HTMLElement) => {
+						// we don't want to add the minimap and the controls to the image
+						return !(
+							node?.classList?.contains('react-flow__minimap') ||
+							node?.classList?.contains('react-flow__controls') ||
+							node?.classList?.contains('react-flow__panel') ||
+							node?.classList?.contains('contexify') ||
+							node?.classList?.contains('contexify_willEnter-scale')
+						);
+					},
+				}).then(downloadImage);
+		},
+		[setGroupIdToStartWith],
+	);
 
 	const onNodeClick = useCallback(
 		(_: any, node: Node) => {
 			Logger.log('onNodeClick::' + node.id);
 
-			downloadGroupOrganigram(Number(node.id));
+			downloadGroupOrganigramAsGraphML(Number(node.id));
 		},
-		[downloadGroupOrganigram],
+		[downloadGroupOrganigramAsGraphML],
 	);
 
 	const renderSelectExcludedGroups = useCallback(() => {
@@ -244,18 +267,21 @@ export const MainComponent = React.memo(() => {
 		);
 	}, [clearGroupIdToStartWith, groupIdToStartWith, setGroupIdToStartWith]);
 
-	const onContextMenu = useCallback((e: ReactMouseEvent, node: any) => {
-		e.preventDefault();
+	const onContextMenu = useCallback(
+		(e: ReactMouseEvent, node: any) => {
+			e.preventDefault();
 
-		if (node && node.id) {
-			show({
-				event: e,
-				props: {
-					groupId: node.id,
-				}
-			})
-		}
-	}, [show]);
+			if (node && node.id) {
+				show({
+					event: e,
+					props: {
+						groupId: node.id,
+					},
+				});
+			}
+		},
+		[show],
+	);
 
 	// Context Menu Callbacks
 	const didClickOpenGroup = useCallback((params: ItemParams) => {
@@ -267,23 +293,41 @@ export const MainComponent = React.memo(() => {
 		}
 	}, []);
 
-	const didClickSetGroupAsStartGroup = useCallback((params: ItemParams) => {
-		if (params && params.props && 'groupId' in params.props) {
-			// eslint-disable-next-line react/prop-types
-			const { groupId } = params.props;
+	const didClickSetGroupAsStartGroup = useCallback(
+		(params: ItemParams) => {
+			if (params && params.props && 'groupId' in params.props) {
+				// eslint-disable-next-line react/prop-types
+				const { groupId } = params.props;
 
-			setGroupIdToStartWith(String(groupId));
-		}
-	}, [setGroupIdToStartWith]);
+				setGroupIdToStartWith(String(groupId));
+			}
+		},
+		[setGroupIdToStartWith],
+	);
 
-	const didClickDownloadGroupOrganigram = useCallback((params: ItemParams) => {
-		if (params && params.props && 'groupId' in params.props) {
-			// eslint-disable-next-line react/prop-types
-			const { groupId } = params.props;
+	const didClickDownloadGroupOrganigramAsGraphml = useCallback(
+		(params: ItemParams) => {
+			if (params && params.props && 'groupId' in params.props) {
+				// eslint-disable-next-line react/prop-types
+				const { groupId } = params.props;
 
-			downloadGroupOrganigram(groupId);
-		}
-	}, [downloadGroupOrganigram]);
+				downloadGroupOrganigramAsGraphML(groupId);
+			}
+		},
+		[downloadGroupOrganigramAsGraphML],
+	);
+
+	const didClickDownloadGroupOrganigramAsPNG = useCallback(
+		(params: ItemParams) => {
+			if (params && params.props && 'groupId' in params.props) {
+				// eslint-disable-next-line react/prop-types
+				const { groupId } = params.props;
+
+				downloadGroupOrganigramAsPNG(groupId);
+			}
+		},
+		[downloadGroupOrganigramAsPNG],
+	);
 
 	// Effects
 	useEffect(() => {
@@ -362,16 +406,11 @@ export const MainComponent = React.memo(() => {
 						nodeTypes={nodeTypes}
 					>
 						<Menu id={Constants.contextMenuId} animation="scale">
-							<Item onClick={didClickOpenGroup}>
-								Gruppe aufrufen
-							</Item>
-							<Item onClick={didClickSetGroupAsStartGroup}>
-								Gruppe als Startgruppe setzen
-							</Item>
+							<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
+							<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
 							<Submenu label="Organigramm für Gruppe Exportieren">
-								<Item onClick={didClickDownloadGroupOrganigram}>
-									Export als GraphML Datei
-								</Item>
+								<Item onClick={didClickDownloadGroupOrganigramAsGraphml}>Export als GraphML Datei</Item>
+								<Item onClick={didClickDownloadGroupOrganigramAsPNG}>Export als PNG Datei</Item>
 							</Submenu>
 						</Menu>
 						<MiniMap zoomable pannable />
