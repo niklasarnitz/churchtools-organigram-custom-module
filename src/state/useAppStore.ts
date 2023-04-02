@@ -1,4 +1,5 @@
 import { LayoutAlgorithm } from '../models/LayoutAlgorithm';
+import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
 import { fetchGroupMembers } from '../api/routes/fetchGroupMembers';
 import { fetchGroupRoles } from '../api/routes/fetchGroupRoles';
@@ -48,6 +49,9 @@ type GroupState = {
 	layoutAlgorithm: LayoutAlgorithm;
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 
+	baseUrl: string | undefined;
+	setBaseUrl: (url: string | undefined) => void;
+
 	// Fetching
 	fetchGroups: (withMembers?: boolean) => Promise<void>;
 	fetchHierarchies: () => Promise<void>;
@@ -79,6 +83,8 @@ export const useAppStore = create<GroupState>((set, get) => ({
 	groupIdToStartWith: undefined,
 
 	layoutAlgorithm: LayoutAlgorithm.dagre,
+
+	baseUrl: undefined,
 
 	fetchGroups: async (withMembers: boolean = true) => {
 		set({ isLoading: true });
@@ -152,4 +158,8 @@ export const useAppStore = create<GroupState>((set, get) => ({
 		typeof groupIdToStartWith === 'string' ? set({ groupIdToStartWith }) : set({ groupIdToStartWith: undefined }),
 
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => set({ layoutAlgorithm: algorithm }),
+	setBaseUrl: (url: string | undefined) => {
+		churchtoolsClient.setBaseUrl(url ?? '');
+		set({ baseUrl: url });
+	},
 }));

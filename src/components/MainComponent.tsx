@@ -51,6 +51,7 @@ export const MainComponent = React.memo(() => {
 	const groupsById = useAppStore((s) => s.groupsById);
 	const groups = useAppStore((s) => s.groups);
 	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
+	const baseUrl = useAppStore((s) => s.baseUrl);
 
 	//  State setters
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
@@ -290,9 +291,11 @@ export const MainComponent = React.memo(() => {
 			// eslint-disable-next-line react/prop-types
 			const { groupId } = params.props;
 
-			window.location.href = `/groups/${groupId}`;
+			if (baseUrl) {
+				window.location.href = `${baseUrl}/groups/${groupId}`;
+			}
 		}
-	}, []);
+	}, [baseUrl]);
 
 	const didClickSetGroupAsStartGroup = useCallback(
 		(params: ItemParams) => {

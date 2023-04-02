@@ -4,6 +4,7 @@ import { Logger } from './globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { fetchPermissions } from './api/routes/fetchPermissions';
 import { isDev } from './globals/isDev';
+import { useAppStore } from './state/useAppStore';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import moment from 'moment';
@@ -39,7 +40,8 @@ const start = async () => {
 if (isDev) {
 	Logger.log('Running in development mode.');
 
-	churchtoolsClient.setBaseUrl(process.env.REACT_APP_CTURL ?? "");
+	useAppStore.getState().setBaseUrl(process.env.REACT_APP_CTURL);
+
 	await churchtoolsClient.post('/login', {
 		username: process.env.REACT_APP_USERNAME,
 		password: process.env.REACT_APP_PASSWORD,
@@ -51,7 +53,7 @@ if (isDev) {
 
 	Logger.log(`Setting base URL to ${baseUrl}`);
 
-	churchtoolsClient.setBaseUrl(baseUrl);
+	useAppStore.getState().setBaseUrl(process.env.REACT_APP_CTURL);
 
 	start();
 }
