@@ -53,7 +53,7 @@ if (isDev) {
 
 	Logger.log(`Setting base URL to ${baseUrl}`);
 
-	useAppStore.getState().setBaseUrl(process.env.REACT_APP_CTURL);
+	useAppStore.getState().setBaseUrl(baseUrl);
 
 	start();
 }
