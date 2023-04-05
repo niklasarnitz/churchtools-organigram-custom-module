@@ -79,9 +79,9 @@ export const MainComponent = React.memo(() => {
 	// Callbacks
 	const didPressDownloadGraphML = useCallback(() => {
 		const groupName = groupIdToStartWith
-			? (groupsById[Number(groupIdToStartWith)]
+			? groupsById[Number(groupIdToStartWith)]
 				? groupsById[Number(groupIdToStartWith)].name
-				: undefined)
+				: undefined
 			: undefined;
 
 		const fileName = groupName
@@ -286,16 +286,19 @@ export const MainComponent = React.memo(() => {
 	);
 
 	// Context Menu Callbacks
-	const didClickOpenGroup = useCallback((params: ItemParams) => {
-		if (params && params.props && 'groupId' in params.props) {
-			// eslint-disable-next-line react/prop-types
-			const { groupId } = params.props;
+	const didClickOpenGroup = useCallback(
+		(params: ItemParams) => {
+			if (params && params.props && 'groupId' in params.props) {
+				// eslint-disable-next-line react/prop-types
+				const { groupId } = params.props;
 
-			if (baseUrl) {
-				window.location.href = `${baseUrl}/groups/${groupId}`;
+				if (baseUrl) {
+					window.open(`${baseUrl}/groups/${groupId}`, '_blank')?.focus();
+				}
 			}
-		}
-	}, [baseUrl]);
+		},
+		[baseUrl],
+	);
 
 	const didClickSetGroupAsStartGroup = useCallback(
 		(params: ItemParams) => {
