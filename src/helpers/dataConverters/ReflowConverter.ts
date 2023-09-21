@@ -51,7 +51,6 @@ export const generateReflowData = () => {
 	const layoutedNodes: Node[] = [];
 
 	// In the future, new Layout Mechanisms may be added here.
-	// eslint-disable-next-line sonarjs/no-small-switch
 	switch (layoutAlgorithm) {
 		case 'dagre': {
 			layoutedNodes.push(...layoutDagre(reflowNodes, reflowEdges).nodes);
