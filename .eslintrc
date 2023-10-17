@@ -9,8 +9,6 @@
 		"google",
 		"plugin:react/recommended",
 		"plugin:react-hooks/recommended",
-		"react-app",
-		"react-app/jest",
 		"prettier",
 		"plugin:unicorn/recommended",
 		"plugin:tailwindcss/recommended"
