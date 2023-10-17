@@ -22,7 +22,6 @@ import type { ItemParams } from 'react-contexify';
 import type { Node } from 'reactflow';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export const MainComponent = React.memo(() => {
 	// Context Menu
 	const { show } = useContextMenu({
@@ -78,11 +77,7 @@ export const MainComponent = React.memo(() => {
 
 	// Callbacks
 	const didPressDownloadGraphML = useCallback(() => {
-		const groupName = groupIdToStartWith
-			? groupsById[Number(groupIdToStartWith)]
-				? groupsById[Number(groupIdToStartWith)].name
-				: undefined
-			: undefined;
+		const groupName = groupIdToStartWith ? groupsById[Number(groupIdToStartWith)]?.name : undefined;
 
 		const fileName = groupName
 			? `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`

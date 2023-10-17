@@ -3,16 +3,13 @@
 		"browser": true,
 		"es6": true
 	},
-	"plugins": ["react", "@typescript-eslint", "sort-imports-es6-autofix", "react-hooks", "sonarjs", "unicorn"],
+	"plugins": ["react", "@typescript-eslint", "sort-imports-es6-autofix", "react-hooks", "unicorn"],
 	"extends": [
 		"eslint:recommended",
 		"google",
 		"plugin:react/recommended",
 		"plugin:react-hooks/recommended",
-		"react-app",
-		"react-app/jest",
 		"prettier",
-		"plugin:sonarjs/recommended",
 		"plugin:unicorn/recommended",
 		"plugin:tailwindcss/recommended"
 	],
@@ -39,6 +36,7 @@
 				"ignoreMemberSort": false,
 				"memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
 			}
-		]
+		],
+		"unicorn/no-null": "off"
 	}
 }
