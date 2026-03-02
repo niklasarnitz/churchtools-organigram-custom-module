@@ -13,7 +13,7 @@ import moment from 'moment';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
-    const { groupIdToStartWith } = useAppStore();
+    const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
     const groupsById = useGroupsById();
     const generateGraphMLData = useGenerateGraphMLData();
 

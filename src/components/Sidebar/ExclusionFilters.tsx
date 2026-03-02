@@ -14,16 +14,14 @@ export const ExclusionFilters = React.memo(() => {
     const { data: groupRoles } = useGroupRoles();
     const groupTypesById = useGroupTypesById();
 
-    const {
-        excludedGroups,
-        setExcludedGroups,
-        excludedGroupTypes,
-        setExcludedGroupTypes,
-        excludedRoles,
-        setExcludedRoles,
-        showGroupTypes,
-        setShowGroupTypes
-    } = useAppStore();
+    const excludedGroups = useAppStore((s) => s.excludedGroups);
+    const setExcludedGroups = useAppStore((s) => s.setExcludedGroups);
+    const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
+    const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
+    const excludedRoles = useAppStore((s) => s.excludedRoles);
+    const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
+    const showGroupTypes = useAppStore((s) => s.showGroupTypes);
+    const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
 
     const showGroupTypesDidChange = useCallback((checked: boolean) => {
         setShowGroupTypes(checked);

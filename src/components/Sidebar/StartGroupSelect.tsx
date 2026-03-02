@@ -7,7 +7,8 @@ import _ from 'lodash';
 
 export const StartGroupSelect = React.memo(() => {
     const { data: groups } = useGroups();
-    const { groupIdToStartWith, setGroupIdToStartWith } = useAppStore();
+    const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
+    const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
 
     const clearGroupIdToStartWith = useCallback(() => {
         setGroupIdToStartWith();

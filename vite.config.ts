@@ -6,6 +6,7 @@ export default defineConfig({
     base: '/ccm/organigram',
     build: {
         outDir: 'build',
+        target: 'es2022',
     },
     define: {
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),

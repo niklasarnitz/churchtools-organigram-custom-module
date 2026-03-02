@@ -12,7 +12,8 @@ import type { Node } from 'reactflow';
 
 export const useGenerateReflowData = () => {
 	const { relations, nodes } = useCreateRelatedData();
-	const { layoutAlgorithm, showGroupTypes } = useAppStore();
+	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
+	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
     const personsById = usePersonsById();
     const groupTypesById = useGroupTypesById();
 

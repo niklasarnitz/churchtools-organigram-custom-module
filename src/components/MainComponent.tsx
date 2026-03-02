@@ -11,7 +11,8 @@ import React, { useEffect } from 'react';
 
 export const MainComponent = React.memo(() => {
     // Zustand
-    const { excludedRoles, setExcludedRoles } = useAppStore();
+    const excludedRoles = useAppStore((s) => s.excludedRoles);
+    const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 
     // Queries
     const { isLoading: isGroupsLoading } = useGroups();

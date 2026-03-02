@@ -10,18 +10,23 @@ import { useAppStore } from '../state/useAppStore';
 import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
 import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useGroupsById } from '../selectors/useGroupsById';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ReactFlow, { Background, MiniMap, Panel, useReactFlow } from 'reactflow';
 import moment from 'moment';
 import type { ItemParams } from 'react-contexify';
 import type { Node} from 'reactflow';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
+const nodeTypes = {
+    previewGraphNode: PreviewGraphNode,
+};
+
 export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const data = useGenerateReflowData();
     const groupsById = useGroupsById();
     const generateGraphMLData = useGenerateGraphMLData();
-    const { setGroupIdToStartWith, baseUrl } = useAppStore();
+    const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
+    const baseUrl = useAppStore((s) => s.baseUrl);
     const { fitView } = useReactFlow();
 
     const [pendingExport, setPendingExport] = useState<{ type: 'graphml' | 'png'; groupId: number; fileName: string }>();
@@ -33,13 +38,14 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     });
 
     // Auto-fit view when data changes
+    const nodeCount = data.nodes.length;
     useEffect(() => {
-        if (data.nodes.length > 0) {
+        if (nodeCount > 0) {
             setTimeout(() => {
                 fitView({ duration: 400, padding: 0.2 });
             }, 50);
         }
-    }, [data.nodes, fitView]);
+    }, [nodeCount, fitView]);
 
     // Handle pending exports after data has settled from group change
     useEffect(() => {
@@ -78,10 +84,6 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
             }, 200);
         }
     }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data]);
-
-    const nodeTypes = useMemo(() => ({
-        previewGraphNode: PreviewGraphNode,
-    }), []);
 
     const downloadGroupOrganigramAsGraphML = useCallback((groupId: number) => {
         const groupName = groupsById[groupId]?.name;

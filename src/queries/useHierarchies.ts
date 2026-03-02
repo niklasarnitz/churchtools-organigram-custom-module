@@ -1,6 +1,6 @@
-import { Logger } from "../globals/Logger";
 import { churchtoolsClient } from "@churchtools/churchtools-client";
 import { useQuery } from "@tanstack/react-query";
+import { Logger } from "../globals/Logger";
 import type { Hierarchy } from "../types/Hierarchy";
 
 export const useGroupHierarchies = (groupIds: number[]) => useQuery({

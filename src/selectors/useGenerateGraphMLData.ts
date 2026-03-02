@@ -22,7 +22,7 @@ import { usePersonsById } from './usePersonsById';
 
 export const useGenerateGraphMLData = () => {
     const { relations, nodes } = useCreateRelatedData();
-    const { showGroupTypes } = useAppStore();
+    const showGroupTypes = useAppStore((s) => s.showGroupTypes);
     const personsById = usePersonsById();
     const groupTypesById = useGroupTypesById();
 

@@ -12,7 +12,10 @@ import type { Hierarchy } from '../types/Hierarchy';
 import type { Relation } from '../types/Relation';
 
 export const useCreateRelatedData = (): GraphData => {
-    const { excludedGroupTypes, excludedGroups, excludedRoles, groupIdToStartWith } = useAppStore();
+    const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
+    const excludedGroups = useAppStore((s) => s.excludedGroups);
+    const excludedRoles = useAppStore((s) => s.excludedRoles);
+    const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
     
     const { data: hierarchies } = useHierarchies();
     const groupsById = useGroupsById();
