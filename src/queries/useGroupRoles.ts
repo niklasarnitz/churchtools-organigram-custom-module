@@ -1,7 +1,7 @@
 import { churchtoolsClient } from "@churchtools/churchtools-client";
 import { useQuery } from "@tanstack/react-query";
-import { Logger } from "../../globals/Logger";
-import { GroupRole } from "../../models/GroupRole";
+import { Logger } from "../globals/Logger";
+import { GroupRole } from "../types/GroupRole";
 
 export const useGroupRoles = useQuery({
     queryKey: ['groupRoles'],

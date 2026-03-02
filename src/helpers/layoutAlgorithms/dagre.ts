@@ -2,7 +2,7 @@ import { getGroupMetadataString, getGroupNodeWidth, getGroupTitle, getReflowGrou
 import { useAppStore } from '../../state/useAppStore';
 import dagre from 'dagre';
 import type { Edge, Node } from 'reactflow';
-import type { GraphNode } from '../../models/GraphNode';
+import type { GraphNode } from '../../types/GraphNode';
 
 export const layoutDagre = (nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } => {
 	const { personsById } = useAppStore.getState();

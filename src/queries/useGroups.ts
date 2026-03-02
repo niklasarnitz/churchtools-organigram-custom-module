@@ -1,9 +1,9 @@
 import { churchtoolsClient } from "@churchtools/churchtools-client";
 import { useQuery } from "@tanstack/react-query";
-import { Logger } from "../../globals/Logger";
-import { Group } from "../../models/Group";
+import { Logger } from "../globals/Logger";
+import { Group } from "../types/Group";
 
-export const useGroups = useQuery({
+export const useGroups = () => useQuery({
     queryKey: ['groups'],
     queryFn: async () => {
         Logger.log('API: Fetching groups');

@@ -1,9 +1,9 @@
 import { useAppStore } from '../state/useAppStore';
-import type { GraphData } from './../models/GraphData';
-import type { GraphNode } from './../models/GraphNode';
-import type { Group } from '../models/Group';
-import type { Hierarchy } from './../models/Hierarchy';
-import type { Relation } from './../models/Relation';
+import type { GraphData } from '../types/GraphData';
+import type { GraphNode } from '../types/GraphNode';
+import type { Group } from '../types/Group';
+import type { Hierarchy } from '../types/Hierarchy';
+import type { Relation } from '../types/Relation';
 
 // TODO: If group.information.groupTypeId is missing, get it from the API manually!
 const shouldIncludeGroup = (group: Group) => {

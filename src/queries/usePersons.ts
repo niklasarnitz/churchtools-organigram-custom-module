@@ -1,7 +1,7 @@
 import { churchtoolsClient } from "@churchtools/churchtools-client";
 import { useQuery } from "@tanstack/react-query";
-import { Logger } from "../../globals/Logger";
-import { Person } from "../../models/Person";
+import { Logger } from "../globals/Logger";
+import { Person } from "../types/Person";
 
 export const usePersons = useQuery({
     queryKey: ['persons'],

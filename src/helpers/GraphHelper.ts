@@ -1,8 +1,8 @@
 import { useAppStore } from '../state/useAppStore';
-import type { Group } from '../models/Group';
-import type { GroupMember } from './../models/GroupMember';
-import type { GroupRole } from './../models/GroupRole';
-import type { Person } from './../models/Person';
+import type { Group } from '../types/Group';
+import type { GroupMember } from '../types/GroupMember';
+import type { GroupRole } from '../types/GroupRole';
+import type { Person } from '../types/Person';
 
 export const groupNameFontSize = 18;
 export const groupNameFontFamily = 'Dialog';

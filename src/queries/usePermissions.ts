@@ -1,7 +1,7 @@
 import { churchtoolsClient } from "@churchtools/churchtools-client";
 import { useQuery } from "@tanstack/react-query";
-import { Logger } from "../../globals/Logger";
-import { Permissions } from "../../models/Permissions";
+import { Logger } from "../globals/Logger";
+import { Permissions } from "../types/Permissions";
 
 export const usePermissions = useQuery({
     queryKey: ['permissions'],
