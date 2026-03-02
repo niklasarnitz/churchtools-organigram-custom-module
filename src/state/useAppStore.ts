@@ -1,7 +1,6 @@
+import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
-import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
-import type { Person } from '../types/Person';
 
 type GroupState = {
     excludedRoles: number[];
@@ -18,7 +17,7 @@ type GroupState = {
     setShowGroupTypes: (show: boolean) => void;
 
     groupIdToStartWith: string | undefined;
-    setGroupIdToStartWith: (groupId: string | string[] | undefined) => void;
+    setGroupIdToStartWith: (groupId: string | number | undefined) => void;
 
     layoutAlgorithm: LayoutAlgorithm;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
@@ -27,10 +26,7 @@ type GroupState = {
     setBaseUrl: (url: string | undefined) => void;
 };
 
-export const useAppStore = create<GroupState>((set, get) => ({
-    isLoading: false,
-    persons: [] as Person[],
-
+export const useAppStore = create<GroupState>((set) => ({
     excludedRoles: [] as number[],
     excludedGroupTypes: [] as number[],
     excludedGroups: [] as number[],
@@ -50,8 +46,8 @@ export const useAppStore = create<GroupState>((set, get) => ({
     setExcludedGroups: (groups: string | string[]) =>
         set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
     setShowGroupTypes: (show: boolean) => set({ showGroupTypes: show }),
-    setGroupIdToStartWith: (groupIdToStartWith: string | string[] | undefined) =>
-        typeof groupIdToStartWith === 'string' ? set({ groupIdToStartWith }) : set({ groupIdToStartWith: undefined }),
+    setGroupIdToStartWith: (groupIdToStartWith: string | number | undefined) =>
+        set({ groupIdToStartWith: groupIdToStartWith?.toString() }),
 
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => set({ layoutAlgorithm: algorithm }),
     setBaseUrl: (url: string | undefined) => {

@@ -1,18 +1,16 @@
 import { Handle, Position } from "reactflow";
 import { useAppStore } from "../../state/useAppStore";
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
+import type { Group } from '../../types/Group';
 import type { getColorForGroupType } from '../../globals/Colors';
 
 export type PreviewGraphNodeData = {
-	label: string;
-}
-
-export type PreviewGraphNodeDataJsonType = {
 	id: number;
 	title: string;
 	groupTypeName: string;
 	metadata: string;
 	color: ReturnType<typeof getColorForGroupType>;
+    group: Group;
 }
 
 export type PreviewGraphNodeProps = {
@@ -20,31 +18,37 @@ export type PreviewGraphNodeProps = {
 }
 
 export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => {
-	const labelData = useMemo(() => JSON.parse(data.label) as PreviewGraphNodeDataJsonType, [data.label])
-	const tailwindColor = useMemo(() => `${labelData.color.shades[100]}`, [labelData.color.shades])
+    const { showGroupTypes } = useAppStore();
 
-	// Callbacks
-	const renderText = useCallback(() => {
-		const returnValue = [<p key={`${labelData.id}-title`} className="text-base font-bold">{labelData.title}</p>]
+	const backgroundColor = useMemo(() => data.color.shades[100], [data.color.shades]);
+    const borderColor = useMemo(() => data.color.shades[300], [data.color.shades]);
 
-		if (useAppStore.getState().showGroupTypes) {
-			returnValue.push(<p key={`${labelData.id}-grouptype`} className="text-base italic">{labelData.groupTypeName}</p>)
-		}
+	return (
+		<div 
+            className="flex min-w-[200px] flex-col overflow-hidden rounded-lg border-2 bg-white shadow-md"
+            style={{ borderColor }}
+        >
+			<Handle type="target" position={Position.Left} className="size-3 bg-slate-400" />
+			
+            <div 
+                className="border-b-2 px-4 py-2"
+                style={{ backgroundColor, borderColor }}
+            >
+                <h3 className="m-0 text-lg font-bold leading-tight text-slate-900">
+                    {data.title}
+                </h3>
+                {showGroupTypes && (
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-600">
+                        {data.groupTypeName}
+                    </span>
+                )}
+            </div>
 
+            <div className="whitespace-pre-wrap bg-white p-4 text-sm leading-relaxed text-slate-700">
+                {data.metadata}
+            </div>
 
-		returnValue.push(...labelData.metadata.split('\n').map((line, index) => {
-			return <p key={`${line}-${index}`} className="text-base">{line}</p>
-		}))
-		return returnValue
-	}, [labelData])
-
-	return <>
-		<Handle type="target" position={Position.Left} />
-		<div className={`flex-col items-center justify-center rounded p-4`} style={{
-			backgroundColor: tailwindColor,
-		}}>
-			{renderText()}
+			<Handle type="source" position={Position.Right} className="size-3 bg-slate-400" />
 		</div>
-		<Handle type="source" position={Position.Right} />
-	</>
-})
+	);
+});

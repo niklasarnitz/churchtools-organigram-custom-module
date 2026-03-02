@@ -2,7 +2,7 @@ import './index.css';
 import { App } from './App';
 import { Logger } from './globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
-import { fetchPermissions } from './api/routes/fetchPermissions';
+import { fetchPermissions } from './queries/usePermissions';
 import { isDev } from './globals/isDev';
 import { useAppStore } from './state/useAppStore';
 import React from 'react';

@@ -1,12 +1,12 @@
-import { useMemo } from 'react';
 import { MarkerType, Position } from 'reactflow';
-import { useCreateRelatedData } from './useCreateRelatedData';
 import { getColorForGroupType } from '../globals/Colors';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutDagre } from '../helpers/layoutAlgorithms/dagre';
 import { useAppStore } from '../state/useAppStore';
-import { usePersonsById } from './usePersonsById';
+import { useCreateRelatedData } from './useCreateRelatedData';
 import { useGroupTypesById } from './useGroupTypesById';
+import { useMemo } from 'react';
+import { usePersonsById } from './usePersonsById';
 import type { Edge } from 'reactflow';
 import type { Node } from 'reactflow';
 
@@ -36,15 +36,12 @@ export const useGenerateReflowData = () => {
 				targetPosition: Position.Left,
 				sourcePosition: Position.Right,
 				data: {
-					label: JSON.stringify({
-						id: node.group.id,
-						title: getGroupTitle(node.group, showGroupTypes, groupTypesById, true),
-						groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
-						metadata: getGroupMetadataString(node?.groupRoles, node?.members, personsById),
-						color: getColorForGroupType(node.group.information.groupTypeId),
-						group: node.group,
-						node,
-					}),
+					id: node.group.id,
+					title: getGroupTitle(node.group, showGroupTypes, groupTypesById, true),
+					groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
+					metadata: getGroupMetadataString(node?.groupRoles, node?.members, personsById),
+					color: getColorForGroupType(node.group.information.groupTypeId),
+					group: node.group,
 				},
 				type: 'previewGraphNode',
 				position: {

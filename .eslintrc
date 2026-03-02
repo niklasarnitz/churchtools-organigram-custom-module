@@ -3,12 +3,10 @@
 		"browser": true,
 		"es6": true
 	},
-	"plugins": ["react", "@typescript-eslint", "sort-imports-es6-autofix", "react-hooks", "sonarjs", "unicorn"],
+	"plugins": ["sort-imports-es6-autofix", "sonarjs", "unicorn"],
 	"extends": [
 		"eslint:recommended",
 		"google",
-		"plugin:react/recommended",
-		"plugin:react-hooks/recommended",
 		"react-app",
 		"react-app/jest",
 		"prettier",

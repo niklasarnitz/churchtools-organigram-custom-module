@@ -1,18 +1,19 @@
-import { useMemo } from "react";
 import { useGroupRoles } from "../queries/useGroupRoles";
-import { GroupRole } from "../types/GroupRole";
+import { useMemo } from "react";
+import type { GroupRole } from "../types/GroupRole";
 
 export const useGroupRolesByType = () => {
     const { data: groupRoles } = useGroupRoles();
 
     return useMemo(() => {
         if (!groupRoles) return {};
-        return groupRoles.reduce((acc, role) => {
+        const acc = {} as Record<number, GroupRole[]>;
+        for (const role of groupRoles) {
             if (!acc[role.groupTypeId]) {
                 acc[role.groupTypeId] = [];
             }
             acc[role.groupTypeId].push(role);
-            return acc;
-        }, {} as Record<number, GroupRole[]>);
+        }
+        return acc;
     }, [groupRoles])
 }

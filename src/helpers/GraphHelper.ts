@@ -1,8 +1,8 @@
 import type { Group } from '../types/Group';
 import type { GroupMember } from '../types/GroupMember';
 import type { GroupRole } from '../types/GroupRole';
-import type { Person } from '../types/Person';
 import type { GroupType } from '../types/GroupType';
+import type { Person } from '../types/Person';
 
 export const groupNameFontSize = 18;
 export const groupNameFontFamily = 'Dialog';

@@ -1,7 +1,7 @@
+import { Logger } from '../globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { useQuery } from '@tanstack/react-query';
-import { Logger } from '../globals/Logger';
-import { GroupMember } from '../types/GroupMember';
+import type { GroupMember } from '../types/GroupMember';
 
 export const useGroupMembers = () => useQuery({
     queryKey: ['groupMembers'],

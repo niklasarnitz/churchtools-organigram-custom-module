@@ -2,8 +2,8 @@ import { getGroupMetadataString, getGroupNodeWidth, getGroupTitle, getReflowGrou
 import dagre from 'dagre';
 import type { Edge, Node } from 'reactflow';
 import type { GraphNode } from '../../types/GraphNode';
-import type { Person } from '../../types/Person';
 import type { GroupType } from '../../types/GroupType';
+import type { Person } from '../../types/Person';
 
 export const layoutDagre = (
 	nodes: Node[],

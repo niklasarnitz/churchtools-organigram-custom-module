@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
 import { useAppStore } from '../state/useAppStore';
-import { useGroupsById } from './useGroupsById';
-import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
-import { useGroupRolesByType } from './useGroupRolesByType';
 import { useGroupMembersByGroupId } from './useGroupMembersByGroupId';
+import { useGroupRolesByType } from './useGroupRolesByType';
+import { useGroupsById } from './useGroupsById';
 import { useHierarchies } from '../queries/useHierarchies';
+import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
+import { useMemo } from 'react';
 import type { GraphData } from '../types/GraphData';
 import type { GraphNode } from '../types/GraphNode';
 import type { Group } from '../types/Group';
@@ -47,15 +47,6 @@ export const useCreateRelatedData = (): GraphData => {
         };
     }, [groupMembersByGroupId, groupRolesByType, excludedRoles]);
 
-    const includesGroup = (nodes: GraphNode[], group: Group) => {
-        return (
-            nodes.findIndex((n) => {
-                if (n.group && n.group.id && group && group.id) return n.group.id === group.id;
-                return false;
-            }) !== -1
-        );
-    };
-
     const getHierarchiesForGroup = useMemo(() => (groupId: number) => {
         const localHierarchies: Hierarchy[] = [];
         const localChildren: number[] = [];
@@ -88,31 +79,33 @@ export const useCreateRelatedData = (): GraphData => {
 
         const relations: Relation[] = [];
         const nodes: GraphNode[] = [];
+        const addedNodeIds = new Set<number>();
+
+        const addNodeIfMissing = (group: Group) => {
+            if (!addedNodeIds.has(group.id)) {
+                nodes.push(getGraphNodeFromGroup(group));
+                addedNodeIds.add(group.id);
+                return true;
+            }
+            return false;
+        };
 
         for (const hierarchy of currentHierarchies) {
             const group = groupsById[hierarchy.groupId];
-            if (!group) continue;
+            if (!group || !shouldIncludeGroup(group)) continue;
 
-            if (shouldIncludeGroup(group)) {
-                if (!includesGroup(nodes, group)) {
-                    nodes.push(getGraphNodeFromGroup(group));
-                }
+            addNodeIfMissing(group);
 
-                for (const child of hierarchy.children) {
-                    const childGroup = groupsById[child];
-                    if (!childGroup) continue;
+            for (const child of hierarchy.children) {
+                const childGroup = groupsById[child];
+                if (!childGroup || !shouldIncludeGroup(childGroup)) continue;
 
-                    if (shouldIncludeGroup(childGroup) && !includesGroup(nodes, childGroup)) {
-                        nodes.push(getGraphNodeFromGroup(childGroup));
-                    }
+                addNodeIfMissing(childGroup);
 
-                    if (includesGroup(nodes, group) && includesGroup(nodes, childGroup)) {
-                        relations.push({
-                            source: group,
-                            target: childGroup,
-                        });
-                    }
-                }
+                relations.push({
+                    source: group,
+                    target: childGroup,
+                });
             }
         }
 

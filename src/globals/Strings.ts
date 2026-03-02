@@ -1,7 +1,7 @@
 export const Strings = {
 	helpTitle: 'Organigramm einer Gruppe erzeugen',
 	helpText:
-		'Mit einem Klick auf eine Gruppe oder indem du sie als "Gruppe, mit der gestartet werden soll" kannst du ein Organigramm dieser Gruppe erzeugen.',
+		'Klicke auf eine Gruppe, um sie als Startgruppe festzulegen. Mit einem Rechtsklick kannst du das Organigramm exportieren oder die Gruppe in ChurchTools öffnen.',
 	hideHelp: 'Hilfe ausblenden',
 	showHelp: 'Hilfe anzeigen',
 	aboutTitle: 'Über',

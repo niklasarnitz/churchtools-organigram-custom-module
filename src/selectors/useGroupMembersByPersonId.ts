@@ -1,6 +1,6 @@
-import { useMemo } from "react";
 import { arrayToIndexedObject } from "../helpers/arrayToIndexedObject";
 import { useGroupMembers } from "../queries/useGroupMembers";
+import { useMemo } from "react";
 
 export const useGroupMembersByPersonId = () => {
     const { data: members } = useGroupMembers();

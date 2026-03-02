@@ -1,450 +1,56 @@
-import 'react-contexify/dist/ReactContexify.css';
-import 'reactflow/dist/style.css';
-import { Button, ButtonDropdown, Description, Loading, Select, Toggle } from '@geist-ui/core';
-import { ChevronDown, ChevronUp } from '@geist-ui/icons';
-import { Constants } from '../globals/Constants';
-import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
-import { Logger } from '../globals/Logger';
-import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
-import { Strings } from '../globals/Strings';
-import { UnmountClosed } from 'react-collapse';
-import { downloadImage } from '../globals/downloadImage';
-import { downloadTextFile } from '../helpers/downloadTextFile';
-import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
-import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
-import { useGroups } from '../queries/useGroups';
-import { useGroupTypes } from '../queries/useGroupTypes';
+import { GraphView } from './GraphView';
+import { Loading } from '@geist-ui/core';
+import { TopBar } from './TopBar';
+import { useAppStore } from '../state/useAppStore';
 import { useGroupRoles } from '../queries/useGroupRoles';
+import { useGroupTypes } from '../queries/useGroupTypes';
+import { useGroups } from '../queries/useGroups';
 import { useHierarchies } from '../queries/useHierarchies';
 import { usePersons } from '../queries/usePersons';
-import { useGroupsById } from '../selectors/useGroupsById';
-import { useGroupTypesById } from '../selectors/useGroupTypesById';
-import { toPng } from 'html-to-image';
-import { useAppStore } from '../state/useAppStore';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import ReactFlow, { Background, MiniMap, Panel } from 'reactflow';
-import _ from 'lodash';
-import moment from 'moment';
-import type { ItemParams } from 'react-contexify';
-import type { Node } from 'reactflow';
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import React, { useEffect } from 'react';
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export const MainComponent = React.memo(() => {
-	// Context Menu
-	const { show } = useContextMenu({
-		id: Constants.contextMenuId,
-	});
+    // Zustand
+    const { excludedRoles, setExcludedRoles } = useAppStore();
 
-	// Zustand
-	//  State variables
-	const excludedRoles = useAppStore((s) => s.excludedRoles);
-	const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
-	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
-	const excludedGroups = useAppStore((s) => s.excludedGroups);
-	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
-	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
-	const baseUrl = useAppStore((s) => s.baseUrl);
+    // Queries
+    const { isLoading: isGroupsLoading } = useGroups();
+    const { isLoading: isGroupTypesLoading } = useGroupTypes();
+    const { data: groupRoles, isLoading: isGroupRolesLoading } = useGroupRoles();
+    const { isLoading: isHierarchiesLoading } = useHierarchies();
+    const { isLoading: isPersonsLoading } = usePersons();
 
-	//  State setters
-	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
-	const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
-	const setExcludedGroups = useAppStore((s) => s.setExcludedGroups);
-	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
-	const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
+    // Helper values
+    const isLoading =
+        isGroupsLoading ||
+        isGroupTypesLoading ||
+        isGroupRolesLoading ||
+        isHierarchiesLoading ||
+        isPersonsLoading;
 
-	// Queries
-	const { data: groups, isLoading: isGroupsLoading } = useGroups();
-	const { data: groupTypes, isLoading: isGroupTypesLoading } = useGroupTypes();
-	const { data: groupRoles, isLoading: isGroupRolesLoading } = useGroupRoles();
-	const { data: hierarchies, isLoading: isHierarchiesLoading } = useHierarchies();
-	const { isLoading: isPersonsLoading } = usePersons();
+    // Effects
+    useEffect(() => {
+        if (groupRoles && groupRoles.length > 0 && excludedRoles.length === 0) {
+            setExcludedRoles(
+                groupRoles
+                    .filter((role) => !role.isLeader)
+                    .map((role) => String(role.id)),
+            );
+        }
+    }, [groupRoles, excludedRoles.length, setExcludedRoles]);
 
-	// Selectors
-	const groupsById = useGroupsById();
-	const groupTypesById = useGroupTypesById();
-	const generateGraphMLData = useGenerateGraphMLData();
-	const data = useGenerateReflowData();
-
-	// Local state variables
-	const [localIsLoading, setLocalIsLoading] = useState(false);
-	const [isHelpOpen, setIsHelpOpen] = useState(false);
-
-	// Helper values
-	const isLoading =
-		localIsLoading ||
-		isGroupsLoading ||
-		isGroupTypesLoading ||
-		isGroupRolesLoading ||
-		isHierarchiesLoading ||
-		isPersonsLoading;
-
-	// Memoized
-	const nodeTypes = useMemo(
-		() => ({
-			previewGraphNode: PreviewGraphNode,
-		}),
-		[],
-	);
-
-	// Callbacks
-	const didPressDownloadGraphML = useCallback(() => {
-		const groupName = groupIdToStartWith
-			? groupsById[Number(groupIdToStartWith)]
-				? groupsById[Number(groupIdToStartWith)].name
-				: undefined
-			: undefined;
-
-		const fileName = groupName
-			? `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`
-			: `Organigramm-${moment().format('LD')}.graphml`;
-
-		Logger.log('Updating GraphML data.');
-
-		Logger.log('Downloading generated GraphML file.');
-		downloadTextFile(generateGraphMLData(), fileName, document);
-	}, [groupIdToStartWith, groupsById]);
-
-	const showGroupTypesDidChange = useCallback(() => {
-		setShowGroupTypes(!showGroupTypes);
-		Logger.log('showGroupTypesDidChange::' + !showGroupTypes);
-	}, [setShowGroupTypes, showGroupTypes]);
-
-	const clearGroupIdToStartWith = useCallback(() => {
-		// eslint-disable-next-line unicorn/no-useless-undefined
-		setGroupIdToStartWith(undefined);
-	}, [setGroupIdToStartWith]);
-
-	const didPressToggleHelp = useCallback(() => {
-		setIsHelpOpen(!isHelpOpen);
-	}, [isHelpOpen]);
-
-	const downloadGroupOrganigramAsGraphML = useCallback(
-		(groupId: number) => {
-			const groupName = groupId ? (groupsById[groupId] ? groupsById[groupId].name : undefined) : undefined;
-
-			const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
-
-			setGroupIdToStartWith(groupId.toString());
-			downloadTextFile(generateGraphMLData(), fileName, document);
-			// eslint-disable-next-line unicorn/no-useless-undefined
-			setGroupIdToStartWith(undefined);
-		},
-		[groupsById, setGroupIdToStartWith],
-	);
-
-	const downloadGroupOrganigramAsPNG = useCallback(
-		(groupId: number) => {
-			setGroupIdToStartWith(groupId.toString());
-
-			setData(generateReflowData());
-
-			const reactFlow = document.querySelector('.react-flow');
-
-			if (reactFlow)
-				toPng(reactFlow as HTMLElement, {
-					filter: (node: HTMLElement) => {
-						// we don't want to add the minimap and the controls to the image
-						return !(
-							node?.classList?.contains('react-flow__minimap') ||
-							node?.classList?.contains('react-flow__controls') ||
-							node?.classList?.contains('react-flow__panel') ||
-							node?.classList?.contains('contexify') ||
-							node?.classList?.contains('contexify_willEnter-scale')
-						);
-					},
-				}).then(downloadImage);
-		},
-		[setGroupIdToStartWith],
-	);
-
-	const onNodeClick = useCallback(
-		(_: any, node: Node) => {
-			Logger.log('onNodeClick::' + node.id);
-
-			downloadGroupOrganigramAsGraphML(Number(node.id));
-		},
-		[downloadGroupOrganigramAsGraphML],
-	);
-
-	const renderSelectExcludedGroups = useCallback(() => {
-		if (!groups) return null;
-		return (
-			<div className="flex-col">
-				<h5>Zu exkludierende Gruppen</h5>
-				<Select
-					placeholder={<p>Keine exkludierten Gruppen ausgewählt</p>}
-					value={excludedGroups.map(String)}
-					multiple
-					onChange={setExcludedGroups}
-					width="100%"
-				>
-					{_.sortBy(
-						groups.filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
-						(g) => g?.name,
-					).map((group) => {
-						return (
-							<Select.Option key={group.id} value={String(group.id)}>
-								{group?.name}
-							</Select.Option>
-						);
-					})}
-				</Select>
-			</div>
-		);
-	}, [excludedGroupTypes, excludedGroups, groups, setExcludedGroups]);
-
-	const renderSelectExcludedGroupTypes = useCallback(() => {
-		if (!groupTypes) return null;
-		return (
-			<div className="flex-col">
-				<h5>Zu exkludierende Gruppentypen</h5>
-				<Select
-					placeholder={<p>Keine exkludierten Gruppentypen ausgewählt</p>}
-					value={excludedGroupTypes.map(String)}
-					multiple
-					onChange={setExcludedGroupTypes}
-					width="100%"
-				>
-					{_.sortBy(groupTypes, (g) => g?.sortKey).map((groupType) => {
-						return (
-							<Select.Option key={groupType.id} value={String(groupType.id)}>
-								{groupType?.name}
-							</Select.Option>
-						);
-					})}
-				</Select>
-			</div>
-		);
-	}, [excludedGroupTypes, groupTypes, setExcludedGroupTypes]);
-
-	const renderSelectExcludedGroupRoles = useCallback(() => {
-		if (!groupRoles) return null;
-		return (
-			<div className="flex-col">
-				<h5>Zu exkludierende Gruppenrollen</h5>
-				<Select
-					placeholder={<p>Keine exkludierten Gruppenrollen ausgewählt</p>}
-					value={excludedRoles.map(String)}
-					multiple
-					onChange={setExcludedRoles}
-					width="100%"
-				>
-					{_.sortBy(
-						groupRoles.filter((groupRole) => !excludedGroupTypes.includes(groupRole.groupTypeId)),
-						(groupRole) => `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`,
-					).map((groupRole) => {
-						return (
-							<Select.Option key={groupRole.id} value={String(groupRole.id)}>
-								{`${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`}
-							</Select.Option>
-						);
-					})}
-				</Select>
-			</div>
-		);
-	}, [excludedGroupTypes, excludedRoles, groupRoles, groupTypesById, setExcludedRoles]);
-
-	const renderDisplayOptions = useCallback(() => {
-		return (
-			<div className="flex-col">
-				<h5>Darstellungsoptionen</h5>
-				<div className="flex flex-row items-center gap-x-2">
-					<Toggle checked={showGroupTypes} onChange={showGroupTypesDidChange} />
-					Gruppentypen anzeigen
-				</div>
-			</div>
-		);
-	}, [showGroupTypes, showGroupTypesDidChange]);
-
-	const renderSelectGroupToStartWith = useCallback(() => {
-		if (!groups) return null;
-		return (
-			<div className="flex-col">
-				<h5>Gruppe, mit der gestartet werden soll</h5>
-
-				<Select
-					placeholder={<p>Keine Gruppe ausgewählt</p>}
-					value={groupIdToStartWith ?? ''}
-					onChange={setGroupIdToStartWith}
-					width="100%"
-				>
-					{_.sortBy(groups, (g) => g?.name).map((group) => {
-						return (
-							<Select.Option key={group.id} value={String(group.id)}>
-								{group?.name}
-							</Select.Option>
-						);
-					})}
-				</Select>
-				{groupIdToStartWith && <Button onClick={clearGroupIdToStartWith}>Auswahl löschen</Button>}
-			</div>
-		);
-	}, [clearGroupIdToStartWith, groupIdToStartWith, groups, setGroupIdToStartWith]);
-
-	const onContextMenu = useCallback(
-		(e: ReactMouseEvent, node: any) => {
-			e.preventDefault();
-
-			if (node && node.id) {
-				show({
-					event: e,
-					props: {
-						groupId: node.id,
-					},
-				});
-			}
-		},
-		[show],
-	);
-
-	// Context Menu Callbacks
-	const didClickOpenGroup = useCallback(
-		(params: ItemParams) => {
-			if (params && params.props && 'groupId' in params.props) {
-				// eslint-disable-next-line react/prop-types
-				const { groupId } = params.props;
-
-				if (baseUrl) {
-					window.open(`${baseUrl}/groups/${groupId}`, '_blank')?.focus();
-				}
-			}
-		},
-		[baseUrl],
-	);
-
-	const didClickSetGroupAsStartGroup = useCallback(
-		(params: ItemParams) => {
-			if (params && params.props && 'groupId' in params.props) {
-				// eslint-disable-next-line react/prop-types
-				const { groupId } = params.props;
-
-				setGroupIdToStartWith(String(groupId));
-			}
-		},
-		[setGroupIdToStartWith],
-	);
-
-	const didClickDownloadGroupOrganigramAsGraphml = useCallback(
-		(params: ItemParams) => {
-			if (params && params.props && 'groupId' in params.props) {
-				// eslint-disable-next-line react/prop-types
-				const { groupId } = params.props;
-
-				downloadGroupOrganigramAsGraphML(groupId);
-			}
-		},
-		[downloadGroupOrganigramAsGraphML],
-	);
-
-	const didClickDownloadGroupOrganigramAsPNG = useCallback(
-		(params: ItemParams) => {
-			if (params && params.props && 'groupId' in params.props) {
-				// eslint-disable-next-line react/prop-types
-				const { groupId } = params.props;
-
-				downloadGroupOrganigramAsPNG(groupId);
-			}
-		},
-		[downloadGroupOrganigramAsPNG],
-	);
-
-	// Effects
-	useEffect(() => {
-		if (groupRoles && groupRoles.length > 0 && excludedRoles.length === 0) {
-			setExcludedRoles(
-				groupRoles
-					.filter((value) => !value.isLeader)
-					.map((value) => String(value.id)),
-			);
-		}
-	}, [groupRoles, excludedRoles.length, setExcludedRoles]);
-
-	return (
-		<div className="p-4">
-			<div className="flex w-full items-center justify-between gap-6 border-0 border-b border-solid px-6 py-3.5 text-lg">
-				<div className="flex grow gap-6 divide-x font-bold">
-					<div className="flex h-7 items-baseline gap-4">
-						<span>ChurchTools Organigramm</span>
-					</div>
-				</div>
-			</div>
-			{isLoading ? (
-				<div className="h-full w-full flex-col items-center justify-center">
-					<Loading>Daten werden geladen.</Loading>
-				</div>
-			) : (
-				<div className="h-[calc(100vh-14.25rem)] w-full">
-					<ReactFlow
-						nodes={data.nodes}
-						edges={data.edges}
-						nodesDraggable={false}
-						zoomOnScroll
-						panOnDrag
-						fitView
-						edgesFocusable={false}
-						onNodeClick={onNodeClick}
-						onNodeContextMenu={onContextMenu}
-						nodeTypes={nodeTypes}
-					>
-						<Menu id={Constants.contextMenuId} animation="scale">
-							<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
-							<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
-							<Submenu label="Organigramm für Gruppe Exportieren">
-								<Item onClick={didClickDownloadGroupOrganigramAsGraphml}>Export als GraphML Datei</Item>
-								<Item onClick={didClickDownloadGroupOrganigramAsPNG}>Export als PNG Datei</Item>
-							</Submenu>
-						</Menu>
-						<MiniMap zoomable pannable />
-						<Background />
-						{!isLoading && (
-							<Panel position="top-left" className="h-3/4 w-1/4">
-								<div className="rounded-md border border-slate-100 bg-slate-50 p-2 shadow-sm">
-									{renderSelectGroupToStartWith()}
-									{renderSelectExcludedGroupTypes()}
-									{renderSelectExcludedGroups()}
-									{renderSelectExcludedGroupRoles()}
-									{renderDisplayOptions()}
-									<div className="flex-col">
-										<ButtonDropdown className="mt-3 flex-row">
-											<ButtonDropdown.Item main onClick={didPressDownloadGraphML}>
-												Export als GraphML Datei
-											</ButtonDropdown.Item>
-										</ButtonDropdown>
-									</div>
-									<div className="flex-col">
-										<Button
-											marginTop={1}
-											iconRight={isHelpOpen ? <ChevronUp /> : <ChevronDown />}
-											onClick={didPressToggleHelp}
-											scale={1 / 2}
-										>
-											<p className="pr-0.5">{isHelpOpen ? Strings.hideHelp : Strings.showHelp}</p>
-										</Button>
-									</div>
-									<UnmountClosed isOpened={isHelpOpen}>
-										<Description
-											title={Strings.helpTitle}
-											content={Strings.helpText}
-											paddingTop={1}
-										/>
-									</UnmountClosed>
-									<Description
-										title={Strings.versionTitle}
-										content={process.env.REACT_APP_VERSION}
-										paddingTop={1}
-									/>
-									<Description
-										title={Strings.aboutTitle}
-										content={Strings.aboutText}
-										paddingTop={1}
-									/>
-								</div>
-							</Panel>
-						)}
-					</ReactFlow>
-				</div>
-			)}
-		</div>
-	);
+    return (
+        <div className="flex h-screen flex-col overflow-hidden p-4">
+            <TopBar />
+            <div className="relative w-full grow">
+                {isLoading ? (
+                    <div className="flex size-full items-center justify-center">
+                        <Loading>Daten werden geladen.</Loading>
+                    </div>
+                ) : (
+                    <GraphView isLoading={isLoading} />
+                )}
+            </div>
+        </div>
+    );
 });
