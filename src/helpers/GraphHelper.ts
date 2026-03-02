@@ -1,8 +1,8 @@
-import { useAppStore } from '../state/useAppStore';
 import type { Group } from '../types/Group';
 import type { GroupMember } from '../types/GroupMember';
 import type { GroupRole } from '../types/GroupRole';
 import type { Person } from '../types/Person';
+import type { GroupType } from '../types/GroupType';
 
 export const groupNameFontSize = 18;
 export const groupNameFontFamily = 'Dialog';
@@ -46,14 +46,17 @@ export const getGroupMetadataString = (
 		.join('\n');
 };
 
-export const getGroupTitle = (group: Group, reflow = false) => {
-	const { showGroupTypes, groupTypesById } = useAppStore.getState();
-
+export const getGroupTitle = (
+	group: Group,
+	showGroupTypes: boolean,
+	groupTypesById: Record<number, GroupType>,
+	reflow = false,
+) => {
 	if (showGroupTypes && group.information.groupTypeId) {
 		if (reflow) {
 			return `${group.name}`;
 		}
-		return `${group.name}\n(${groupTypesById[group.information.groupTypeId].name})`;
+		return `${group.name}\n(${groupTypesById[group.information.groupTypeId]?.name ?? 'Unknown'})`;
 	}
 
 	return group.name;

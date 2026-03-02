@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Logger } from "../globals/Logger";
 import { GroupType } from "../types/GroupType";
 
-export const useGroupTypes = useQuery({
+export const useGroupTypes = () => useQuery({
     queryKey: ['groupTypes'],
     queryFn: async () => {
         Logger.log('API: Fetching group types');

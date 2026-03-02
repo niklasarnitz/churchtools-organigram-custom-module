@@ -1,12 +1,17 @@
 import { getGroupMetadataString, getGroupNodeWidth, getGroupTitle, getReflowGroupNodeHeight } from '../GraphHelper';
-import { useAppStore } from '../../state/useAppStore';
 import dagre from 'dagre';
 import type { Edge, Node } from 'reactflow';
 import type { GraphNode } from '../../types/GraphNode';
+import type { Person } from '../../types/Person';
+import type { GroupType } from '../../types/GroupType';
 
-export const layoutDagre = (nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } => {
-	const { personsById } = useAppStore.getState();
-
+export const layoutDagre = (
+	nodes: Node[],
+	edges: Edge[],
+	personsById: Record<number, Person>,
+	showGroupTypes: boolean,
+	groupTypesById: Record<number, GroupType>,
+): { nodes: Node[]; edges: Edge[] } => {
 	const dagreGraph = new dagre.graphlib.Graph();
 	dagreGraph.setDefaultEdgeLabel(() => ({}));
 	dagreGraph.setGraph({
@@ -19,7 +24,7 @@ export const layoutDagre = (nodes: Node[], edges: Edge[]): { nodes: Node[]; edge
 		if (nodeData && nodeData.node) {
 			const typedNode = nodeData.node as GraphNode;
 
-			const groupNodeTitleString = getGroupTitle(typedNode.group, true);
+			const groupNodeTitleString = getGroupTitle(typedNode.group, showGroupTypes, groupTypesById, true);
 			const groupNodeMetadataString = getGroupMetadataString(
 				typedNode.groupRoles,
 				typedNode.members,
@@ -28,7 +33,7 @@ export const layoutDagre = (nodes: Node[], edges: Edge[]): { nodes: Node[]; edge
 
 			dagreGraph.setNode(typedNode.group.id.toString(), {
 				width: Number(getGroupNodeWidth(groupNodeTitleString, groupNodeMetadataString)),
-				height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeMetadataString) * 2,
+				height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeTitleString) * 2,
 			});
 		}
 	}

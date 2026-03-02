@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Logger } from "../globals/Logger";
 import { GroupRole } from "../types/GroupRole";
 
-export const useGroupRoles = useQuery({
+export const useGroupRoles = () => useQuery({
     queryKey: ['groupRoles'],
     queryFn: async () => {
         Logger.log('API: Fetching group roles');

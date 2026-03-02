@@ -10,8 +10,15 @@ import { Strings } from '../globals/Strings';
 import { UnmountClosed } from 'react-collapse';
 import { downloadImage } from '../globals/downloadImage';
 import { downloadTextFile } from '../helpers/downloadTextFile';
-import { generateGraphMLData } from '../helpers/dataConverters/GraphMLConverter';
-import { generateReflowData } from '../helpers/dataConverters/ReflowConverter';
+import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
+import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
+import { useGroups } from '../queries/useGroups';
+import { useGroupTypes } from '../queries/useGroupTypes';
+import { useGroupRoles } from '../queries/useGroupRoles';
+import { useHierarchies } from '../queries/useHierarchies';
+import { usePersons } from '../queries/usePersons';
+import { useGroupsById } from '../selectors/useGroupsById';
+import { useGroupTypesById } from '../selectors/useGroupTypesById';
 import { toPng } from 'html-to-image';
 import { useAppStore } from '../state/useAppStore';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,26 +37,12 @@ export const MainComponent = React.memo(() => {
 	});
 
 	// Zustand
-	//  Fetch functions
-	const fetchPersons = useAppStore((s) => s.fetchPersons);
-	const fetchGroups = useAppStore((s) => s.fetchGroups);
-	const fetchGroupTypes = useAppStore((s) => s.fetchGroupTypes);
-	const fetchGroupRoles = useAppStore((s) => s.fetchGroupRoles);
-	const fetchHierarchies = useAppStore((s) => s.fetchHierarchies);
-
 	//  State variables
 	const excludedRoles = useAppStore((s) => s.excludedRoles);
 	const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
-	const groupRoles = useAppStore((s) => s.groupRoles);
-	const groupTypesById = useAppStore((s) => s.groupTypesById);
-	const reducerIsLoading = useAppStore((s) => s.isLoading);
-	const groupTypes = useAppStore((s) => s.groupTypes);
-	const excludedGroups = useAppStore((s) => s.excludedGroups);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
+	const excludedGroups = useAppStore((s) => s.excludedGroups);
 	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
-	const hierarchies = useAppStore((s) => s.hierarchies);
-	const groupsById = useAppStore((s) => s.groupsById);
-	const groups = useAppStore((s) => s.groups);
 	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
 	const baseUrl = useAppStore((s) => s.baseUrl);
 
@@ -60,13 +53,31 @@ export const MainComponent = React.memo(() => {
 	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
 	const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
 
+	// Queries
+	const { data: groups, isLoading: isGroupsLoading } = useGroups();
+	const { data: groupTypes, isLoading: isGroupTypesLoading } = useGroupTypes();
+	const { data: groupRoles, isLoading: isGroupRolesLoading } = useGroupRoles();
+	const { data: hierarchies, isLoading: isHierarchiesLoading } = useHierarchies();
+	const { isLoading: isPersonsLoading } = usePersons();
+
+	// Selectors
+	const groupsById = useGroupsById();
+	const groupTypesById = useGroupTypesById();
+	const generateGraphMLData = useGenerateGraphMLData();
+	const data = useGenerateReflowData();
+
 	// Local state variables
 	const [localIsLoading, setLocalIsLoading] = useState(false);
-	const [data, setData] = useState(generateReflowData());
 	const [isHelpOpen, setIsHelpOpen] = useState(false);
 
 	// Helper values
-	const isLoading = reducerIsLoading || localIsLoading;
+	const isLoading =
+		localIsLoading ||
+		isGroupsLoading ||
+		isGroupTypesLoading ||
+		isGroupRolesLoading ||
+		isHierarchiesLoading ||
+		isPersonsLoading;
 
 	// Memoized
 	const nodeTypes = useMemo(
@@ -157,6 +168,7 @@ export const MainComponent = React.memo(() => {
 	);
 
 	const renderSelectExcludedGroups = useCallback(() => {
+		if (!groups) return null;
 		return (
 			<div className="flex-col">
 				<h5>Zu exkludierende Gruppen</h5>
@@ -168,9 +180,7 @@ export const MainComponent = React.memo(() => {
 					width="100%"
 				>
 					{_.sortBy(
-						useAppStore
-							.getState()
-							.groups.filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
+						groups.filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
 						(g) => g?.name,
 					).map((group) => {
 						return (
@@ -182,9 +192,10 @@ export const MainComponent = React.memo(() => {
 				</Select>
 			</div>
 		);
-	}, [excludedGroupTypes, excludedGroups, setExcludedGroups]);
+	}, [excludedGroupTypes, excludedGroups, groups, setExcludedGroups]);
 
 	const renderSelectExcludedGroupTypes = useCallback(() => {
+		if (!groupTypes) return null;
 		return (
 			<div className="flex-col">
 				<h5>Zu exkludierende Gruppentypen</h5>
@@ -208,6 +219,7 @@ export const MainComponent = React.memo(() => {
 	}, [excludedGroupTypes, groupTypes, setExcludedGroupTypes]);
 
 	const renderSelectExcludedGroupRoles = useCallback(() => {
+		if (!groupRoles) return null;
 		return (
 			<div className="flex-col">
 				<h5>Zu exkludierende Gruppenrollen</h5>
@@ -219,7 +231,7 @@ export const MainComponent = React.memo(() => {
 					width="100%"
 				>
 					{_.sortBy(
-						groupRoles.filter((groupRole) => !excludedGroupTypes.includes(Number(groupRole.type))),
+						groupRoles.filter((groupRole) => !excludedGroupTypes.includes(groupRole.groupTypeId)),
 						(groupRole) => `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`,
 					).map((groupRole) => {
 						return (
@@ -246,6 +258,7 @@ export const MainComponent = React.memo(() => {
 	}, [showGroupTypes, showGroupTypesDidChange]);
 
 	const renderSelectGroupToStartWith = useCallback(() => {
+		if (!groups) return null;
 		return (
 			<div className="flex-col">
 				<h5>Gruppe, mit der gestartet werden soll</h5>
@@ -256,7 +269,7 @@ export const MainComponent = React.memo(() => {
 					onChange={setGroupIdToStartWith}
 					width="100%"
 				>
-					{_.sortBy(useAppStore.getState().groups, (g) => g?.name).map((group) => {
+					{_.sortBy(groups, (g) => g?.name).map((group) => {
 						return (
 							<Select.Option key={group.id} value={String(group.id)}>
 								{group?.name}
@@ -267,7 +280,7 @@ export const MainComponent = React.memo(() => {
 				{groupIdToStartWith && <Button onClick={clearGroupIdToStartWith}>Auswahl löschen</Button>}
 			</div>
 		);
-	}, [clearGroupIdToStartWith, groupIdToStartWith, setGroupIdToStartWith]);
+	}, [clearGroupIdToStartWith, groupIdToStartWith, groups, setGroupIdToStartWith]);
 
 	const onContextMenu = useCallback(
 		(e: ReactMouseEvent, node: any) => {
@@ -338,53 +351,14 @@ export const MainComponent = React.memo(() => {
 
 	// Effects
 	useEffect(() => {
-		const groupTypes = new Set(excludedGroupTypes.map((value) => groupTypesById[value]));
-
-		const roles = useAppStore
-			.getState()
-			.groupRoles.filter((value) => !value.isLeader)
-			.map((value) => String(value.id));
-
-		setExcludedRoles(
-			roles
-				.filter((value) => {
-					const groupRole = groupRoles.find((groupRole) => groupRole.id === Number(value));
-					return groupRole && !groupTypes.has(groupTypesById[groupRole.groupTypeId]);
-				})
-				.map(String),
-		);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [excludedGroupTypes]);
-
-	useEffect(() => {
-		setLocalIsLoading(true);
-		Promise.all([fetchPersons(), fetchGroups(true), fetchGroupTypes(), fetchGroupRoles(), fetchHierarchies()]).then(
-			() => {
-				setLocalIsLoading(false);
-				setExcludedRoles(
-					useAppStore
-						.getState()
-						.groupRoles.filter((value) => !value.isLeader)
-						.map((value) => String(value.id)),
-				);
-			},
-		);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
-
-	useEffect(() => {
-		setData(generateReflowData());
-	}, [
-		hierarchies,
-		groups,
-		groupsById,
-		groupIdToStartWith,
-		showGroupTypes,
-		excludedRoles,
-		excludedGroupTypes,
-		excludedGroups,
-		layoutAlgorithm,
-	]);
+		if (groupRoles && groupRoles.length > 0 && excludedRoles.length === 0) {
+			setExcludedRoles(
+				groupRoles
+					.filter((value) => !value.isLeader)
+					.map((value) => String(value.id)),
+			);
+		}
+	}, [groupRoles, excludedRoles.length, setExcludedRoles]);
 
 	return (
 		<div className="p-4">
