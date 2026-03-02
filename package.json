@@ -4,10 +4,11 @@
 	"private": true,
 	"homepage": "/ccm/organigram",
 	"dependencies": {
-		"@churchtools/churchtools-client": "^1.2.14",
+		"@churchtools/churchtools-client": "^1.6.0",
 		"@fontsource/lato": "^4.5.10",
 		"@geist-ui/core": "^2.3.8",
 		"@geist-ui/icons": "^1.0.2",
+		"@tanstack/react-query": "^5.90.21",
 		"@testing-library/jest-dom": "^5.16.5",
 		"@testing-library/react": "^13.4.0",
 		"@testing-library/user-event": "^13.5.0",
@@ -35,7 +36,7 @@
 	"scripts": {
 		"start": "craco start",
 		"build": "craco build",
-		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo '\n\nYou can now upload the organigram.zip to your churchtools instance.\n\u001b[0;31mHint: Please keep in mind to use organigram as the shorty.\u001b[0m'",
+		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo '\n\nYou can now upload the organigram.zip to your churchtools instance.\n\x1B[0;31mHint: Please keep in mind to use organigram as the shorty.\x1B[0m'",
 		"test": "craco test",
 		"eslint": "eslint --ext .js,.jsx,.ts,.tsx src/",
 		"ci": "npm run eslint"
