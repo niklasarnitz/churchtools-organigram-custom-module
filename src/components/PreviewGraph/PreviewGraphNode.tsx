@@ -1,4 +1,4 @@
-import { Badge, Text } from "@geist-ui/core";
+import { Badge } from '../ui/badge';
 import { Handle, Position } from "reactflow";
 import { useAppStore } from "../../state/useAppStore";
 import React, { useMemo } from "react";
@@ -25,7 +25,7 @@ export type PreviewGraphNodeProps = {
 }
 
 export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => {
-    const { showGroupTypes } = useAppStore();
+    const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 
 	const backgroundColor = useMemo(() => data.color.shades[100], [data.color.shades]);
     const borderColor = useMemo(() => data.color.shades[300], [data.color.shades]);
@@ -38,15 +38,15 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
 
                 return [(
                     <div key={role.id} className="mb-2">
-                        <Text span font="12px" type="secondary" b className="uppercase tracking-wider">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                             {role.name}
-                        </Text>
+                        </span>
                         <div className="mt-1 flex flex-wrap gap-1">
                             {personsInRole.map(member => {
                                 const person = data.personsById[member.personId];
                                 const name = person ? `${person.firstName} ${person.lastName}` : 'Unbekannt';
                                 return (
-                                    <Badge key={member.personId} scale={0.5} type="secondary">
+                                    <Badge key={member.personId} variant="secondary" className="text-[10px]">
                                         {name}
                                     </Badge>
                                 );
@@ -88,9 +88,9 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
                         {renderedRoles}
                     </div>
                 ) : (
-                    <Text type="secondary" small>
+                    <p className="text-sm text-slate-500">
                         Keine Rollenbesetzung hinterlegt.
-                    </Text>
+                    </p>
                 )}
             </div>
 

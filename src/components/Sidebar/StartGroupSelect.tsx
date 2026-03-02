@@ -1,4 +1,5 @@
-import { Button, Select } from '@geist-ui/core';
+import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useAppStore } from '../../state/useAppStore';
 import { useGroups } from '../../queries/useGroups';
 import React, { useCallback } from 'react';
@@ -12,42 +13,38 @@ export const StartGroupSelect = React.memo(() => {
         setGroupIdToStartWith();
     }, [setGroupIdToStartWith]);
 
-    const handleSelectChange = useCallback((val: any) => {
-        setGroupIdToStartWith(Array.isArray(val) ? val[0] : val);
+    const handleSelectChange = useCallback((val: string) => {
+        setGroupIdToStartWith(val);
     }, [setGroupIdToStartWith]);
 
     if (!groups) return <></>;
 
-    const GeistSelect = Select as any;
-    const GeistButton = Button as any;
-
     return (
-        <div className="flex-col">
-            <h5>Gruppe, mit der gestartet werden soll</h5>
+        <div className="flex flex-col">
+            <h5 className="mb-1 text-sm font-semibold">Gruppe, mit der gestartet werden soll</h5>
 
-            <GeistSelect
-                placeholder={<p>Keine Gruppe ausgewählt</p>}
-                value={groupIdToStartWith ?? ''}
-                onChange={handleSelectChange}
-                width="100%"
-            >
-                {_.sortBy(groups, (g) => g?.name).map((group) => {
-                    return (
-                        <Select.Option key={group.id} value={String(group.id)}>
+            <Select value={groupIdToStartWith ?? ''} onValueChange={handleSelectChange}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Keine Gruppe ausgewählt" />
+                </SelectTrigger>
+                <SelectContent>
+                    {_.sortBy(groups, (g) => g?.name).map((group) => (
+                        <SelectItem key={group.id} value={String(group.id)}>
                             {group?.name}
-                        </Select.Option>
-                    );
-                })}
-            </GeistSelect>
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
             {groupIdToStartWith && (
-                <GeistButton 
-                    className="mt-2" 
-                    onClick={clearGroupIdToStartWith} 
-                    scale={1/2} 
-                    width="100%"
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={clearGroupIdToStartWith}
                 >
                     Auswahl löschen
-                </GeistButton>
+                </Button>
             )}
         </div>
     );

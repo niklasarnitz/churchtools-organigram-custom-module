@@ -58,10 +58,13 @@ export const useCreateRelatedData = (): GraphData => {
             localChildren.push(...hierarchy.children);
         }
 
+        const visited = new Set<number>([groupId]);
+
         while (localChildren.length > 0) {
             const child = localChildren.pop();
 
-            if (child) {
+            if (child && !visited.has(child)) {
+                visited.add(child);
                 const childHierarchy = hierarchiesByGroupId[child];
 
                 if (childHierarchy) {

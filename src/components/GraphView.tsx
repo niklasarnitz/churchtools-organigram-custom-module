@@ -10,7 +10,7 @@ import { useAppStore } from '../state/useAppStore';
 import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
 import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useGroupsById } from '../selectors/useGroupsById';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, { Background, MiniMap, Panel, useReactFlow } from 'reactflow';
 import moment from 'moment';
 import type { ItemParams } from 'react-contexify';
@@ -24,6 +24,10 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const { setGroupIdToStartWith, baseUrl } = useAppStore();
     const { fitView } = useReactFlow();
 
+    const [pendingExport, setPendingExport] = useState<{ type: 'graphml' | 'png'; groupId: number; fileName: string }>();
+    const clearPendingExport = useCallback(() => setPendingExport(// eslint-disable-next-line unicorn/no-useless-undefined
+        undefined), []);
+
     const { show } = useContextMenu({
         id: Constants.contextMenuId,
     });
@@ -31,12 +35,49 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     // Auto-fit view when data changes
     useEffect(() => {
         if (data.nodes.length > 0) {
-            // Wait for nodes to render
             setTimeout(() => {
                 fitView({ duration: 400, padding: 0.2 });
             }, 50);
         }
     }, [data.nodes, fitView]);
+
+    // Handle pending exports after data has settled from group change
+    useEffect(() => {
+        if (!pendingExport) return;
+
+        if (pendingExport.type === 'graphml') {
+            downloadTextFile(generateGraphMLData(), pendingExport.fileName, document);
+            setGroupIdToStartWith();
+            clearPendingExport();
+        } else if (pendingExport.type === 'png') {
+            setTimeout(() => {
+                const reactFlow = document.querySelector('.react-flow');
+                if (reactFlow) {
+                    toPng(reactFlow as HTMLElement, {
+                        filter: (node: HTMLElement) => {
+                            return !(
+                                node?.classList?.contains('react-flow__minimap') ||
+                                node?.classList?.contains('react-flow__controls') ||
+                                node?.classList?.contains('react-flow__panel') ||
+                                node?.classList?.contains('contexify')
+                            );
+                        },
+                    })
+                    .then(downloadImage)
+                    .catch((error) => {
+                        Logger.error('Failed to export as PNG:', error);
+                    })
+                    .finally(() => {
+                        setGroupIdToStartWith();
+                        clearPendingExport();
+                    });
+                } else {
+                    setGroupIdToStartWith();
+                    clearPendingExport();
+                }
+            }, 200);
+        }
+    }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data]);
 
     const nodeTypes = useMemo(() => ({
         previewGraphNode: PreviewGraphNode,
@@ -47,41 +88,16 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
         const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
         setGroupIdToStartWith(groupId.toString());
-        
-        setTimeout(() => {
-            downloadTextFile(generateGraphMLData(), fileName, document);
-            setGroupIdToStartWith();
-        }, 0);
-    }, [groupsById, generateGraphMLData, setGroupIdToStartWith]);
+        setPendingExport({ type: 'graphml', groupId, fileName });
+    }, [groupsById, setGroupIdToStartWith]);
 
     const downloadGroupOrganigramAsPNG = useCallback((groupId: number) => {
+        const groupName = groupsById[groupId]?.name;
+        const fileName = `Organigramm-${groupName}-${moment().format('LD')}.png`;
+
         setGroupIdToStartWith(groupId.toString());
-        
-        setTimeout(() => {
-            const reactFlow = document.querySelector('.react-flow');
-            if (reactFlow) {
-                toPng(reactFlow as HTMLElement, {
-                    filter: (node: HTMLElement) => {
-                        return !(
-                            node?.classList?.contains('react-flow__minimap') ||
-                            node?.classList?.contains('react-flow__controls') ||
-                            node?.classList?.contains('react-flow__panel') ||
-                            node?.classList?.contains('contexify')
-                        );
-                    },
-                })
-                .then(downloadImage)
-                .catch((error) => {
-                    Logger.error('Failed to export as PNG:', error);
-                })
-                .finally(() => {
-                    setGroupIdToStartWith();
-                });
-            } else {
-                setGroupIdToStartWith();
-            }
-        }, 200);
-    }, [setGroupIdToStartWith]);
+        setPendingExport({ type: 'png', groupId, fileName });
+    }, [groupsById, setGroupIdToStartWith]);
 
     const onNodeClick = useCallback((_: any, node: Node) => {
         Logger.log('onNodeClick::' + node.id);

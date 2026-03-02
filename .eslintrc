@@ -10,7 +10,6 @@
 		"react-app",
 		"react-app/jest",
 		"prettier",
-		"plugin:sonarjs/recommended",
 		"plugin:unicorn/recommended",
 		"plugin:tailwindcss/recommended"
 	],

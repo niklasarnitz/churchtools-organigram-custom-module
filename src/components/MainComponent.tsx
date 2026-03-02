@@ -1,5 +1,5 @@
 import { GraphView } from './GraphView';
-import { Loading } from '@geist-ui/core';
+import { Loader2 } from 'lucide-react';
 import { TopBar } from './TopBar';
 import { useAppStore } from '../state/useAppStore';
 import { useGroupRoles } from '../queries/useGroupRoles';
@@ -45,7 +45,10 @@ export const MainComponent = React.memo(() => {
             <div className="relative w-full grow">
                 {isLoading ? (
                     <div className="flex size-full items-center justify-center">
-                        <Loading>Daten werden geladen.</Loading>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <Loader2 className="size-4 animate-spin" />
+                            Daten werden geladen.
+                        </div>
                     </div>
                 ) : (
                     <GraphView isLoading={isLoading} />

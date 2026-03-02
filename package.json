@@ -2,69 +2,49 @@
 	"name": "churchtools-organigram-custom-module",
 	"version": "0.0.6-beta",
 	"private": true,
-	"homepage": "/ccm/organigram",
 	"dependencies": {
 		"@churchtools/churchtools-client": "^1.6.0",
-		"@fontsource/lato": "^4.5.10",
-		"@geist-ui/core": "^2.3.8",
-		"@geist-ui/icons": "^1.0.2",
+		"@fontsource/lato": "^5.2.7",
+		"@radix-ui/react-collapsible": "^1.1.12",
+		"@radix-ui/react-select": "^2.2.6",
+		"@radix-ui/react-slot": "^1.2.4",
+		"@radix-ui/react-switch": "^1.2.6",
 		"@tanstack/react-query": "^5.90.21",
-		"@testing-library/jest-dom": "^5.17.0",
-		"@testing-library/react": "^13.4.0",
-		"@testing-library/user-event": "^13.5.0",
-		"@types/jest": "^27.5.2",
-		"@types/node": "^16.18.126",
-		"@types/react": "^18.3.28",
-		"@types/react-dom": "^18.3.7",
+		"@types/node": "^25.3.3",
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
 		"dagre": "^0.8.5",
-		"elkjs": "^0.8.2",
-		"graphology": "^0.25.4",
+		"elkjs": "^0.11.0",
+		"graphology": "^0.26.0",
 		"graphology-types": "^0.24.8",
 		"html-to-image": "^1.11.13",
 		"lodash": "^4.17.23",
+		"lucide-react": "^0.576.0",
 		"moment": "^2.30.1",
-		"react": "^18.3.1",
-		"react-collapse": "^5.1.1",
+		"react": "^19.2.4",
 		"react-contexify": "^6.0.0",
-		"react-dom": "^18.3.1",
-		"react-scripts": "5.0.1",
+		"react-dom": "^19.2.4",
 		"reactflow": "^11.11.4",
-		"typescript": "^4.9.5",
-		"web-vitals": "^2.1.4",
-		"zustand": "^4.5.7"
+		"tailwind-merge": "^3.5.0",
+		"typescript": "^5.9.3",
+		"zustand": "^5.0.11"
 	},
 	"scripts": {
-		"start": "craco start",
-		"build": "craco build",
-		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo '\n\nYou can now upload the organigram.zip to your churchtools instance.\n\u001b[0;31mHint: Please keep in mind to use organigram as the shorty.\u001b[0m'",
-		"test": "craco test",
+		"start": "vite",
+		"build": "tsc -b && vite build",
+		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo 'You can now upload the organigram.zip to your churchtools instance. Hint: Please keep in mind to use organigram as the shorty.'",
+		"preview": "vite preview",
+		"test": "vitest",
 		"eslint": "eslint --ext .js,.jsx,.ts,.tsx src/",
 		"ci": "npm run eslint"
 	},
-	"eslintConfig": {
-		"extends": [
-			"react-app",
-			"react-app/jest"
-		]
-	},
-	"browserslist": {
-		"production": [
-			">0.2%",
-			"not dead",
-			"not op_mini all"
-		],
-		"development": [
-			"last 1 chrome version",
-			"last 1 firefox version",
-			"last 1 safari version"
-		]
-	},
 	"devDependencies": {
-		"@craco/craco": "^7.1.0",
+		"@vitejs/plugin-react": "^4.5.2",
 		"@the-unicorns/prettier-config": "^1.0.2",
 		"@types/dagre": "^0.7.54",
 		"@types/lodash": "^4.17.24",
-		"@types/react-collapse": "^5.0.4",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"autoprefixer": "^10.4.27",
 		"eslint": "^8.57.1",
@@ -76,11 +56,12 @@
 		"eslint-plugin-sort-imports-es6-autofix": "^0.6.0",
 		"eslint-plugin-tailwindcss": "^3.18.2",
 		"eslint-plugin-unicorn": "^46.0.1",
-		"html-webpack-plugin": "^5.6.6",
 		"postcss": "^8.5.8",
 		"prettier": "^2.8.8",
 		"prettier-plugin-tailwindcss": "^0.2.8",
 		"tailwindcss": "^3.4.19",
+		"tailwindcss-animate": "^1.0.7",
+		"vite": "^6.3.5",
 		"web-worker": "^1.5.0"
 	}
 }
