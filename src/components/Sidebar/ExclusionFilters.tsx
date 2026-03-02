@@ -12,6 +12,7 @@ export const ExclusionFilters = React.memo(() => {
     const { data: groupTypes } = useGroupTypes();
     const { data: groupRoles } = useGroupRoles();
     const groupTypesById = useGroupTypesById();
+    const GeistSelect = Select as any;
 
     const {
         excludedGroups,
@@ -32,7 +33,7 @@ export const ExclusionFilters = React.memo(() => {
         <div className="flex flex-col gap-4">
             <div className="flex-col">
                 <h5>Zu exkludierende Gruppentypen</h5>
-                <Select
+                <GeistSelect
                     placeholder={<p>Keine exkludierten Gruppentypen ausgewählt</p>}
                     value={excludedGroupTypes.map(String)}
                     multiple
@@ -44,12 +45,12 @@ export const ExclusionFilters = React.memo(() => {
                             {groupType?.name}
                         </Select.Option>
                     ))}
-                </Select>
+                </GeistSelect>
             </div>
 
             <div className="flex-col">
                 <h5>Zu exkludierende Gruppen</h5>
-                <Select
+                <GeistSelect
                     placeholder={<p>Keine exkludierten Gruppen ausgewählt</p>}
                     value={excludedGroups.map(String)}
                     multiple
@@ -64,12 +65,12 @@ export const ExclusionFilters = React.memo(() => {
                             {group?.name}
                         </Select.Option>
                     ))}
-                </Select>
+                </GeistSelect>
             </div>
 
             <div className="flex-col">
                 <h5>Zu exkludierende Gruppenrollen</h5>
-                <Select
+                <GeistSelect
                     placeholder={<p>Keine exkludierten Gruppenrollen ausgewählt</p>}
                     value={excludedRoles.map(String)}
                     multiple
@@ -84,7 +85,7 @@ export const ExclusionFilters = React.memo(() => {
                             {`${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`}
                         </Select.Option>
                     ))}
-                </Select>
+                </GeistSelect>
             </div>
 
             <div className="flex-col">

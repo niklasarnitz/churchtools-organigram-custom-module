@@ -10,8 +10,8 @@ import { useAppStore } from '../state/useAppStore';
 import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
 import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useGroupsById } from '../selectors/useGroupsById';
-import React, { useCallback, useMemo } from 'react';
-import ReactFlow, { Background, MiniMap, Panel } from 'reactflow';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import ReactFlow, { Background, MiniMap, Panel, useReactFlow } from 'reactflow';
 import moment from 'moment';
 import type { ItemParams } from 'react-contexify';
 import type { Node} from 'reactflow';
@@ -22,10 +22,21 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const groupsById = useGroupsById();
     const generateGraphMLData = useGenerateGraphMLData();
     const { setGroupIdToStartWith, baseUrl } = useAppStore();
+    const { fitView } = useReactFlow();
 
     const { show } = useContextMenu({
         id: Constants.contextMenuId,
     });
+
+    // Auto-fit view when data changes
+    useEffect(() => {
+        if (data.nodes.length > 0) {
+            // Wait for nodes to render
+            setTimeout(() => {
+                fitView({ duration: 400, padding: 0.2 });
+            }, 50);
+        }
+    }, [data.nodes, fitView]);
 
     const nodeTypes = useMemo(() => ({
         previewGraphNode: PreviewGraphNode,
@@ -35,10 +46,8 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
         const groupName = groupsById[groupId]?.name;
         const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
-        // Temporary set start group to get correct GraphML
         setGroupIdToStartWith(groupId.toString());
         
-        // Wait for state to settle, then download
         setTimeout(() => {
             downloadTextFile(generateGraphMLData(), fileName, document);
             setGroupIdToStartWith();
@@ -48,7 +57,6 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const downloadGroupOrganigramAsPNG = useCallback((groupId: number) => {
         setGroupIdToStartWith(groupId.toString());
         
-        // Wait for re-render before taking screenshot
         setTimeout(() => {
             const reactFlow = document.querySelector('.react-flow');
             if (reactFlow) {
@@ -77,7 +85,6 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
     const onNodeClick = useCallback((_: any, node: Node) => {
         Logger.log('onNodeClick::' + node.id);
-        // Instead of downloading, we now set the clicked node as start group
         setGroupIdToStartWith(node.id);
     }, [setGroupIdToStartWith]);
 
@@ -127,7 +134,6 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                 nodesDraggable={false}
                 zoomOnScroll
                 panOnDrag
-                fitView
                 onNodeClick={onNodeClick}
                 onNodeContextMenu={onContextMenu}
                 nodeTypes={nodeTypes}

@@ -24,9 +24,14 @@ export const useGenerateReflowData = () => {
 				target: relation.target.id.toString(),
 				type: 'smoothstep',
 				className: 'black-100',
+				animated: true,
 				markerEnd: {
 					type: MarkerType.Arrow,
+					width: 20,
+					height: 20,
+					color: '#64748b',
 				},
+				style: { stroke: '#64748b', strokeWidth: 2 },
 			} as Edge;
 		});
 
@@ -42,6 +47,9 @@ export const useGenerateReflowData = () => {
 					metadata: getGroupMetadataString(node?.groupRoles, node?.members, personsById),
 					color: getColorForGroupType(node.group.information.groupTypeId),
 					group: node.group,
+					roles: node.groupRoles,
+					members: node.members,
+					personsById,
 				},
 				type: 'previewGraphNode',
 				position: {
@@ -51,14 +59,17 @@ export const useGenerateReflowData = () => {
 			};
 		});
 
-		const layoutedNodes: Node[] = [];
+		let layoutedNodes: Node[] = [];
 
 		// In the future, new Layout Mechanisms may be added here.
 		// eslint-disable-next-line sonarjs/no-small-switch
 		switch (layoutAlgorithm) {
 			case 'dagre': {
-				layoutedNodes.push(...layoutDagre(reflowNodes, reflowEdges, personsById, showGroupTypes, groupTypesById).nodes);
+				layoutedNodes = layoutDagre(reflowNodes, reflowEdges).nodes;
 				break;
+			}
+			default: {
+				layoutedNodes = reflowNodes;
 			}
 		}
 

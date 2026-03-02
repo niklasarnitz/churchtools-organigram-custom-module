@@ -1,7 +1,11 @@
+import { Badge, Text } from "@geist-ui/core";
 import { Handle, Position } from "reactflow";
 import { useAppStore } from "../../state/useAppStore";
 import React, { useMemo } from "react";
 import type { Group } from '../../types/Group';
+import type { GroupMember } from "../../types/GroupMember";
+import type { GroupRole } from "../../types/GroupRole";
+import type { Person } from "../../types/Person";
 import type { getColorForGroupType } from '../../globals/Colors';
 
 export type PreviewGraphNodeData = {
@@ -11,6 +15,9 @@ export type PreviewGraphNodeData = {
 	metadata: string;
 	color: ReturnType<typeof getColorForGroupType>;
     group: Group;
+    roles: GroupRole[];
+    members: GroupMember[];
+    personsById: Record<number, Person>;
 }
 
 export type PreviewGraphNodeProps = {
@@ -23,32 +30,75 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
 	const backgroundColor = useMemo(() => data.color.shades[100], [data.color.shades]);
     const borderColor = useMemo(() => data.color.shades[300], [data.color.shades]);
 
+    const renderedRoles = useMemo(() => {
+        return data.roles
+            .flatMap((role) => {
+                const personsInRole = data.members.filter(m => m.groupTypeRoleId === role.id);
+                if (personsInRole.length === 0) return [];
+
+                return [(
+                    <div key={role.id} className="mb-2">
+                        <Text span font="12px" type="secondary" b className="uppercase tracking-wider">
+                            {role.name}
+                        </Text>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                            {personsInRole.map(member => {
+                                const person = data.personsById[member.personId];
+                                const name = person ? `${person.firstName} ${person.lastName}` : 'Unbekannt';
+                                return (
+                                    <Badge key={member.personId} scale={0.5} type="secondary">
+                                        {name}
+                                    </Badge>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )];
+            });
+    }, [data.roles, data.members, data.personsById]);
+
 	return (
 		<div 
-            className="flex min-w-[200px] flex-col overflow-hidden rounded-lg border-2 bg-white shadow-md"
+            className="flex min-w-[220px] max-w-[300px] flex-col overflow-hidden rounded-xl border-2 bg-white shadow-lg transition-shadow hover:shadow-xl"
             style={{ borderColor }}
         >
-			<Handle type="target" position={Position.Left} className="size-3 bg-slate-400" />
+			<Handle 
+                type="target" 
+                position={Position.Left} 
+                className="z-10 !size-3 border-2 border-white !bg-slate-400" 
+            />
 			
             <div 
-                className="border-b-2 px-4 py-2"
+                className="flex flex-col gap-1 border-b-2 px-4 py-3"
                 style={{ backgroundColor, borderColor }}
             >
-                <h3 className="m-0 text-lg font-bold leading-tight text-slate-900">
+                <h3 className="m-0 text-base font-bold leading-tight text-slate-900">
                     {data.title}
                 </h3>
                 {showGroupTypes && (
-                    <span className="text-xs font-medium uppercase tracking-wider text-slate-600">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-80">
                         {data.groupTypeName}
                     </span>
                 )}
             </div>
 
-            <div className="whitespace-pre-wrap bg-white p-4 text-sm leading-relaxed text-slate-700">
-                {data.metadata}
+            <div className="bg-white p-4">
+                {renderedRoles.length > 0 ? (
+                    <div className="flex flex-col">
+                        {renderedRoles}
+                    </div>
+                ) : (
+                    <Text type="secondary" small>
+                        Keine Rollenbesetzung hinterlegt.
+                    </Text>
+                )}
             </div>
 
-			<Handle type="source" position={Position.Right} className="size-3 bg-slate-400" />
+			<Handle 
+                type="source" 
+                position={Position.Right} 
+                className="z-10 !size-3 border-2 border-white !bg-slate-400" 
+            />
 		</div>
 	);
 });

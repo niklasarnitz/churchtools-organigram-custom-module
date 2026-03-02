@@ -1,41 +1,30 @@
-import { getGroupMetadataString, getGroupNodeWidth, getGroupTitle, getReflowGroupNodeHeight } from '../GraphHelper';
 import dagre from 'dagre';
 import type { Edge, Node } from 'reactflow';
-import type { GraphNode } from '../../types/GraphNode';
-import type { GroupType } from '../../types/GroupType';
-import type { Person } from '../../types/Person';
 
 export const layoutDagre = (
 	nodes: Node[],
 	edges: Edge[],
-	personsById: Record<number, Person>,
-	showGroupTypes: boolean,
-	groupTypesById: Record<number, GroupType>,
 ): { nodes: Node[]; edges: Edge[] } => {
 	const dagreGraph = new dagre.graphlib.Graph();
 	dagreGraph.setDefaultEdgeLabel(() => ({}));
-	dagreGraph.setGraph({
-		rankdir: 'LR',
+	
+    // Set up graph options
+    dagreGraph.setGraph({
+		rankdir: 'LR', // Left to Right layout
+        ranksep: 100,  // Distance between ranks
+        nodesep: 50,   // Distance between nodes in the same rank
+        marginx: 50,
+        marginy: 50,
 	});
 
 	for (const node of nodes) {
-		const nodeData = JSON.parse(node.data.label);
-
-		if (nodeData && nodeData.node) {
-			const typedNode = nodeData.node as GraphNode;
-
-			const groupNodeTitleString = getGroupTitle(typedNode.group, showGroupTypes, groupTypesById, true);
-			const groupNodeMetadataString = getGroupMetadataString(
-				typedNode.groupRoles,
-				typedNode.members,
-				personsById,
-			);
-
-			dagreGraph.setNode(typedNode.group.id.toString(), {
-				width: Number(getGroupNodeWidth(groupNodeTitleString, groupNodeMetadataString)),
-				height: getReflowGroupNodeHeight(groupNodeMetadataString, groupNodeTitleString) * 2,
-			});
-		}
+        // We estimate the size of the node. 
+        // In a real-world app, we might use a ResizeObserver or pre-render hidden nodes to get exact sizes.
+        // For now, we'll use consistent estimates.
+		dagreGraph.setNode(node.id, {
+			width: 250,  // Base width
+			height: 150, // Base height
+		});
 	}
 
 	for (const edge of edges) {
@@ -44,25 +33,18 @@ export const layoutDagre = (
 
 	dagre.layout(dagreGraph);
 
-	const layoutedNodes = dagreGraph
-		.nodes()
-		.map((node) => {
-			const findableNode = nodes.find((n) => n.id === node);
-
-			if (findableNode) {
-				return {
-					...findableNode,
-					position: {
-						x: dagreGraph.node(node).x,
-						y: dagreGraph.node(node).y,
-					},
-				};
-			}
-
-			// eslint-disable-next-line unicorn/no-useless-undefined
-			return undefined;
-		})
-		.filter((node) => node !== undefined) as Node[];
+	const layoutedNodes = nodes.map((node) => {
+        const nodeWithLayout = dagreGraph.node(node.id);
+        
+        return {
+            ...node,
+            position: {
+                // Adjusting to center the node
+                x: nodeWithLayout.x - 125, // width / 2
+                y: nodeWithLayout.y - 75,  // height / 2
+            },
+        };
+    });
 
 	return { nodes: layoutedNodes, edges };
 };

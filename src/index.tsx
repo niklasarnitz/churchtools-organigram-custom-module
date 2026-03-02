@@ -3,7 +3,6 @@ import { App } from './App';
 import { Logger } from './globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { fetchPermissions } from './queries/usePermissions';
-import { isDev } from './globals/isDev';
 import { useAppStore } from './state/useAppStore';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -36,10 +35,11 @@ const start = async () => {
 	);
 }
 
-// This is some logic to make the module work outside of churchtools for local development.
-if (isDev) {
+// Ensure development-only logic is excluded from production builds
+if (process.env.NODE_ENV === 'development') {
 	Logger.log('Running in development mode.');
 
+	// These environment variables are only available during local development
 	useAppStore.getState().setBaseUrl(process.env.REACT_APP_CTURL);
 
 	await churchtoolsClient.post('/login', {
@@ -47,7 +47,11 @@ if (isDev) {
 		password: process.env.REACT_APP_PASSWORD,
 	})
 
-	start();
+	try {
+		await start();
+	} catch (error) {
+		Logger.error('Failed to start in development mode:', error);
+	}
 } else {
 	const baseUrl = `https://${window.location.host}`;
 
@@ -55,5 +59,9 @@ if (isDev) {
 
 	useAppStore.getState().setBaseUrl(baseUrl);
 
-	start();
+	try {
+		await start();
+	} catch (error) {
+		Logger.error('Failed to start in production mode:', error);
+	}
 }

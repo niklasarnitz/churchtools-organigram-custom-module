@@ -1,7 +1,9 @@
 import "@fontsource/lato";
+import 'reactflow/dist/style.css';
 import { CssBaseline, GeistProvider } from '@geist-ui/core';
 import { MainComponent } from "./components/MainComponent";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactFlowProvider } from "reactflow"; // Ensure reactflow styles are loaded
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -17,7 +19,9 @@ export const App = () => {
         <QueryClientProvider client={queryClient}>
             <GeistProvider>
                 <CssBaseline />
-                <MainComponent />
+                <ReactFlowProvider>
+                    <MainComponent />
+                </ReactFlowProvider>
             </GeistProvider>
         </QueryClientProvider>
     );

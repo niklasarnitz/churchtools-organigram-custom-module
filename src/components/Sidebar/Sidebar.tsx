@@ -35,6 +35,8 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
         downloadTextFile(generateGraphMLData(), fileName, document);
     }, [groupIdToStartWith, groupsById, generateGraphMLData]);
 
+    const GeistButton = Button as any;
+
     if (isLoading) return <Loading>Daten werden geladen.</Loading>;
 
     return (
@@ -50,13 +52,13 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     </ButtonDropdown.Item>
                 </ButtonDropdown>
 
-                <Button
+                <GeistButton
                     iconRight={isHelpOpen ? <ChevronUp /> : <ChevronDown />}
                     onClick={didPressToggleHelp}
                     scale={1/2}
                 >
                     {isHelpOpen ? Strings.hideHelp : Strings.showHelp}
-                </Button>
+                </GeistButton>
 
                 <UnmountClosed isOpened={isHelpOpen}>
                     <Description

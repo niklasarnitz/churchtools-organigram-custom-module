@@ -9,20 +9,26 @@ export const StartGroupSelect = React.memo(() => {
     const { groupIdToStartWith, setGroupIdToStartWith } = useAppStore();
 
     const clearGroupIdToStartWith = useCallback(() => {
-        // eslint-disable-next-line unicorn/no-useless-undefined
-        setGroupIdToStartWith(undefined);
+        setGroupIdToStartWith();
+    }, [setGroupIdToStartWith]);
+
+    const handleSelectChange = useCallback((val: any) => {
+        setGroupIdToStartWith(Array.isArray(val) ? val[0] : val);
     }, [setGroupIdToStartWith]);
 
     if (!groups) return <></>;
+
+    const GeistSelect = Select as any;
+    const GeistButton = Button as any;
 
     return (
         <div className="flex-col">
             <h5>Gruppe, mit der gestartet werden soll</h5>
 
-            <Select
+            <GeistSelect
                 placeholder={<p>Keine Gruppe ausgewählt</p>}
                 value={groupIdToStartWith ?? ''}
-                onChange={setGroupIdToStartWith}
+                onChange={handleSelectChange}
                 width="100%"
             >
                 {_.sortBy(groups, (g) => g?.name).map((group) => {
@@ -32,16 +38,16 @@ export const StartGroupSelect = React.memo(() => {
                         </Select.Option>
                     );
                 })}
-            </Select>
+            </GeistSelect>
             {groupIdToStartWith && (
-                <Button 
+                <GeistButton 
                     className="mt-2" 
                     onClick={clearGroupIdToStartWith} 
                     scale={1/2} 
                     width="100%"
                 >
                     Auswahl löschen
-                </Button>
+                </GeistButton>
             )}
         </div>
     );

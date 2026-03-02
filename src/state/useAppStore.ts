@@ -17,7 +17,7 @@ type GroupState = {
     setShowGroupTypes: (show: boolean) => void;
 
     groupIdToStartWith: string | undefined;
-    setGroupIdToStartWith: (groupId: string | number | undefined) => void;
+    setGroupIdToStartWith: (groupId?: string | number | undefined) => void;
 
     layoutAlgorithm: LayoutAlgorithm;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
