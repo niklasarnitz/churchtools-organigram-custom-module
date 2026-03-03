@@ -49,6 +49,7 @@
         "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
+        "@ainias42/js-helper": "^0.8.19",
         "@eslint/js": "^10.0.1",
         "@tailwindcss/vite": "^4.2.1",
         "@the-unicorns/prettier-config": "^1.0.2",

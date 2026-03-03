@@ -6,6 +6,7 @@ import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 const PARAM_START_GROUP = 'start';
 const PARAM_LAYOUT = 'layout';
 const PARAM_EXCLUDED_GROUPS = 'excludedGroups';
+const PARAM_INCLUDED_GROUPS = 'includedGroups';
 const PARAM_EXCLUDED_GROUP_TYPES = 'excludedGroupTypes';
 const PARAM_EXCLUDED_ROLES = 'excludedRoles';
 const PARAM_SHOW_GROUP_TYPES = 'showGroupTypes';
@@ -20,6 +21,7 @@ export const useSyncSettingsWithUrl = () => {
         excludedRoles,
         groupIdToStartWith,
         hideIndirectSubgroups,
+        includedGroups,
         layoutAlgorithm,
         maxDepth,
         setExcludedGroups,
@@ -27,6 +29,7 @@ export const useSyncSettingsWithUrl = () => {
         setExcludedRoles,
         setGroupIdToStartWith,
         setHideIndirectSubgroups,
+        setIncludedGroups,
         setLayoutAlgorithm,
         setMaxDepth,
         setShowGroupTypes,
@@ -49,6 +52,9 @@ export const useSyncSettingsWithUrl = () => {
         
         const exGroups = params.get(PARAM_EXCLUDED_GROUPS);
         if (exGroups) setExcludedGroups(exGroups.split(','));
+
+        const inGroups = params.get(PARAM_INCLUDED_GROUPS);
+        if (inGroups) setIncludedGroups(inGroups.split(','));
         
         const exTypes = params.get(PARAM_EXCLUDED_GROUP_TYPES);
         if (exTypes) setExcludedGroupTypes(exTypes.split(','));
@@ -73,6 +79,7 @@ export const useSyncSettingsWithUrl = () => {
         setExcludedRoles,
         setGroupIdToStartWith,
         setHideIndirectSubgroups,
+        setIncludedGroups,
         setLayoutAlgorithm,
         setMaxDepth,
         setShowGroupTypes,
@@ -90,6 +97,9 @@ export const useSyncSettingsWithUrl = () => {
         
         if (excludedGroups.length > 0) params.set(PARAM_EXCLUDED_GROUPS, excludedGroups.join(','));
         else params.delete(PARAM_EXCLUDED_GROUPS);
+
+        if (includedGroups.length > 0) params.set(PARAM_INCLUDED_GROUPS, includedGroups.join(','));
+        else params.delete(PARAM_INCLUDED_GROUPS);
         
         if (excludedGroupTypes.length > 0) params.set(PARAM_EXCLUDED_GROUP_TYPES, excludedGroupTypes.join(','));
         else params.delete(PARAM_EXCLUDED_GROUP_TYPES);
@@ -111,6 +121,7 @@ export const useSyncSettingsWithUrl = () => {
         groupIdToStartWith, 
         layoutAlgorithm, 
         excludedGroups, 
+        includedGroups,
         excludedGroupTypes, 
         excludedRoles, 
         showGroupTypes, 

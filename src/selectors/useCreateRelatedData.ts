@@ -15,6 +15,7 @@ import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 export const useCreateRelatedData = (): GraphData => {
     const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
     const excludedGroups = useAppStore((s) => s.excludedGroups);
+    const includedGroups = useAppStore((s) => s.includedGroups);
     const excludedRoles = useAppStore((s) => s.excludedRoles);
     const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
     const maxDepth = useAppStore((s) => s.maxDepth);
@@ -28,17 +29,23 @@ export const useCreateRelatedData = (): GraphData => {
     const groupMembersByGroupId = useGroupMembersByGroupId();
 
     const shouldIncludeGroup = useMemo(() => (group: Group) => {
-        // Always include the start group, even if its type is excluded
+        // Always include the start group
         if (groupIdToStartWith && group.id === Number(groupIdToStartWith)) {
             return true;
         }
 
+        // Whitelist check
+        if (includedGroups.length > 0 && !includedGroups.includes(group.id)) {
+            return false;
+        }
+
+        // Blacklist checks
         return (
             !!group.information.groupTypeId &&
             !excludedGroups.includes(group.id) &&
             !excludedGroupTypes.includes(group.information.groupTypeId)
         );
-    }, [excludedGroups, excludedGroupTypes, groupIdToStartWith]);
+    }, [excludedGroups, excludedGroupTypes, includedGroups, groupIdToStartWith]);
 
     const getGraphNodeFromGroup = useMemo(() => (group: Group): GraphNode => {
         const members = groupMembersByGroupId[group.id] ?? [];
@@ -78,8 +85,9 @@ export const useCreateRelatedData = (): GraphData => {
             if (visited.has(groupId)) continue;
             visited.add(groupId);
 
+             
             const group = groupsById[groupId];
-            if (!shouldIncludeGroup(group)) continue;
+            if (!group || !shouldIncludeGroup(group)) continue;
 
             // Add node
             if (!addedNodeIds.has(groupId)) {
@@ -94,8 +102,9 @@ export const useCreateRelatedData = (): GraphData => {
             if (!hierarchy) continue;
 
             for (const childId of hierarchy.children) {
+                 
                 const childGroup = groupsById[childId];
-                if (!shouldIncludeGroup(childGroup)) continue;
+                if (!childGroup || !shouldIncludeGroup(childGroup)) continue;
 
                 // Implement showOnlyDirectChildren: if enabled, only allow children of the root nodes (depth 0)
                 if (showOnlyDirectChildren && depth > 0) continue;
@@ -111,6 +120,7 @@ export const useCreateRelatedData = (): GraphData => {
 
                 // Add relation
                 const relationId = `${String(groupId)}-${String(childId)}`;
+                 
                 if (!addedRelationIds.has(relationId)) {
                     relations.push({
                         source: group,

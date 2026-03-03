@@ -34,13 +34,13 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
         return data.nodes
             .filter((node) => !edgeNodeIds.has(node.id))
-            .map((node) => groupsById[Number(node.id)].name)
+            .map((node) => groupsById[Number(node.id)]?.name)
             .filter(Boolean);
     }, [data.nodes, data.edges, groupsById]);
 
     const getFileName = useCallback((extension: string) => {
         const groupName = groupIdToStartWith
-            ? groupsById[Number(groupIdToStartWith)].name
+            ? groupsById[Number(groupIdToStartWith)]?.name
             : undefined;
 
         return groupName

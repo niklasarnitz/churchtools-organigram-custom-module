@@ -1,3 +1,5 @@
+import { URecord } from '@ainias42/js-helper';
+
 import type { Group } from '../types/Group';
 import type { GroupMember } from '../types/GroupMember';
 import type { GroupRole } from '../types/GroupRole';
@@ -36,14 +38,14 @@ export const getGroupNodeIdentifier = (group: Group) => `group-${String(group.id
 export const getGroupMetadataString = (
 	groupRoles: GroupRole[],
 	groupMembers: GroupMember[],
-	personsById: Record<number, Person>,
+	personsById: URecord<number, Person>,
 ) => {
 	return groupRoles
 		.map((role) => {
 			const personsWithRole = groupMembers.filter((member) => member.groupTypeRoleId === role.id);
 			const personsWithRoleNames = personsWithRole.map((member) => {
 				const person = personsById[member.personId];
-				return `${person.firstName} ${person.lastName}`;
+				return person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
 			});
 
 			return `${String(groupRoles.find((r) => r.id === role.id)?.name)}:\n${personsWithRoleNames.join(',\n')}`;
@@ -54,14 +56,15 @@ export const getGroupMetadataString = (
 export const getGroupTitle = (
 	group: Group,
 	showGroupTypes: boolean,
-	groupTypesById: Record<number, GroupType>,
+	groupTypesById: URecord<number, GroupType>,
 	reflow = false,
 ) => {
 	if (showGroupTypes && group.information.groupTypeId) {
 		if (reflow) {
 			return group.name;
 		}
-		return `${group.name}\n(${groupTypesById[group.information.groupTypeId].name})`;
+		const groupType = groupTypesById[group.information.groupTypeId];
+		return groupType ? `${group.name}\n(${groupType.name})` : group.name;
 	}
 
 	return group.name;

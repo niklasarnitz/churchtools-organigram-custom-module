@@ -40,6 +40,7 @@
         "zustand": "^5.0.11",
       },
       "devDependencies": {
+        "@ainias42/js-helper": "^0.8.19",
         "@eslint/js": "^10.0.1",
         "@tailwindcss/vite": "^4.2.1",
         "@the-unicorns/prettier-config": "^1.0.2",
@@ -62,6 +63,8 @@
     },
   },
   "packages": {
+    "@ainias42/js-helper": ["@ainias42/js-helper@0.8.19", "", {}, "sha512-t7q4zs/+cDQRz7VO8RLdlHGnD8BisEkR3LQYW+OqOl+0Z6UoBbzp9hxQ8cUvBfn/BtfrK3tKNzvHxRKdIVjoiA=="],
+
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw=="],
 
     "@babel/compat-data": ["@babel/compat-data@7.29.0", "", {}, "sha512-T1NCJqT/j9+cn8fvkt7jtwbLBfLC/1y1c7NtCeXFRgzGTsafi68MRv8yzkYSapBnFA6L3U2VSc02ciDzoAJhJg=="],

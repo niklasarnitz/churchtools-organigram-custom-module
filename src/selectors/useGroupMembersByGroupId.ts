@@ -1,3 +1,4 @@
+import { URecord } from "@ainias42/js-helper";
 import { useMemo } from "react";
 
 import type { GroupMember } from "../types/GroupMember";
@@ -9,7 +10,7 @@ export const useGroupMembersByGroupId = () => {
 
     return useMemo(() => {
         if (!members) return {};
-        const acc = {} as Record<number, GroupMember[]>;
+        const acc = {} as URecord<number, GroupMember[]>;
         for (const member of members) {
             (acc[member.groupId] ??= []).push(member);
         }

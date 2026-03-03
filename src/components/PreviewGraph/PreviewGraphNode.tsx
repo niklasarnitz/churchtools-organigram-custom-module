@@ -66,7 +66,7 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
     }, [data.roles, data.members, data.personsById]);
 
     const hasMembers = renderedRoles.length > 0;
-    const isVertical = 
+    const isVertical =
         layoutAlgorithm === LayoutAlgorithm.elkLayeredTB ||
         layoutAlgorithm === LayoutAlgorithm.elkMrTree ||
         layoutAlgorithm === LayoutAlgorithm.elkRadial;
@@ -88,12 +88,11 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
                     {data.title}
                 </h3>
                 {showGroupTypes && (
-                    <span className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 opacity-80">
+                    <span className="text-center text-md font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 opacity-80">
                         {data.groupTypeName}
                     </span>
                 )}
             </div>
-
             {hasMembers && (
                 <div className="bg-white dark:bg-slate-900 p-4">
                     <div className="flex flex-col">

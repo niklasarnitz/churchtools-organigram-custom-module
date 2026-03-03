@@ -14,11 +14,11 @@ interface GroupState {
     baseUrl: string | undefined;
     excludedGroups: number[];
     excludedGroupTypes: number[];
-
     excludedRoles: number[];
 
     groupIdToStartWith: string | undefined;
     hideIndirectSubgroups: boolean;
+    includedGroups: number[];
     isExporting: boolean;
     layoutAlgorithm: LayoutAlgorithm;
     maxDepth: number | undefined;
@@ -34,6 +34,7 @@ interface GroupState {
 
     setGroupIdToStartWith: (groupId?: number | string  ) => void;
     setHideIndirectSubgroups: (hide: boolean) => void;
+    setIncludedGroups: (groups: string | string[]) => void;
     setIsExporting: (isExporting: boolean) => void;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
     setMaxDepth: (depth: number | undefined) => void;
@@ -51,11 +52,11 @@ export const useAppStore = create<GroupState>((set) => ({
     baseUrl: undefined,
     excludedGroups: [] as number[],
     excludedGroupTypes: [] as number[],
-
     excludedRoles: [] as number[],
 
     groupIdToStartWith: undefined,
     hideIndirectSubgroups: false,
+    includedGroups: [] as number[],
 
     isExporting: false,
 
@@ -91,6 +92,10 @@ export const useAppStore = create<GroupState>((set) => ({
 
     setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
         set({ hideIndirectSubgroups });
+    },
+
+    setIncludedGroups: (groups: string | string[]) => {
+        set({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
     },
 
     setIsExporting: (isExporting: boolean) => {

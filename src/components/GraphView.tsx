@@ -85,6 +85,24 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         );
                     };
 
+                    // For PDF and SVG, we ALWAYS want light mode.
+                    // PNG can keep current mode if user wants, but request says "pdf and svg exports should always be in light mode"
+                    const needsLightMode = pendingExport.type === 'pdf' || pendingExport.type === 'svg';
+                    const isDarkMode = document.documentElement.classList.contains('dark');
+                    
+                    if (needsLightMode && isDarkMode) {
+                        document.documentElement.classList.remove('dark');
+                    }
+
+                    const finalizeExport = () => {
+                        if (needsLightMode && isDarkMode) {
+                            document.documentElement.classList.add('dark');
+                        }
+                        setGroupIdToStartWith();
+                        clearPendingExport();
+                        setIsExporting(false);
+                    };
+
                     if (pendingExport.type === 'png') {
                         toPng(reactFlow as HTMLElement, {
                             filter,
@@ -95,11 +113,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                             .catch((error: unknown) => {
                                 Logger.error('Failed to export as PNG:', error);
                             })
-                            .finally(() => {
-                                setGroupIdToStartWith();
-                                clearPendingExport();
-                                setIsExporting(false);
-                            });
+                            .finally(finalizeExport);
                     } else if (pendingExport.type === 'svg') {
                         toSvg(reactFlow as HTMLElement, {
                             filter,
@@ -113,11 +127,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                             .catch((error: unknown) => {
                                 Logger.error('Failed to export as SVG:', error);
                             })
-                            .finally(() => {
-                                setGroupIdToStartWith();
-                                clearPendingExport();
-                                setIsExporting(false);
-                            });
+                            .finally(finalizeExport);
                     } else {
                         toPng(reactFlow as HTMLElement, {
                             filter,
@@ -147,23 +157,17 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                                     } catch (error) {
                                         Logger.error('Failed to generate PDF document:', error);
                                     } finally {
-                                        setGroupIdToStartWith();
-                                        clearPendingExport();
-                                        setIsExporting(false);
+                                        finalizeExport();
                                     }
                                 };
                                 img.onerror = (err) => {
                                     Logger.error('Failed to load image for PDF:', err);
-                                    setGroupIdToStartWith();
-                                    clearPendingExport();
-                                    setIsExporting(false);
+                                    finalizeExport();
                                 };
                             })
                             .catch((error: unknown) => {
                                 Logger.error('Failed to export as PDF:', error);
-                                setGroupIdToStartWith();
-                                clearPendingExport();
-                                setIsExporting(false);
+                                finalizeExport();
                             });
                     }
                 } else {
@@ -176,7 +180,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data, setIsExporting]);
 
     const downloadGroupOrganigramAsGraphML = useCallback((groupId: number) => {
-        const groupName = groupsById[groupId].name;
+        const groupName = groupsById[groupId]?.name ?? 'Unknown Group';
         const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
         setGroupIdToStartWith(groupId.toString());
@@ -184,7 +188,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }, [groupsById, setGroupIdToStartWith, setPendingExport]);
 
     const downloadGroupOrganigramAsPNG = useCallback((groupId: number) => {
-        const groupName = groupsById[groupId].name;
+        const groupName = groupsById[groupId]?.name ?? 'Unknown Group';
         const fileName = `Organigramm-${groupName}-${moment().format('LD')}.png`;
 
         setGroupIdToStartWith(groupId.toString());
@@ -192,7 +196,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }, [groupsById, setGroupIdToStartWith, setPendingExport]);
 
     const downloadGroupOrganigramAsPDF = useCallback((groupId: number) => {
-        const groupName = groupsById[groupId].name;
+        const groupName = groupsById[groupId]?.name ?? 'Unknown Group';
         const fileName = `Organigramm-${groupName}-${moment().format('LD')}.pdf`;
 
         setGroupIdToStartWith(groupId.toString());
@@ -200,7 +204,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }, [groupsById, setGroupIdToStartWith, setPendingExport]);
 
     const downloadGroupOrganigramAsSVG = useCallback((groupId: number) => {
-        const groupName = groupsById[groupId].name;
+        const groupName = groupsById[groupId]?.name ?? 'Unknown Group';
         const fileName = `Organigramm-${groupName}-${moment().format('LD')}.svg`;
 
         setGroupIdToStartWith(groupId.toString());

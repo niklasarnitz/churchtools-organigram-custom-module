@@ -1,3 +1,4 @@
+import { URecord } from "@ainias42/js-helper";
 import { useMemo } from "react";
 
 import type { GroupRole } from "../types/GroupRole";
@@ -9,7 +10,7 @@ export const useGroupRolesByType = () => {
 
     return useMemo(() => {
         if (!groupRoles) return {};
-        const acc = {} as Record<number, GroupRole[]>;
+        const acc = {} as URecord<number, GroupRole[]>;
         for (const role of groupRoles) {
             (acc[role.groupTypeId] ??= []).push(role);
         }

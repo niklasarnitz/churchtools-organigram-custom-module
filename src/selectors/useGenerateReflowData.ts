@@ -53,7 +53,7 @@ export const useGenerateReflowData = () => {
                 data: {
                     color: getColorForGroupType(node.group.information.groupTypeId),
                     group: node.group,
-                    groupTypeName: groupTypesById[node.group.information.groupTypeId].name,
+                    groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
                     id: node.group.id,
                     members: node.members,
                     metadata: getGroupMetadataString(node.groupRoles, node.members, personsById),
