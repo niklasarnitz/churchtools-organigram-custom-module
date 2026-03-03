@@ -72,28 +72,28 @@ export async function getUserSettings<T>(
     const category = await getOrCreateCustomDataCategory(categoryShorty, categoryName);
     const mId = category.moduleId;
 
-    const values: CustomModuleDataValue[] = await churchtoolsClient.get(
+    const values: CustomModuleDataValue[] | undefined = await churchtoolsClient.get(
         `/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues`,
     );
 
-    const userValue: CustomModuleDataValue | undefined = values[0];
+    const userValue: CustomModuleDataValue | undefined = values?.[0];
 
     return safeParseJSON(userValue ? userValue.value : undefined) as T | undefined;
 }
 
-export async function saveUserSettings<T extends object>(
+export async function saveUserSettings(
     categoryShorty: string,
     categoryName: string,
-    settings: T
+    settings: object
 ): Promise<void> {
     const category = await getOrCreateCustomDataCategory(categoryShorty, categoryName);
     const mId = category.moduleId;
 
-    const values: CustomModuleDataValue[] = await churchtoolsClient.get(
+    const values: CustomModuleDataValue[] | undefined = await churchtoolsClient.get(
         `/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues`,
     );
 
-    const userValue: CustomModuleDataValue | undefined = values[0];
+    const userValue: CustomModuleDataValue | undefined = values?.[0];
     const valueStr = JSON.stringify(settings);
 
     if (userValue) {

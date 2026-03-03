@@ -1,4 +1,4 @@
-import { URecord } from '@ainias42/js-helper';
+import type { URecord } from '@ainias42/js-helper';
 
 export const arrayToIndexedObject = <T, K extends keyof T>(
   input: T[],

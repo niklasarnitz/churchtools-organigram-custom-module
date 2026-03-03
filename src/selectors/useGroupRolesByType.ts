@@ -1,4 +1,5 @@
-import { URecord } from "@ainias42/js-helper";
+import type { URecord } from "@ainias42/js-helper";
+
 import { useMemo } from "react";
 
 import type { GroupRole } from "../types/GroupRole";

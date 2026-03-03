@@ -28,8 +28,7 @@ async function deploy() {
     // 1. Get custom modules to find the one with shorty "organigram"
     let moduleId: number | undefined;
     try {
-        const response = await churchtoolsClient.get("/custom-modules");
-        const modules = response.data as any[];
+        const modules = await churchtoolsClient.get("/custommodules") as any[];
         const organigramModule = modules.find(m => m.shorty === "organigram");
         
         if (!organigramModule) {

@@ -39,7 +39,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const setPendingExport = useAppStore((s) => s.setPendingExport);
     const setIsExporting = useAppStore((s) => s.setIsExporting);
     const { fitView } = useReactFlow();
-    const lastProcessedExportRef = useRef<string | null>(null);
+    const lastProcessedExportRef = useRef<null | string>(null);
 
     const clearPendingExport = useCallback(() => {
         setPendingExport(undefined);
@@ -95,15 +95,14 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     };
 
                     // Exports should always be in light mode as requested.
-                    const needsLightMode = true;
                     const isDarkMode = document.documentElement.classList.contains('dark');
-                    
-                    if (needsLightMode && isDarkMode) {
+
+                    if (isDarkMode) {
                         document.documentElement.classList.remove('dark');
                     }
 
                     const finalizeExport = () => {
-                        if (needsLightMode && isDarkMode) {
+                        if (isDarkMode) {
                             document.documentElement.classList.add('dark');
                         }
                         setGroupIdToStartWith();

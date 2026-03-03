@@ -1,4 +1,4 @@
-import { URecord } from '@ainias42/js-helper';
+import type { URecord } from '@ainias42/js-helper';
 
 import type { Group } from '../types/Group';
 import type { GroupMember } from '../types/GroupMember';

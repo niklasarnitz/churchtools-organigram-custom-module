@@ -4,8 +4,9 @@ import React, { useCallback, useMemo, useState } from 'react';
 
 import { Strings } from '../../globals/Strings';
 import { downloadTextFile } from '../../helpers/downloadTextFile';
+import { useGroups } from '../../queries/useGroups';
+import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
-import { useGenerateReflowData } from '../../selectors/useGenerateReflowData';
 import { useGroupsById } from '../../selectors/useGroupsById';
 import { useAppStore } from '../../state/useAppStore';
 import { Button } from '../ui/button';
@@ -19,24 +20,32 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
     const groupsById = useGroupsById();
     const generateGraphMLData = useGenerateGraphMLData();
-    const data = useGenerateReflowData();
+    const { data: groups } = useGroups();
+    const { data: hierarchies } = useHierarchies();
 
     const isExporting = useAppStore((s) => s.isExporting);
     const pendingExport = useAppStore((s) => s.pendingExport);
     const setPendingExport = useAppStore((s) => s.setPendingExport);
 
     const orphanedGroups = useMemo(() => {
-        const edgeNodeIds = new Set<string>();
-        for (const edge of data.edges) {
-            edgeNodeIds.add(edge.source);
-            edgeNodeIds.add(edge.target);
+        if (!groups || !hierarchies) return [];
+
+        const hierarchyGroupIds = new Set<number>();
+        for (const h of hierarchies) {
+            if (h.children.length > 0) {
+                hierarchyGroupIds.add(h.groupId);
+                for (const childId of h.children) {
+                    hierarchyGroupIds.add(childId);
+                }
+            }
         }
 
-        return data.nodes
-            .filter((node) => !edgeNodeIds.has(node.id))
-            .map((node) => groupsById[Number(node.id)]?.name)
-            .filter(Boolean);
-    }, [data.nodes, data.edges, groupsById]);
+        return groups
+            .filter((group) => !hierarchyGroupIds.has(group.id))
+            .map((group) => group.name)
+            .sort((a, b) => a.localeCompare(b));
+    }, [groups, hierarchies]);
+
 
     const getFileName = useCallback((extension: string) => {
         const groupName = groupIdToStartWith
@@ -79,7 +88,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
             <LayoutSelect />
             <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
             <ExclusionFilters />
-            
+
             <div className="mt-6 flex flex-col gap-4">
                 {orphanedGroups.length > 0 && (
                     <div className="rounded-md bg-amber-50 p-4 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
@@ -95,10 +104,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     </div>
                 )}
 
-                <Button 
-                    className="w-full" 
-                    disabled={isExporting} 
-                    onClick={didPressDownloadGraphML} 
+                <Button
+                    className="w-full"
+                    disabled={isExporting}
+                    onClick={didPressDownloadGraphML}
                     variant="outline"
                 >
                     {isExporting && pendingExport?.type === 'graphml' ? (
@@ -110,10 +119,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                 </Button>
 
                 <div className="grid grid-cols-3 gap-2">
-                    <Button 
-                        className="grow" 
-                        disabled={isExporting} 
-                        onClick={didPressDownloadPNG} 
+                    <Button
+                        className="grow"
+                        disabled={isExporting}
+                        onClick={didPressDownloadPNG}
                         variant="outline"
                     >
                         {isExporting && pendingExport?.type === 'png' ? (
@@ -123,10 +132,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         )}
                         PNG
                     </Button>
-                    <Button 
-                        className="grow" 
-                        disabled={isExporting} 
-                        onClick={didPressDownloadPDF} 
+                    <Button
+                        className="grow"
+                        disabled={isExporting}
+                        onClick={didPressDownloadPDF}
                         variant="outline"
                     >
                         {isExporting && pendingExport?.type === 'pdf' ? (
@@ -136,10 +145,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         )}
                         PDF
                     </Button>
-                    <Button 
-                        className="grow" 
-                        disabled={isExporting} 
-                        onClick={didPressDownloadSVG} 
+                    <Button
+                        className="grow"
+                        disabled={isExporting}
+                        onClick={didPressDownloadSVG}
                         variant="outline"
                     >
                         {isExporting && pendingExport?.type === 'svg' ? (

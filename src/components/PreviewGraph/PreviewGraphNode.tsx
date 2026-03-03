@@ -1,3 +1,5 @@
+import type { URecord } from "@ainias42/js-helper";
+
 import React, { useMemo } from "react";
 import { Handle, Position } from "reactflow";
 
@@ -18,7 +20,7 @@ export interface PreviewGraphNodeData {
     id: number;
     members: GroupMember[];
     metadata: string;
-    personsById: Record<number, Person>;
+    personsById: URecord<number, Person>;
     roles: GroupRole[];
     title: string;
 }
