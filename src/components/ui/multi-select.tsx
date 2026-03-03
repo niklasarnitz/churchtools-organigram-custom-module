@@ -43,8 +43,8 @@ function OptionButton({ option, isSelected, onToggle }: { option: MultiSelectOpt
 			type="button"
 			onClick={handleClick}
 			className={cn(
-				'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-slate-100',
-				isSelected && 'bg-slate-50',
+				'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-slate-100 dark:hover:bg-slate-800',
+				isSelected && 'bg-slate-50 dark:bg-slate-800',
 			)}
 		>
 			<span>{option.label}</span>
@@ -92,28 +92,28 @@ export function MultiSelect({ options, value, onChange, placeholder, className }
 			<button
 				type="button"
 				onClick={toggleOpen}
-				className="flex min-h-9 w-full items-center justify-between rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-white focus:outline-none focus:ring-1 focus:ring-slate-950"
+				className="flex min-h-9 w-full items-center justify-between rounded-md border border-slate-200 dark:border-slate-700 bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-white dark:ring-offset-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-950 dark:focus:ring-slate-300"
 			>
 				<span className="flex flex-1 flex-wrap gap-1 text-left">
 					{selectedLabels.length > 0 ? (
 						selectedLabels.map((label, i) => (
 							<span
 								key={value[i]}
-								className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs"
+								className="inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-xs"
 							>
 								{label}
 								<TagRemoveButton val={value[i]} onRemove={toggleValue} />
 							</span>
 						))
 					) : (
-						<span className="text-slate-500">{placeholder}</span>
+						<span className="text-slate-500 dark:text-slate-400">{placeholder}</span>
 					)}
 				</span>
 				<ChevronDown className="ml-2 size-4 shrink-0 opacity-50" />
 			</button>
 
 			{open && (
-				<div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white p-1 shadow-md">
+				<div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 shadow-md">
 					{options.map((option) => (
 						<OptionButton
 							key={option.value}

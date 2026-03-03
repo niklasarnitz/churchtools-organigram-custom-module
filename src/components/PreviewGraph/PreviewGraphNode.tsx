@@ -38,7 +38,7 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
 
                 return [(
                     <div key={role.id} className="mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             {role.name}
                         </span>
                         <div className="mt-1 flex flex-wrap gap-1">
@@ -59,36 +59,36 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
 
 	return (
 		<div 
-            className="flex min-w-[220px] max-w-[300px] flex-col overflow-hidden rounded-xl border-2 bg-white shadow-lg transition-shadow hover:shadow-xl"
+            className="flex min-w-[220px] max-w-[300px] flex-col overflow-hidden rounded-xl border-2 bg-white dark:bg-slate-900 shadow-lg transition-shadow hover:shadow-xl"
             style={{ borderColor }}
         >
 			<Handle 
                 type="target" 
                 position={Position.Left} 
-                className="z-10 !size-3 border-2 border-white !bg-slate-400" 
+                className="z-10 !size-3 border-2 border-white dark:border-slate-900 !bg-slate-400 dark:!bg-slate-500" 
             />
 			
             <div 
                 className="flex flex-col gap-1 border-b-2 px-4 py-3"
                 style={{ backgroundColor, borderColor }}
             >
-                <h3 className="m-0 text-base font-bold leading-tight text-slate-900">
+                <h3 className="m-0 text-base font-bold leading-tight text-slate-900 dark:text-slate-100">
                     {data.title}
                 </h3>
                 {showGroupTypes && (
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-80">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 opacity-80">
                         {data.groupTypeName}
                     </span>
                 )}
             </div>
 
-            <div className="bg-white p-4">
+            <div className="bg-white dark:bg-slate-900 p-4">
                 {renderedRoles.length > 0 ? (
                     <div className="flex flex-col">
                         {renderedRoles}
                     </div>
                 ) : (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                         Keine Rollenbesetzung hinterlegt.
                     </p>
                 )}
@@ -97,7 +97,7 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
 			<Handle 
                 type="source" 
                 position={Position.Right} 
-                className="z-10 !size-3 border-2 border-white !bg-slate-400" 
+                className="z-10 !size-3 border-2 border-white dark:border-slate-900 !bg-slate-400 dark:!bg-slate-500" 
             />
 		</div>
 	);

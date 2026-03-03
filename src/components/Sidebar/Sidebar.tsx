@@ -33,7 +33,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                 <Loader2 className="size-4 animate-spin" />
                 Daten werden geladen.
             </div>
@@ -41,9 +41,9 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }
 
     return (
-        <div className="h-full overflow-y-auto rounded-md border border-slate-100 bg-slate-50 p-4 shadow-sm">
+        <div className="h-full overflow-y-auto rounded-md border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm">
             <StartGroupSelect />
-            <div className="my-4 border-t border-slate-200" />
+            <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
             <ExclusionFilters />
             
             <div className="mt-6 flex flex-col gap-4">
@@ -62,12 +62,12 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     <CollapsibleContent>
                         <div className="mt-2 space-y-1">
                             <h6 className="text-sm font-semibold">{Strings.helpTitle}</h6>
-                            <p className="text-sm text-slate-600">{Strings.helpText}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{Strings.helpText}</p>
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
 
-                <div className="mt-2 space-y-2 text-xs text-slate-500">
+                <div className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400">
                     <div>
                         <h6 className="font-semibold">{Strings.versionTitle}</h6>
                         <p>{import.meta.env.VITE_VERSION}</p>
