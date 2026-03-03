@@ -1,15 +1,16 @@
-import { Button } from '../ui/button';
 import { ChevronDown, ChevronUp, Download, Loader2 } from 'lucide-react';
+import moment from 'moment';
+import React, { useCallback, useState } from 'react';
+
+import { Strings } from '../../globals/Strings';
+import { downloadTextFile } from '../../helpers/downloadTextFile';
+import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
+import { useGroupsById } from '../../selectors/useGroupsById';
+import { useAppStore } from '../../state/useAppStore';
+import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { ExclusionFilters } from './ExclusionFilters';
 import { StartGroupSelect } from './StartGroupSelect';
-import { Strings } from '../../globals/Strings';
-import { downloadTextFile } from '../../helpers/downloadTextFile';
-import { useAppStore } from '../../state/useAppStore';
-import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
-import { useGroupsById } from '../../selectors/useGroupsById';
-import React, { useCallback, useState } from 'react';
-import moment from 'moment';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -47,14 +48,14 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
             <ExclusionFilters />
             
             <div className="mt-6 flex flex-col gap-4">
-                <Button variant="outline" className="w-full" onClick={didPressDownloadGraphML}>
+                <Button className="w-full" onClick={didPressDownloadGraphML} variant="outline">
                     <Download className="size-4" />
                     Export als GraphML Datei
                 </Button>
 
-                <Collapsible open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+                <Collapsible onOpenChange={setIsHelpOpen} open={isHelpOpen}>
                     <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="w-full">
+                        <Button className="w-full" size="sm" variant="ghost">
                             {isHelpOpen ? Strings.hideHelp : Strings.showHelp}
                             {isHelpOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                         </Button>

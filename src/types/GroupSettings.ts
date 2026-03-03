@@ -1,14 +1,14 @@
 import type { GroupVisibility } from './GroupVisibility';
 
-export type GroupSettings = {
-	isOpenForMembers: boolean | undefined;
+export interface GroupSettings {
+	autoAccept: boolean;
 	groupMeeting: {
 		autoCreate: boolean;
-		templateId: undefined | number;
+		templateId: number | undefined;
 	};
-	qrCodeCheckin: boolean;
-	autoAccept: boolean;
 	isHidden: boolean;
+	isOpenForMembers: boolean | undefined;
 	isPublic: boolean;
+	qrCodeCheckin: boolean;
 	visibility: GroupVisibility;
-};
+}

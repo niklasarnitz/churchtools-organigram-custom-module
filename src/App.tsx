@@ -1,8 +1,9 @@
 import "@fontsource/lato";
 import 'reactflow/dist/style.css';
-import { MainComponent } from "./components/MainComponent";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactFlowProvider } from "reactflow";
+
+import { MainComponent } from "./components/MainComponent";
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 
 let queryClient: QueryClient;
@@ -12,8 +13,8 @@ function getQueryClient() {
         queryClient = new QueryClient({
             defaultOptions: {
                 queries: {
-                    staleTime: 1000 * 60 * 5, // 5 minutes
                     refetchOnWindowFocus: false,
+                    staleTime: 1000 * 60 * 5, // 5 minutes
                 },
             },
         });

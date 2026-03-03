@@ -1,6 +1,8 @@
-import { useGroupMembers } from "../queries/useGroupMembers";
 import { useMemo } from "react";
+
 import type { GroupMember } from "../types/GroupMember";
+
+import { useGroupMembers } from "../queries/useGroupMembers";
 
 export const useGroupMembersByGroupId = () => {
     const { data: members } = useGroupMembers();

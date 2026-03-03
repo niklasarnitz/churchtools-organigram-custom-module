@@ -1,15 +1,17 @@
-import { useAppStore } from '../state/useAppStore';
-import { useGroupMembersByGroupId } from './useGroupMembersByGroupId';
-import { useGroupRolesByType } from './useGroupRolesByType';
-import { useGroupsById } from './useGroupsById';
-import { useHierarchies } from '../queries/useHierarchies';
-import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 import { useMemo } from 'react';
+
 import type { GraphData } from '../types/GraphData';
 import type { GraphNode } from '../types/GraphNode';
 import type { Group } from '../types/Group';
 import type { Hierarchy } from '../types/Hierarchy';
 import type { Relation } from '../types/Relation';
+
+import { useHierarchies } from '../queries/useHierarchies';
+import { useAppStore } from '../state/useAppStore';
+import { useGroupMembersByGroupId } from './useGroupMembersByGroupId';
+import { useGroupRolesByType } from './useGroupRolesByType';
+import { useGroupsById } from './useGroupsById';
+import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 
 export const useCreateRelatedData = (): GraphData => {
     const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
@@ -116,8 +118,8 @@ export const useCreateRelatedData = (): GraphData => {
         }
 
         return {
-            relations,
             nodes,
+            relations,
         } as GraphData;
     }, [groupIdToStartWith, getHierarchiesForGroup, hierarchies, groupsById, shouldIncludeGroup, getGraphNodeFromGroup]);
 };

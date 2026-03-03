@@ -1,7 +1,7 @@
-export type FollowUp = {
-	typeId: number | null;
-	targetTypeId: number;
-	targetObjectId: number | null;
-	targetGroupMemberStatusId: number | null;
+export interface FollowUp {
 	sendReminderMails: boolean;
-};
+	targetGroupMemberStatusId: null | number;
+	targetObjectId: null | number;
+	targetTypeId: number;
+	typeId: null | number;
+}

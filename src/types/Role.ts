@@ -1,18 +1,18 @@
-export type Role = {
-	id: number;
+export interface Role {
+	canReadChat: boolean;
+	canWriteChat: boolean;
+	forceTwoFactorAuth: boolean;
 	groupTypeId: number;
+	groupTypeRoleId: number;
+	growPathId: null | number;
+	hasRequested: boolean;
+	id: number;
+	isActive: boolean;
+	isDefault: boolean;
+	isHidden: boolean;
+	isLeader: boolean;
 	name: string;
 	shorty: string;
 	sortKey: number;
 	toDelete: boolean;
-	hasRequested: boolean;
-	isLeader: boolean;
-	isDefault: boolean;
-	isHidden: boolean;
-	growPathId: null | number;
-	groupTypeRoleId: number;
-	forceTwoFactorAuth: boolean;
-	isActive: boolean;
-	canReadChat: boolean;
-	canWriteChat: boolean;
-};
+}

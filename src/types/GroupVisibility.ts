@@ -1,6 +1,6 @@
 export enum GroupVisibility {
 	HIDDEN = 'hidden',
-	RESTRICTED = 'restricted',
+	INTERN = 'intern',
 	PUBLIC = 'public',
-	INTERN = 'intern'
+	RESTRICTED = 'restricted'
 }

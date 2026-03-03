@@ -1,26 +1,28 @@
-import { Badge } from '../ui/badge';
-import { Handle, Position } from "reactflow";
-import { useAppStore } from "../../state/useAppStore";
 import React, { useMemo } from "react";
+import { Handle, Position } from "reactflow";
+
+import type { getColorForGroupType } from '../../globals/Colors';
 import type { Group } from '../../types/Group';
 import type { GroupMember } from "../../types/GroupMember";
 import type { GroupRole } from "../../types/GroupRole";
 import type { Person } from "../../types/Person";
-import type { getColorForGroupType } from '../../globals/Colors';
 
-export type PreviewGraphNodeData = {
-	id: number;
-	title: string;
-	groupTypeName: string;
-	metadata: string;
+import { useAppStore } from "../../state/useAppStore";
+import { Badge } from '../ui/badge';
+
+export interface PreviewGraphNodeData {
 	color: ReturnType<typeof getColorForGroupType>;
-    group: Group;
-    roles: GroupRole[];
-    members: GroupMember[];
+	group: Group;
+	groupTypeName: string;
+	id: number;
+	members: GroupMember[];
+    metadata: string;
     personsById: Record<number, Person>;
+    roles: GroupRole[];
+    title: string;
 }
 
-export type PreviewGraphNodeProps = {
+export interface PreviewGraphNodeProps {
 	data: PreviewGraphNodeData;
 }
 
@@ -37,7 +39,7 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
                 if (personsInRole.length === 0) return [];
 
                 return [(
-                    <div key={role.id} className="mb-2">
+                    <div className="mb-2" key={role.id}>
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             {role.name}
                         </span>
@@ -46,7 +48,7 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
                                 const person = data.personsById[member.personId];
                                 const name = person ? `${person.firstName} ${person.lastName}` : 'Unbekannt';
                                 return (
-                                    <Badge key={member.personId} variant="secondary" className="text-[10px]">
+                                    <Badge className="text-[10px]" key={member.personId} variant="secondary">
                                         {name}
                                     </Badge>
                                 );
@@ -63,9 +65,9 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
             style={{ borderColor }}
         >
 			<Handle 
-                type="target" 
-                position={Position.Left} 
                 className="z-10 !size-3 border-2 border-white dark:border-slate-900 !bg-slate-400 dark:!bg-slate-500" 
+                position={Position.Left} 
+                type="target" 
             />
 			
             <div 
@@ -95,9 +97,9 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
             </div>
 
 			<Handle 
-                type="source" 
-                position={Position.Right} 
                 className="z-10 !size-3 border-2 border-white dark:border-slate-900 !bg-slate-400 dark:!bg-slate-500" 
+                position={Position.Right} 
+                type="source" 
             />
 		</div>
 	);

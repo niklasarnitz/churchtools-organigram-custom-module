@@ -5,31 +5,31 @@ import tailwindColors from 'tailwindcss/colors';
 // As soon as churchtools-utils is published, we can use that instead!
 
 const colors = {
-	gray: tailwindColors.slate,
-	red: tailwindColors.red,
-	orange: tailwindColors.orange,
 	amber: tailwindColors.amber,
-	yellow: tailwindColors.yellow,
-	lime: tailwindColors.lime,
-	green: tailwindColors.green,
-	emerald: tailwindColors.emerald,
-	teal: tailwindColors.teal,
-	cyan: tailwindColors.cyan,
-	sky: tailwindColors.sky,
 	blue: tailwindColors.blue,
-	indigo: tailwindColors.indigo,
-	violet: tailwindColors.violet,
-	purple: tailwindColors.purple,
+	cyan: tailwindColors.cyan,
+	emerald: tailwindColors.emerald,
 	fuchsia: tailwindColors.fuchsia,
+	gray: tailwindColors.slate,
+	green: tailwindColors.green,
+	indigo: tailwindColors.indigo,
+	lime: tailwindColors.lime,
+	orange: tailwindColors.orange,
 	pink: tailwindColors.pink,
+	purple: tailwindColors.purple,
+	red: tailwindColors.red,
 	rose: tailwindColors.rose,
+	sky: tailwindColors.sky,
+	teal: tailwindColors.teal,
+	violet: tailwindColors.violet,
+	yellow: tailwindColors.yellow,
 };
 
 export const masterDataColorSeeds = {
+	ageGroups: 40,
 	campus: 10,
 	groupCategories: 20,
 	groupTypes: 30,
-	ageGroups: 40,
 	targetGroups: 50,
 };
 
@@ -44,7 +44,7 @@ export const mulberry32 = (a: number) => {
 	};
 };
 
-const ctColors = (Object.keys(colors) as Array<keyof typeof colors>).map((name) => {
+const ctColors = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => {
 	const group = colors[name];
 	return { key: name, shades: group };
 });

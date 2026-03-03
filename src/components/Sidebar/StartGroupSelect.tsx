@@ -1,9 +1,10 @@
+import _ from 'lodash';
+import React, { useCallback } from 'react';
+
+import { useGroups } from '../../queries/useGroups';
+import { useAppStore } from '../../state/useAppStore';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useAppStore } from '../../state/useAppStore';
-import { useGroups } from '../../queries/useGroups';
-import React, { useCallback } from 'react';
-import _ from 'lodash';
 
 export const StartGroupSelect = React.memo(() => {
     const { data: groups } = useGroups();
@@ -24,7 +25,7 @@ export const StartGroupSelect = React.memo(() => {
         <div className="flex flex-col">
             <h5 className="mb-1 text-sm font-semibold">Gruppe, mit der gestartet werden soll</h5>
 
-            <Select value={groupIdToStartWith ?? ''} onValueChange={handleSelectChange}>
+            <Select onValueChange={handleSelectChange} value={groupIdToStartWith ?? ''}>
                 <SelectTrigger>
                     <SelectValue placeholder="Keine Gruppe ausgewählt" />
                 </SelectTrigger>
@@ -39,10 +40,10 @@ export const StartGroupSelect = React.memo(() => {
 
             {groupIdToStartWith && (
                 <Button
-                    variant="outline"
-                    size="sm"
                     className="mt-2 w-full"
                     onClick={clearGroupIdToStartWith}
+                    size="sm"
+                    variant="outline"
                 >
                     Auswahl löschen
                 </Button>

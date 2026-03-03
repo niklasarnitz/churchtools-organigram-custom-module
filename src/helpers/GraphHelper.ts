@@ -54,7 +54,7 @@ export const getGroupTitle = (
 ) => {
 	if (showGroupTypes && group.information.groupTypeId) {
 		if (reflow) {
-			return `${group.name}`;
+			return group.name;
 		}
 		return `${group.name}\n(${groupTypesById[group.information.groupTypeId]?.name ?? 'Unknown'})`;
 	}

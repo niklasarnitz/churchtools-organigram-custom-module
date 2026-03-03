@@ -1,21 +1,24 @@
-import { getGroupNodeWidth, getReflowGroupNodeHeight } from '../GraphHelper';
-import dagre from 'dagre';
 import type { Edge, Node } from 'reactflow';
+
+import dagre from 'dagre';
+
 import type { PreviewGraphNodeData } from '../../components/PreviewGraph/PreviewGraphNode';
+
+import { getGroupNodeWidth, getReflowGroupNodeHeight } from '../GraphHelper';
 
 export const layoutDagre = (
 	nodes: Node[],
 	edges: Edge[],
-): { nodes: Node[]; edges: Edge[] } => {
+): { edges: Edge[]; nodes: Node[]; } => {
 	const dagreGraph = new dagre.graphlib.Graph();
 	dagreGraph.setDefaultEdgeLabel(() => ({}));
 	
     dagreGraph.setGraph({
-		rankdir: 'LR',
-        ranksep: 100,
-        nodesep: 50,
-        marginx: 50,
+		marginx: 50,
         marginy: 50,
+        nodesep: 50,
+        rankdir: 'LR',
+        ranksep: 100,
 	});
 
 	for (const node of nodes) {
@@ -23,7 +26,7 @@ export const layoutDagre = (
 		const width = Math.max(getGroupNodeWidth(data.title, data.metadata), 250);
 		const height = Math.max(getReflowGroupNodeHeight(data.metadata, data.title), 150);
 
-		dagreGraph.setNode(node.id, { width, height });
+		dagreGraph.setNode(node.id, { height, width });
 	}
 
 	for (const edge of edges) {
@@ -44,5 +47,5 @@ export const layoutDagre = (
         };
     });
 
-	return { nodes: layoutedNodes, edges };
+	return { edges, nodes: layoutedNodes };
 };

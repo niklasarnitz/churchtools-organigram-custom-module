@@ -1,12 +1,13 @@
-import { MultiSelect } from '../ui/multi-select';
-import { Switch } from '../ui/switch';
-import { useAppStore } from '../../state/useAppStore';
+import _ from 'lodash';
+import React, { useCallback, useMemo } from 'react';
+
 import { useGroupRoles } from '../../queries/useGroupRoles';
+import { useGroups } from '../../queries/useGroups';
 import { useGroupTypes } from '../../queries/useGroupTypes';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
-import { useGroups } from '../../queries/useGroups';
-import React, { useCallback, useMemo } from 'react';
-import _ from 'lodash';
+import { useAppStore } from '../../state/useAppStore';
+import { MultiSelect } from '../ui/multi-select';
+import { Switch } from '../ui/switch';
 
 export const ExclusionFilters = React.memo(() => {
     const { data: groups } = useGroups();
@@ -29,8 +30,8 @@ export const ExclusionFilters = React.memo(() => {
 
     const groupTypeOptions = useMemo(() =>
         _.sortBy(groupTypes ?? [], (g) => g?.sortKey).map((groupType) => ({
-            value: String(groupType.id),
             label: groupType?.name,
+            value: String(groupType.id),
         })),
     [groupTypes]);
 
@@ -39,8 +40,8 @@ export const ExclusionFilters = React.memo(() => {
             (groups ?? []).filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
             (g) => g?.name,
         ).map((group) => ({
-            value: String(group.id),
             label: group?.name,
+            value: String(group.id),
         })),
     [groups, excludedGroupTypes]);
 
@@ -49,8 +50,8 @@ export const ExclusionFilters = React.memo(() => {
             (groupRoles ?? []).filter((groupRole) => !excludedGroupTypes.includes(groupRole.groupTypeId)),
             (groupRole) => `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`,
         ).map((groupRole) => ({
-            value: String(groupRole.id),
             label: `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`,
+            value: String(groupRole.id),
         })),
     [groupRoles, excludedGroupTypes, groupTypesById]);
 
@@ -71,30 +72,30 @@ export const ExclusionFilters = React.memo(() => {
             <div className="flex flex-col">
                 <h5 className="mb-1 text-sm font-semibold">Zu exkludierende Gruppentypen</h5>
                 <MultiSelect
-                    options={groupTypeOptions}
-                    value={excludedGroupTypes.map(String)}
                     onChange={handleGroupTypesChange}
+                    options={groupTypeOptions}
                     placeholder="Keine exkludierten Gruppentypen ausgewählt"
+                    value={excludedGroupTypes.map(String)}
                 />
             </div>
 
             <div className="flex flex-col">
                 <h5 className="mb-1 text-sm font-semibold">Zu exkludierende Gruppen</h5>
                 <MultiSelect
-                    options={groupOptions}
-                    value={excludedGroups.map(String)}
                     onChange={handleGroupsChange}
+                    options={groupOptions}
                     placeholder="Keine exkludierten Gruppen ausgewählt"
+                    value={excludedGroups.map(String)}
                 />
             </div>
 
             <div className="flex flex-col">
                 <h5 className="mb-1 text-sm font-semibold">Zu exkludierende Gruppenrollen</h5>
                 <MultiSelect
-                    options={roleOptions}
-                    value={excludedRoles.map(String)}
                     onChange={handleRolesChange}
+                    options={roleOptions}
                     placeholder="Keine exkludierten Gruppenrollen ausgewählt"
+                    value={excludedRoles.map(String)}
                 />
             </div>
 

@@ -1,5 +1,5 @@
-export type Permissions = {
+export interface Permissions {
 	churchcore: {
 		'administer persons': boolean;
 	};
-};
+}

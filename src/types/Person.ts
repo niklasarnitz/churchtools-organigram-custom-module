@@ -1,20 +1,20 @@
-export type Person = {
-	id: number;
-	relationships: any;
-	tags: any;
-	groups: any;
-	imageUrl: string;
+export interface Person {
 	birthday: string;
-	canChat: boolean;
 	campusId: number;
-	cmsUserId: string;
+	canChat: boolean;
 	chatId: string;
-	securityLevelForPerson: number;
-	firstName: string;
-	lastName: string;
-	guid: string;
+	cmsUserId: string;
 	editSecurityLevelForPerson?: number;
+	firstName: string;
+	groups: any;
+	guid: string;
+	id: number;
+	imageUrl: string;
+	lastName: string;
+	logintoken?: string;
+	relationships: any;
+	securityLevelForPerson: number;
 	sexId: number;
 	statusId: number;
-	logintoken?: string;
-};
+	tags: any;
+}

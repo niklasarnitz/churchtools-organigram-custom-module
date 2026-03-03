@@ -1,57 +1,58 @@
-import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
 
-type GroupState = {
-    excludedRoles: number[];
-    setExcludedRoles: (roles: string | string[]) => void;
+import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
+
+interface GroupState {
+    baseUrl: string | undefined;
+    excludedGroups: number[];
 
     excludedGroupTypes: number[];
-    setExcludedGroupTypes: (groups: string | string[]) => void;
-
-    excludedGroups: number[];
-    setExcludedGroups: (groups: string | string[]) => void;
-
-    // Display Options
-    showGroupTypes: boolean;
-    setShowGroupTypes: (show: boolean) => void;
+    excludedRoles: number[];
 
     groupIdToStartWith: string | undefined;
-    setGroupIdToStartWith: (groupId?: string | number | undefined) => void;
-
     layoutAlgorithm: LayoutAlgorithm;
+
+    setBaseUrl: (url: string | undefined) => void;
+    setExcludedGroups: (groups: string | string[]) => void;
+
+    setExcludedGroupTypes: (groups: string | string[]) => void;
+    setExcludedRoles: (roles: string | string[]) => void;
+
+    setGroupIdToStartWith: (groupId?: number | string  ) => void;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 
-    baseUrl: string | undefined;
-    setBaseUrl: (url: string | undefined) => void;
-};
+    setShowGroupTypes: (show: boolean) => void;
+    // Display Options
+    showGroupTypes: boolean;
+}
 
 export const useAppStore = create<GroupState>((set) => ({
-    excludedRoles: [] as number[],
-    excludedGroupTypes: [] as number[],
+    baseUrl: undefined,
     excludedGroups: [] as number[],
+    excludedGroupTypes: [] as number[],
 
-    showGroupTypes: false,
+    excludedRoles: [] as number[],
 
     groupIdToStartWith: undefined,
 
     layoutAlgorithm: LayoutAlgorithm.dagre,
 
-    baseUrl: undefined,
-
-    setExcludedRoles: (roles: string | string[]) =>
-        set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }),
-    setExcludedGroupTypes: (groups: string | string[]) =>
-        set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
-    setExcludedGroups: (groups: string | string[]) =>
-        set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
-    setShowGroupTypes: (show: boolean) => set({ showGroupTypes: show }),
-    setGroupIdToStartWith: (groupIdToStartWith: string | number | undefined) =>
-        set({ groupIdToStartWith: groupIdToStartWith?.toString() }),
-
-    setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => set({ layoutAlgorithm: algorithm }),
     setBaseUrl: (url: string | undefined) => {
         churchtoolsClient.setBaseUrl(url ?? '');
         set({ baseUrl: url });
     },
+
+    setExcludedGroups: (groups: string | string[]) =>
+        { set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }); },
+    setExcludedGroupTypes: (groups: string | string[]) =>
+        { set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }); },
+    setExcludedRoles: (roles: string | string[]) =>
+        { set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }); },
+    setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) =>
+        { set({ groupIdToStartWith: groupIdToStartWith?.toString() }); },
+    setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => { set({ layoutAlgorithm: algorithm }); },
+
+    setShowGroupTypes: (show: boolean) => { set({ showGroupTypes: show }); },
+    showGroupTypes: false,
 }));

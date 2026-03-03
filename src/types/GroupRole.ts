@@ -1,13 +1,13 @@
-export type GroupRole = {
-	id: number;
+export interface GroupRole {
 	groupTypeId: number;
+	growPathId: null | number;
+	id: number;
+	isDefault: boolean;
+	isHidden: boolean;
+	isLeader: boolean;
 	name: string;
 	nameTranslated: string;
 	shorty: string;
 	sortKey: number;
 	type: string;
-	isDefault: boolean;
-	isHidden: boolean;
-	growPathId: number | null;
-	isLeader: boolean;
-};
+}

@@ -1,6 +1,8 @@
-import { useGroupRoles } from "../queries/useGroupRoles";
 import { useMemo } from "react";
+
 import type { GroupRole } from "../types/GroupRole";
+
+import { useGroupRoles } from "../queries/useGroupRoles";
 
 export const useGroupRolesByType = () => {
     const { data: groupRoles } = useGroupRoles();

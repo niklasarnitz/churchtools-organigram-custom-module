@@ -1,14 +1,15 @@
-import { GraphView } from './GraphView';
 import { Loader2 } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+
 import { Logger } from '../globals/Logger';
-import { TopBar } from './TopBar';
-import { useAppStore } from '../state/useAppStore';
 import { useGroupRoles } from '../queries/useGroupRoles';
-import { useGroupTypes } from '../queries/useGroupTypes';
 import { useGroups } from '../queries/useGroups';
+import { useGroupTypes } from '../queries/useGroupTypes';
 import { useHierarchies } from '../queries/useHierarchies';
 import { usePersons } from '../queries/usePersons';
-import React, { useEffect, useRef } from 'react';
+import { useAppStore } from '../state/useAppStore';
+import { GraphView } from './GraphView';
+import { TopBar } from './TopBar';
 
 export const MainComponent = React.memo(() => {
     const renderCount = useRef(0);
@@ -36,11 +37,11 @@ export const MainComponent = React.memo(() => {
         personsQuery.isLoading;
 
     Logger.log(`[MainComponent] render #${renderCount.current} | isLoading=${isLoading}`, {
-        groups: { isLoading: groupsQuery.isLoading, isPending: groupsQuery.isPending, isError: groupsQuery.isError, error: groupsQuery.error?.message, status: groupsQuery.status, fetchStatus: groupsQuery.fetchStatus, dataUpdatedAt: groupsQuery.dataUpdatedAt },
-        types: { isLoading: groupTypesQuery.isLoading, isPending: groupTypesQuery.isPending, isError: groupTypesQuery.isError, error: groupTypesQuery.error?.message, status: groupTypesQuery.status, fetchStatus: groupTypesQuery.fetchStatus, dataUpdatedAt: groupTypesQuery.dataUpdatedAt },
-        roles: { isLoading: groupRolesQuery.isLoading, isPending: groupRolesQuery.isPending, isError: groupRolesQuery.isError, error: groupRolesQuery.error?.message, status: groupRolesQuery.status, fetchStatus: groupRolesQuery.fetchStatus, dataUpdatedAt: groupRolesQuery.dataUpdatedAt },
-        hierarchies: { isLoading: hierarchiesQuery.isLoading, isPending: hierarchiesQuery.isPending, isError: hierarchiesQuery.isError, error: hierarchiesQuery.error?.message, status: hierarchiesQuery.status, fetchStatus: hierarchiesQuery.fetchStatus, dataUpdatedAt: hierarchiesQuery.dataUpdatedAt },
-        persons: { isLoading: personsQuery.isLoading, isPending: personsQuery.isPending, isError: personsQuery.isError, error: personsQuery.error?.message, status: personsQuery.status, fetchStatus: personsQuery.fetchStatus, dataUpdatedAt: personsQuery.dataUpdatedAt },
+        groups: { dataUpdatedAt: groupsQuery.dataUpdatedAt, error: groupsQuery.error?.message, fetchStatus: groupsQuery.fetchStatus, isError: groupsQuery.isError, isLoading: groupsQuery.isLoading, isPending: groupsQuery.isPending, status: groupsQuery.status },
+        hierarchies: { dataUpdatedAt: hierarchiesQuery.dataUpdatedAt, error: hierarchiesQuery.error?.message, fetchStatus: hierarchiesQuery.fetchStatus, isError: hierarchiesQuery.isError, isLoading: hierarchiesQuery.isLoading, isPending: hierarchiesQuery.isPending, status: hierarchiesQuery.status },
+        persons: { dataUpdatedAt: personsQuery.dataUpdatedAt, error: personsQuery.error?.message, fetchStatus: personsQuery.fetchStatus, isError: personsQuery.isError, isLoading: personsQuery.isLoading, isPending: personsQuery.isPending, status: personsQuery.status },
+        roles: { dataUpdatedAt: groupRolesQuery.dataUpdatedAt, error: groupRolesQuery.error?.message, fetchStatus: groupRolesQuery.fetchStatus, isError: groupRolesQuery.isError, isLoading: groupRolesQuery.isLoading, isPending: groupRolesQuery.isPending, status: groupRolesQuery.status },
+        types: { dataUpdatedAt: groupTypesQuery.dataUpdatedAt, error: groupTypesQuery.error?.message, fetchStatus: groupTypesQuery.fetchStatus, isError: groupTypesQuery.isError, isLoading: groupTypesQuery.isLoading, isPending: groupTypesQuery.isPending, status: groupTypesQuery.status },
     });
 
     // Effects
@@ -57,7 +58,7 @@ export const MainComponent = React.memo(() => {
 
     useEffect(() => {
         Logger.log('[MainComponent] MOUNTED');
-        return () => Logger.log('[MainComponent] UNMOUNTED');
+        return () => { Logger.log('[MainComponent] UNMOUNTED'); };
     }, []);
 
     return (

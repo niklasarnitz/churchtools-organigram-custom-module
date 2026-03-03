@@ -1,10 +1,10 @@
 import type { GroupDomainObject } from './GroupDomainObject';
 
-export type Hierarchy = {
-	groupId: number;
-	group: GroupDomainObject;
-	// Parent Group Ids
-	parents: number[];
+export interface Hierarchy {
 	// Child Group Ids
 	children: number[];
-};
+	group: GroupDomainObject;
+	groupId: number;
+	// Parent Group Ids
+	parents: number[];
+}

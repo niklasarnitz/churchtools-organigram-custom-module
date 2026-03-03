@@ -1,12 +1,13 @@
 import './index.css';
-import { App } from './App';
-import { Logger } from './globals/Logger';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
-import { fetchPermissions } from './queries/usePermissions';
-import { useAppStore } from './state/useAppStore';
+import moment from 'moment';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import moment from 'moment';
+
+import { App } from './App';
+import { Logger } from './globals/Logger';
+import { fetchPermissions } from './queries/usePermissions';
+import { useAppStore } from './state/useAppStore';
 
 const start = async () => {
     moment.locale('de');
@@ -17,7 +18,7 @@ const start = async () => {
         return;
     }
 
-    const rootElement = document.querySelector('#root') as HTMLElement;
+    const rootElement = document.querySelector('#root')!;
 
     if (!rootElement) {
         alert('churchtools-organigram-custom-module: Failed initializing custom module.');
@@ -43,8 +44,8 @@ if (import.meta.env.DEV) {
     useAppStore.getState().setBaseUrl(import.meta.env.VITE_CTURL);
 
     await churchtoolsClient.post('/login', {
-        username: import.meta.env.VITE_CT_USERNAME,
         password: import.meta.env.VITE_CT_PASSWORD,
+        username: import.meta.env.VITE_CT_USERNAME,
     });
 
     try {

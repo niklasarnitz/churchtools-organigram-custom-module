@@ -1,6 +1,6 @@
 import type { Group } from './Group';
 
-export type Relation = {
+export interface Relation {
 	source: Group;
 	target: Group;
-};
+}

@@ -1,27 +1,8 @@
 import { useEffect } from 'react';
 
-type ChurchToolsTheme = 'light' | 'dark' | 'system';
+type ChurchToolsTheme = 'dark' | 'light' | 'system';
 
 const STORAGE_KEY = 'theme';
-
-function getEffectiveDark(theme: ChurchToolsTheme): boolean {
-	if (theme === 'dark') return true;
-	if (theme === 'light') return false;
-	return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-function applyTheme(theme: ChurchToolsTheme) {
-	const isDark = getEffectiveDark(theme);
-	document.documentElement.classList.toggle('dark', isDark);
-}
-
-function readTheme(): ChurchToolsTheme {
-	const stored = localStorage.getItem(STORAGE_KEY);
-	if (stored === 'dark' || stored === 'light' || stored === 'system') {
-		return stored;
-	}
-	return 'system';
-}
 
 export function useChurchToolsTheme() {
 	useEffect(() => {
@@ -58,4 +39,23 @@ export function useChurchToolsTheme() {
 			clearInterval(interval);
 		};
 	}, []);
+}
+
+function applyTheme(theme: ChurchToolsTheme) {
+	const isDark = getEffectiveDark(theme);
+	document.documentElement.classList.toggle('dark', isDark);
+}
+
+function getEffectiveDark(theme: ChurchToolsTheme): boolean {
+	if (theme === 'dark') return true;
+	if (theme === 'light') return false;
+	return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function readTheme(): ChurchToolsTheme {
+	const stored = localStorage.getItem(STORAGE_KEY);
+	if (stored === 'dark' || stored === 'light' || stored === 'system') {
+		return stored;
+	}
+	return 'system';
 }

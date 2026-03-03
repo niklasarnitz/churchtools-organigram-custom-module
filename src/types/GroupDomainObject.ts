@@ -1,4 +1,4 @@
-export type GroupDomainObject = {
+export interface GroupDomainObject {
 	apiUrl: string;
 	domainAttributes: {
 		note: string;
@@ -6,7 +6,7 @@ export type GroupDomainObject = {
 	domainIdentifier: string;
 	domainType: 'group';
 	frontendUrl: string;
-	imageUrl: string | null | undefined;
-	title: string;
 	icon?: string | undefined;
-};
+	imageUrl: null | string | undefined;
+	title: string;
+}

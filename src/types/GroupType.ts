@@ -1,10 +1,10 @@
-export type GroupType = {
+export interface GroupType {
+	availableForNewPerson: boolean;
 	id: number;
+	isLeaderNecessary: boolean;
 	name: string;
 	nameTranslated: string;
-	shorty: string;
-	isLeaderNecessary: boolean;
-	availableForNewPerson: boolean;
 	permissionDepth: number;
+	shorty: string;
 	sortKey: number;
-};
+}

@@ -1,10 +1,10 @@
 import type { GroupMemberStatus } from './GroupMemberStatus';
 
-export type GroupMember = {
-	personId: number;
-	groupId: number;
-	groupTypeRoleId: number;
-	groupMemberStatus: GroupMemberStatus;
-	lastChange: string;
+export interface GroupMember {
 	deleted: boolean;
-};
+	groupId: number;
+	groupMemberStatus: GroupMemberStatus;
+	groupTypeRoleId: number;
+	lastChange: string;
+	personId: number;
+}

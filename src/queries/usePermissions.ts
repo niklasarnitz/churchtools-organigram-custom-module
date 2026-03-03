@@ -1,7 +1,9 @@
-import { Logger } from "../globals/Logger";
 import { churchtoolsClient } from "@churchtools/churchtools-client";
 import { useQuery } from "@tanstack/react-query";
+
 import type { Permissions } from "../types/Permissions";
+
+import { Logger } from "../globals/Logger";
 
 export const fetchPermissions = async () => {
     Logger.log('API: Fetching permissions');
@@ -10,6 +12,6 @@ export const fetchPermissions = async () => {
 };
 
 export const usePermissions = () => useQuery({
-    queryKey: ['permissions'],
-    queryFn: fetchPermissions
+    queryFn: fetchPermissions,
+    queryKey: ['permissions']
 });

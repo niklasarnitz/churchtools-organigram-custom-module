@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+
 import { getColorForGroupType } from '../globals/Colors';
 import {
 	getGroupMetadataHeight,
@@ -15,13 +17,12 @@ import {
 	groupNameHeight,
 } from '../helpers/GraphHelper';
 import { useAppStore } from '../state/useAppStore';
-import { useCallback } from 'react';
 import { useCreateRelatedData } from './useCreateRelatedData';
 import { useGroupTypesById } from './useGroupTypesById';
 import { usePersonsById } from './usePersonsById';
 
 export const useGenerateGraphMLData = () => {
-    const { relations, nodes } = useCreateRelatedData();
+    const { nodes, relations } = useCreateRelatedData();
     const showGroupTypes = useAppStore((s) => s.showGroupTypes);
     const personsById = usePersonsById();
     const groupTypesById = useGroupTypesById();

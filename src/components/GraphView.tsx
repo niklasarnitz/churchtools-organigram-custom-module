@@ -1,21 +1,23 @@
-import { Constants } from '../globals/Constants';
-import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
-import { Logger } from '../globals/Logger';
-import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
-import { Sidebar } from './Sidebar/Sidebar';
-import { downloadImage } from '../globals/downloadImage';
-import { downloadTextFile } from '../helpers/downloadTextFile';
+import type { MouseEvent as ReactMouseEvent } from 'react';
+import type { ItemParams } from 'react-contexify';
+import type { Node} from 'reactflow';
+
 import { toPng } from 'html-to-image';
-import { useAppStore } from '../state/useAppStore';
+import moment from 'moment';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
+import ReactFlow, { Background, MiniMap, Panel, useReactFlow } from 'reactflow';
+
+import { Constants } from '../globals/Constants';
+import { downloadImage } from '../globals/downloadImage';
+import { Logger } from '../globals/Logger';
+import { downloadTextFile } from '../helpers/downloadTextFile';
 import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
 import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useGroupsById } from '../selectors/useGroupsById';
-import React, { useCallback, useEffect, useState } from 'react';
-import ReactFlow, { Background, MiniMap, Panel, useReactFlow } from 'reactflow';
-import moment from 'moment';
-import type { ItemParams } from 'react-contexify';
-import type { Node} from 'reactflow';
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import { useAppStore } from '../state/useAppStore';
+import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
+import { Sidebar } from './Sidebar/Sidebar';
 
 const nodeTypes = {
     previewGraphNode: PreviewGraphNode,
@@ -29,9 +31,9 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const baseUrl = useAppStore((s) => s.baseUrl);
     const { fitView } = useReactFlow();
 
-    const [pendingExport, setPendingExport] = useState<{ type: 'graphml' | 'png'; groupId: number; fileName: string }>();
-    const clearPendingExport = useCallback(() => setPendingExport(// eslint-disable-next-line unicorn/no-useless-undefined
-        undefined), []);
+    const [pendingExport, setPendingExport] = useState<{ fileName: string; groupId: number; type: 'graphml' | 'png'; }>();
+    const clearPendingExport = useCallback(() => { setPendingExport(// eslint-disable-next-line unicorn/no-useless-undefined
+        undefined); }, []);
 
     const { show } = useContextMenu({
         id: Constants.contextMenuId,
@@ -90,7 +92,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
         const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
         setGroupIdToStartWith(groupId.toString());
-        setPendingExport({ type: 'graphml', groupId, fileName });
+        setPendingExport({ fileName, groupId, type: 'graphml' });
     }, [groupsById, setGroupIdToStartWith]);
 
     const downloadGroupOrganigramAsPNG = useCallback((groupId: number) => {
@@ -98,7 +100,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
         const fileName = `Organigramm-${groupName}-${moment().format('LD')}.png`;
 
         setGroupIdToStartWith(groupId.toString());
-        setPendingExport({ type: 'png', groupId, fileName });
+        setPendingExport({ fileName, groupId, type: 'png' });
     }, [groupsById, setGroupIdToStartWith]);
 
     const onNodeClick = useCallback((_: any, node: Node) => {
@@ -147,16 +149,16 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     return (
         <div className="size-full">
             <ReactFlow
-                nodes={data.nodes}
                 edges={data.edges}
+                nodes={data.nodes}
                 nodesDraggable={false}
-                zoomOnScroll
-                panOnDrag
+                nodeTypes={nodeTypes}
                 onNodeClick={onNodeClick}
                 onNodeContextMenu={onContextMenu}
-                nodeTypes={nodeTypes}
+                panOnDrag
+                zoomOnScroll
             >
-                <Menu id={Constants.contextMenuId} animation="scale">
+                <Menu animation="scale" id={Constants.contextMenuId}>
                     <Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
                     <Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
                     <Submenu label="Organigramm für Gruppe Exportieren">
@@ -164,9 +166,9 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         <Item onClick={didClickDownloadGroupOrganigramAsPNG}>Export als PNG Datei</Item>
                     </Submenu>
                 </Menu>
-                <MiniMap zoomable pannable />
+                <MiniMap pannable zoomable />
                 <Background />
-                <Panel position="top-left" className="h-4/5 w-80">
+                <Panel className="h-4/5 w-80" position="top-left">
                     <Sidebar isLoading={isLoading} />
                 </Panel>
             </ReactFlow>

@@ -1,29 +1,30 @@
-import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
-import { type VariantProps, cva } from 'class-variance-authority';
+import { cva, type VariantProps } from 'class-variance-authority';
+import * as React from 'react';
+
 import { cn } from '../../lib/utils';
 
 const buttonVariants = cva(
 	'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 dark:focus-visible:ring-slate-300 disabled:pointer-events-none disabled:opacity-50',
 	{
+		defaultVariants: {
+			size: 'default',
+			variant: 'default',
+		},
 		variants: {
-			variant: {
-				default: 'bg-slate-900 dark:bg-slate-50 text-slate-50 dark:text-slate-900 shadow hover:bg-slate-800 dark:hover:bg-slate-200',
-				outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
-				secondary: 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-700',
-				ghost: 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
-				link: 'text-slate-900 dark:text-slate-100 underline-offset-4 hover:underline',
-			},
 			size: {
 				default: 'h-9 px-4 py-2',
-				sm: 'h-8 rounded-md px-3 text-xs',
-				lg: 'h-10 rounded-md px-8',
 				icon: 'size-9',
+				lg: 'h-10 rounded-md px-8',
+				sm: 'h-8 rounded-md px-3 text-xs',
 			},
-		},
-		defaultVariants: {
-			variant: 'default',
-			size: 'default',
+			variant: {
+				default: 'bg-slate-900 dark:bg-slate-50 text-slate-50 dark:text-slate-900 shadow hover:bg-slate-800 dark:hover:bg-slate-200',
+				ghost: 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
+				link: 'text-slate-900 dark:text-slate-100 underline-offset-4 hover:underline',
+				outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
+				secondary: 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-700',
+			},
 		},
 	},
 );
@@ -35,11 +36,11 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	({ className, variant, size, asChild = false, ...props }, ref) => {
+	({ asChild = false, className, size, variant, ...props }, ref) => {
 		const Comp = asChild ? Slot : 'button';
 		return (
 			<Comp
-				className={cn(buttonVariants({ variant, size, className }))}
+				className={cn(buttonVariants({ className, size, variant }))}
 				ref={ref}
 				{...props}
 			/>

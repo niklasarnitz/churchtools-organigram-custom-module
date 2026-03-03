@@ -37,7 +37,7 @@
         "build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo 'You can now upload the organigram.zip to your churchtools instance. Hint: Please keep in mind to use organigram as the shorty.'",
         "preview": "vite preview",
         "test": "vitest",
-        "eslint": "eslint src/",
+        "lint": "eslint src/",
         "ci": "bun run eslint && bun run typecheck",
         "typecheck": "tsc --noEmit"
     },

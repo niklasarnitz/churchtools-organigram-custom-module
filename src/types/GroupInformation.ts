@@ -1,16 +1,16 @@
 import type { ChatStatus } from './ChatStatus';
 import type { GroupStatus } from './GroupStatus';
 
-export type GroupInformation = {
-	imageUrl: string;
+export interface GroupInformation {
+	ageGroupIds: number[];
+	campusId: number;
+	chatStatus: ChatStatus;
+	groupCategoryId: number;
 	groupStatusId: GroupStatus;
 	groupTypeId: number;
-	chatStatus: ChatStatus;
-	note: string;
-	campusId: number;
-	groupCategoryId: number;
-	targetGroupId: number;
-	ageGroupIds: number[];
-	weekday: number;
+	imageUrl: string;
 	meetingTime: string;
-};
+	note: string;
+	targetGroupId: number;
+	weekday: number;
+}
