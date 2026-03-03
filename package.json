@@ -46,7 +46,17 @@
 		"deploy": "bun scripts/deploy.ts",
 		"lint": "eslint src/",
 		"ci": "bun run lint && bun run typecheck",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"prepare": "husky"
+	},
+	"lint-staged": {
+		"*.{js,ts,tsx}": [
+			"eslint --fix",
+			"prettier --write"
+		],
+		"*.{json,css,md}": [
+			"prettier --write"
+		]
 	},
 	"devDependencies": {
 		"@ainias42/js-helper": "^0.8.19",
@@ -61,7 +71,9 @@
 		"eslint-plugin-react": "^7.37.5",
 		"eslint-plugin-react-hooks": "^7.0.1",
 		"globals": "^17.4.0",
+		"husky": "^9.1.7",
 		"jiti": "^2.6.1",
+		"lint-staged": "^16.3.2",
 		"prettier": "^3.8.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"tailwindcss": "^4.2.1",
