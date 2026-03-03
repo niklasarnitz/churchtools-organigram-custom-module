@@ -27,8 +27,6 @@ export const useCreateRelatedData = (): GraphData => {
 
     const shouldIncludeGroup = useMemo(() => (group: Group) => {
         return (
-            group &&
-            group.information &&
             group.information.groupTypeId &&
             !excludedGroups.includes(group.id) &&
             !excludedGroupTypes.includes(group.information.groupTypeId)
@@ -58,10 +56,8 @@ export const useCreateRelatedData = (): GraphData => {
 
         const hierarchy = hierarchiesByGroupId[groupId];
 
-        if (hierarchy) {
-            localHierarchies.push(hierarchy);
-            localChildren.push(...hierarchy.children);
-        }
+        localHierarchies.push(hierarchy);
+        localChildren.push(...hierarchy.children);
 
         const visited = new Set<number>([groupId]);
 
@@ -72,10 +68,8 @@ export const useCreateRelatedData = (): GraphData => {
                 visited.add(child);
                 const childHierarchy = hierarchiesByGroupId[child];
 
-                if (childHierarchy) {
-                    localHierarchies.push(childHierarchy);
-                    localChildren.push(...childHierarchy.children);
-                }
+                localHierarchies.push(childHierarchy);
+                localChildren.push(...childHierarchy.children);
             }
         }
 
@@ -100,13 +94,13 @@ export const useCreateRelatedData = (): GraphData => {
 
         for (const hierarchy of currentHierarchies) {
             const group = groupsById[hierarchy.groupId];
-            if (!group || !shouldIncludeGroup(group)) continue;
+            if (!shouldIncludeGroup(group)) continue;
 
             addNodeIfMissing(group);
 
             for (const child of hierarchy.children) {
                 const childGroup = groupsById[child];
-                if (!childGroup || !shouldIncludeGroup(childGroup)) continue;
+                if (!shouldIncludeGroup(childGroup)) continue;
 
                 addNodeIfMissing(childGroup);
 

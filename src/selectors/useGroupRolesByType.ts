@@ -11,10 +11,7 @@ export const useGroupRolesByType = () => {
         if (!groupRoles) return {};
         const acc = {} as Record<number, GroupRole[]>;
         for (const role of groupRoles) {
-            if (!acc[role.groupTypeId]) {
-                acc[role.groupTypeId] = [];
-            }
-            acc[role.groupTypeId].push(role);
+            (acc[role.groupTypeId] ??= []).push(role);
         }
         return acc;
     }, [groupRoles])

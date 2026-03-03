@@ -6,15 +6,15 @@ export interface Person {
 	cmsUserId: string;
 	editSecurityLevelForPerson?: number;
 	firstName: string;
-	groups: any;
+	groups: unknown;
 	guid: string;
 	id: number;
 	imageUrl: string;
 	lastName: string;
 	logintoken?: string;
-	relationships: any;
+	relationships: unknown;
 	securityLevelForPerson: number;
 	sexId: number;
 	statusId: number;
-	tags: any;
+	tags: unknown;
 }

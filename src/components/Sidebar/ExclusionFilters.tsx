@@ -29,8 +29,8 @@ export const ExclusionFilters = React.memo(() => {
     }, [setShowGroupTypes]);
 
     const groupTypeOptions = useMemo(() =>
-        _.sortBy(groupTypes ?? [], (g) => g?.sortKey).map((groupType) => ({
-            label: groupType?.name,
+        _.sortBy(groupTypes ?? [], (g) => g.sortKey).map((groupType) => ({
+            label: groupType.name,
             value: String(groupType.id),
         })),
     [groupTypes]);
@@ -38,9 +38,9 @@ export const ExclusionFilters = React.memo(() => {
     const groupOptions = useMemo(() =>
         _.sortBy(
             (groups ?? []).filter((group) => !excludedGroupTypes.includes(group.information.groupTypeId)),
-            (g) => g?.name,
+            (g) => g.name,
         ).map((group) => ({
-            label: group?.name,
+            label: group.name,
             value: String(group.id),
         })),
     [groups, excludedGroupTypes]);
@@ -48,9 +48,9 @@ export const ExclusionFilters = React.memo(() => {
     const roleOptions = useMemo(() =>
         _.sortBy(
             (groupRoles ?? []).filter((groupRole) => !excludedGroupTypes.includes(groupRole.groupTypeId)),
-            (groupRole) => `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`,
+            (groupRole) => `${groupTypesById[groupRole.groupTypeId].name} - ${groupRole.name}`,
         ).map((groupRole) => ({
-            label: `${groupTypesById[groupRole.groupTypeId]?.name} - ${groupRole.name}`,
+            label: `${groupTypesById[groupRole.groupTypeId].name} - ${groupRole.name}`,
             value: String(groupRole.id),
         })),
     [groupRoles, excludedGroupTypes, groupTypesById]);

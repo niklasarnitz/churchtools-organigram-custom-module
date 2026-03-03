@@ -13,12 +13,12 @@ const start = async () => {
     moment.locale('de');
     const permissions = await fetchPermissions();
 
-    if (permissions && !permissions.churchcore['administer persons']) {
+    if (!permissions.churchcore['administer persons']) {
         alert('churchtools-organigram-custom-module: You do not have the permission to administer persons. This right is needed to use this module.');
         return;
     }
 
-    const rootElement = document.querySelector('#root')!;
+    const rootElement = document.querySelector('#root');
 
     if (!rootElement) {
         alert('churchtools-organigram-custom-module: Failed initializing custom module.');
@@ -41,11 +41,11 @@ if (import.meta.env.DEV) {
     Logger.log('Running in development mode.');
 
     // These environment variables are only available during local development
-    useAppStore.getState().setBaseUrl(import.meta.env.VITE_CTURL);
+    useAppStore.getState().setBaseUrl(import.meta.env.VITE_CTURL as string);
 
     await churchtoolsClient.post('/login', {
-        password: import.meta.env.VITE_CT_PASSWORD,
-        username: import.meta.env.VITE_CT_USERNAME,
+        password: import.meta.env.VITE_CT_PASSWORD as string,
+        username: import.meta.env.VITE_CT_USERNAME as string,
     });
 
     try {

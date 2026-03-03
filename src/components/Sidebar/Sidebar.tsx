@@ -20,9 +20,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
     const didPressDownloadGraphML = useCallback(() => {
         const groupName = groupIdToStartWith
-            ? (groupsById[Number(groupIdToStartWith)]
-                ? groupsById[Number(groupIdToStartWith)].name
-                : undefined)
+            ? groupsById[Number(groupIdToStartWith)].name
             : undefined;
 
         const fileName = groupName

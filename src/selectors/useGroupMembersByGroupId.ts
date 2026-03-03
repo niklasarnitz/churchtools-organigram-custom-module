@@ -11,10 +11,7 @@ export const useGroupMembersByGroupId = () => {
         if (!members) return {};
         const acc = {} as Record<number, GroupMember[]>;
         for (const member of members) {
-            if (!acc[member.groupId]) {
-                acc[member.groupId] = [];
-            }
-            acc[member.groupId].push(member);
+            (acc[member.groupId] ??= []).push(member);
         }
         return acc;
     }, [members])

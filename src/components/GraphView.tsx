@@ -23,6 +23,10 @@ const nodeTypes = {
     previewGraphNode: PreviewGraphNode,
 };
 
+interface ContextMenuProps {
+    groupId: number;
+}
+
 export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const data = useGenerateReflowData();
     const groupsById = useGroupsById();
@@ -32,8 +36,9 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const { fitView } = useReactFlow();
 
     const [pendingExport, setPendingExport] = useState<{ fileName: string; groupId: number; type: 'graphml' | 'png'; }>();
-    const clearPendingExport = useCallback(() => { setPendingExport(// eslint-disable-next-line unicorn/no-useless-undefined
-        undefined); }, []);
+    const clearPendingExport = useCallback(() => {
+        setPendingExport(undefined);
+    }, []);
 
     const { show } = useContextMenu({
         id: Constants.contextMenuId,
@@ -56,23 +61,25 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
         if (pendingExport.type === 'graphml') {
             downloadTextFile(generateGraphMLData(), pendingExport.fileName, document);
             setGroupIdToStartWith();
-            clearPendingExport();
-        } else if (pendingExport.type === 'png') {
+            setTimeout(() => {
+                clearPendingExport();
+            }, 0);
+        } else {
             setTimeout(() => {
                 const reactFlow = document.querySelector('.react-flow');
                 if (reactFlow) {
                     toPng(reactFlow as HTMLElement, {
                         filter: (node: HTMLElement) => {
                             return !(
-                                node?.classList?.contains('react-flow__minimap') ||
-                                node?.classList?.contains('react-flow__controls') ||
-                                node?.classList?.contains('react-flow__panel') ||
-                                node?.classList?.contains('contexify')
+                                node.classList.contains('react-flow__minimap') ||
+                                node.classList.contains('react-flow__controls') ||
+                                node.classList.contains('react-flow__panel') ||
+                                node.classList.contains('contexify')
                             );
                         },
                     })
                     .then(downloadImage)
-                    .catch((error) => {
+                    .catch((error: unknown) => {
                         Logger.error('Failed to export as PNG:', error);
                     })
                     .finally(() => {
@@ -88,7 +95,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data]);
 
     const downloadGroupOrganigramAsGraphML = useCallback((groupId: number) => {
-        const groupName = groupsById[groupId]?.name;
+        const groupName = groupsById[groupId].name;
         const fileName = `Gruppenorganigramm-${groupName}-${moment().format('LD')}.graphml`;
 
         setGroupIdToStartWith(groupId.toString());
@@ -96,53 +103,51 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }, [groupsById, setGroupIdToStartWith]);
 
     const downloadGroupOrganigramAsPNG = useCallback((groupId: number) => {
-        const groupName = groupsById[groupId]?.name;
+        const groupName = groupsById[groupId].name;
         const fileName = `Organigramm-${groupName}-${moment().format('LD')}.png`;
 
         setGroupIdToStartWith(groupId.toString());
         setPendingExport({ fileName, groupId, type: 'png' });
     }, [groupsById, setGroupIdToStartWith]);
 
-    const onNodeClick = useCallback((_: any, node: Node) => {
-        Logger.log('onNodeClick::' + node.id);
+    const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+        Logger.log(`onNodeClick::${node.id}`);
         setGroupIdToStartWith(node.id);
     }, [setGroupIdToStartWith]);
 
-    const onContextMenu = useCallback((e: ReactMouseEvent, node: any) => {
+    const onContextMenu = useCallback((e: ReactMouseEvent, node: Node) => {
         e.preventDefault();
-        if (node?.id) {
-            show({
-                event: e,
-                props: { groupId: node.id },
-            });
-        }
+        show({
+            event: e,
+            props: { groupId: Number(node.id) },
+        });
     }, [show]);
 
-    const didClickOpenGroup = useCallback((params: ItemParams) => {
+    const didClickOpenGroup = useCallback((params: ItemParams<ContextMenuProps>) => {
         const groupId = params.props?.groupId;
         if (groupId && baseUrl) {
-            window.open(`${baseUrl}/groups/${groupId}`, '_blank')?.focus();
+            window.open(`${baseUrl}/groups/${String(groupId)}`, '_blank')?.focus();
         }
     }, [baseUrl]);
 
-    const didClickSetGroupAsStartGroup = useCallback((params: ItemParams) => {
+    const didClickSetGroupAsStartGroup = useCallback((params: ItemParams<ContextMenuProps>) => {
         const groupId = params.props?.groupId;
         if (groupId) {
             setGroupIdToStartWith(String(groupId));
         }
     }, [setGroupIdToStartWith]);
 
-    const didClickDownloadGroupOrganigramAsGraphml = useCallback((params: ItemParams) => {
+    const didClickDownloadGroupOrganigramAsGraphml = useCallback((params: ItemParams<ContextMenuProps>) => {
         const groupId = params.props?.groupId;
         if (groupId) {
-            downloadGroupOrganigramAsGraphML(Number(groupId));
+            downloadGroupOrganigramAsGraphML(groupId);
         }
     }, [downloadGroupOrganigramAsGraphML]);
 
-    const didClickDownloadGroupOrganigramAsPNG = useCallback((params: ItemParams) => {
+    const didClickDownloadGroupOrganigramAsPNG = useCallback((params: ItemParams<ContextMenuProps>) => {
         const groupId = params.props?.groupId;
         if (groupId) {
-            downloadGroupOrganigramAsPNG(Number(groupId));
+            downloadGroupOrganigramAsPNG(groupId);
         }
     }, [downloadGroupOrganigramAsPNG]);
 

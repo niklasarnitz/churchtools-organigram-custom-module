@@ -3,23 +3,23 @@
 const logPrefix = '[CCM - churchtools-organigram-custom-module] ';
 
 export const Logger = {
-	error: (message: any, ...optionalParams: any[]) => {
+	error: (message: unknown, ...optionalParams: unknown[]) => {
 		const optional = optionalParams.length > 0 ? optionalParams : '';
 
-		if (typeof message === 'object') {
+		if (typeof message === 'object' && message !== null) {
 			console.error(`${logPrefix} ${JSON.stringify(message)}`, optional);
 			return;
 		}
-		console.error(logPrefix + message, optional);
+		console.error(`${logPrefix}${String(message)}`, optional);
 	},
-	log: (message: any, ...optionalParams: any[]) => {
+	log: (message: unknown, ...optionalParams: unknown[]) => {
 		const optional = optionalParams.length > 0 ? optionalParams : '';
 
-		if (typeof message === 'object') {
+		if (typeof message === 'object' && message !== null) {
 			console.log(`${logPrefix} ${JSON.stringify(message)}`, optional);
 			return;
 		}
 
-		console.log(`${logPrefix} ${message}`, optional);
+		console.log(`${logPrefix}${String(message)}`, optional);
 	},
 };

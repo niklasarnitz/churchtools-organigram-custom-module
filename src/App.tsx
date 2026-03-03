@@ -6,19 +6,17 @@ import { ReactFlowProvider } from "reactflow";
 import { MainComponent } from "./components/MainComponent";
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 
-let queryClient: QueryClient;
+let queryClient: QueryClient | undefined;
 
 function getQueryClient() {
-    if (!queryClient) {
-        queryClient = new QueryClient({
-            defaultOptions: {
-                queries: {
-                    refetchOnWindowFocus: false,
-                    staleTime: 1000 * 60 * 5, // 5 minutes
-                },
+    queryClient ??= new QueryClient({
+        defaultOptions: {
+            queries: {
+                refetchOnWindowFocus: false,
+                staleTime: 1000 * 60 * 5, // 5 minutes
             },
-        });
-    }
+        },
+    });
     return queryClient;
 }
 

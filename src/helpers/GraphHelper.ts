@@ -25,7 +25,7 @@ export const getGroupMetadataHeight = (groupMemberString: string) =>
 export const getReflowGroupNodeHeight = (groupMemberString: string, groupTitleString: string) =>
 	reflowLineHeight * (groupMemberString.split('\n').length + groupTitleString.split('\n').length);
 
-export const getGroupNodeIdentifier = (group: Group) => `group-${group.id}`;
+export const getGroupNodeIdentifier = (group: Group) => `group-${String(group.id)}`;
 
 export const getGroupMetadataString = (
 	groupRoles: GroupRole[],
@@ -37,11 +37,10 @@ export const getGroupMetadataString = (
 			const personsWithRole = groupMembers.filter((member) => member.groupTypeRoleId === role.id);
 			const personsWithRoleNames = personsWithRole.map((member) => {
 				const person = personsById[member.personId];
-				if (person) return `${person.firstName} ${person.lastName}`;
-				return 'Name not found.';
+				return `${person.firstName} ${person.lastName}`;
 			});
 
-			return `${groupRoles.find((r) => r.id === role.id)?.name}:\n${personsWithRoleNames.join(',\n')}`;
+			return `${String(groupRoles.find((r) => r.id === role.id)?.name)}:\n${personsWithRoleNames.join(',\n')}`;
 		})
 		.join('\n');
 };
@@ -56,7 +55,7 @@ export const getGroupTitle = (
 		if (reflow) {
 			return group.name;
 		}
-		return `${group.name}\n(${groupTypesById[group.information.groupTypeId]?.name ?? 'Unknown'})`;
+		return `${group.name}\n(${groupTypesById[group.information.groupTypeId].name})`;
 	}
 
 	return group.name;

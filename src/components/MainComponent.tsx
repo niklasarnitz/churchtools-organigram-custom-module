@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 
 import { Logger } from '../globals/Logger';
 import { useGroupRoles } from '../queries/useGroupRoles';
@@ -12,9 +12,6 @@ import { GraphView } from './GraphView';
 import { TopBar } from './TopBar';
 
 export const MainComponent = React.memo(() => {
-    const renderCount = useRef(0);
-    renderCount.current++;
-
     // Zustand
     const excludedRoles = useAppStore((s) => s.excludedRoles);
     const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
@@ -36,7 +33,7 @@ export const MainComponent = React.memo(() => {
         hierarchiesQuery.isLoading ||
         personsQuery.isLoading;
 
-    Logger.log(`[MainComponent] render #${renderCount.current} | isLoading=${isLoading}`, {
+    Logger.log(`[MainComponent] render | isLoading=${String(isLoading)}`, {
         groups: { dataUpdatedAt: groupsQuery.dataUpdatedAt, error: groupsQuery.error?.message, fetchStatus: groupsQuery.fetchStatus, isError: groupsQuery.isError, isLoading: groupsQuery.isLoading, isPending: groupsQuery.isPending, status: groupsQuery.status },
         hierarchies: { dataUpdatedAt: hierarchiesQuery.dataUpdatedAt, error: hierarchiesQuery.error?.message, fetchStatus: hierarchiesQuery.fetchStatus, isError: hierarchiesQuery.isError, isLoading: hierarchiesQuery.isLoading, isPending: hierarchiesQuery.isPending, status: hierarchiesQuery.status },
         persons: { dataUpdatedAt: personsQuery.dataUpdatedAt, error: personsQuery.error?.message, fetchStatus: personsQuery.fetchStatus, isError: personsQuery.isError, isLoading: personsQuery.isLoading, isPending: personsQuery.isPending, status: personsQuery.status },
@@ -46,12 +43,12 @@ export const MainComponent = React.memo(() => {
 
     // Effects
     useEffect(() => {
-        Logger.log(`[MainComponent] setExcludedRoles effect fired | groupRoles?.length=${groupRoles?.length} | excludedRoles.length=${excludedRoles.length}`);
+        Logger.log(`[MainComponent] setExcludedRoles effect fired | groupRoles?.length=${String(groupRoles?.length)} | excludedRoles.length=${String(excludedRoles.length)}`);
         if (groupRoles && groupRoles.length > 0 && excludedRoles.length === 0) {
             const newExcluded = groupRoles
                 .filter((role) => !role.isLeader)
                 .map((role) => String(role.id));
-            Logger.log(`[MainComponent] Setting excludedRoles to ${newExcluded.length} items:`, newExcluded);
+            Logger.log(`[MainComponent] Setting excludedRoles to ${String(newExcluded.length)} items:`, newExcluded);
             setExcludedRoles(newExcluded);
         }
     }, [groupRoles, excludedRoles.length, setExcludedRoles]);

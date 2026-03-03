@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/number-literal-case */
 import tailwindColors from 'tailwindcss/colors';
 
 // This code is blatantly stolen from ChurchTools Web!

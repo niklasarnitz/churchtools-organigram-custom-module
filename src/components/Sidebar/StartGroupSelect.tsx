@@ -30,9 +30,9 @@ export const StartGroupSelect = React.memo(() => {
                     <SelectValue placeholder="Keine Gruppe ausgewählt" />
                 </SelectTrigger>
                 <SelectContent>
-                    {_.sortBy(groups, (g) => g?.name).map((group) => (
+                    {_.sortBy(groups, (g) => g.name).map((group) => (
                         <SelectItem key={group.id} value={String(group.id)}>
-                            {group?.name}
+                            {group.name}
                         </SelectItem>
                     ))}
                 </SelectContent>
