@@ -45,7 +45,7 @@
         "test": "vitest",
         "deploy": "bun scripts/deploy.ts",
         "lint": "eslint src/",
-        "ci": "bun run eslint && bun run typecheck",
+        "ci": "bun run lint && bun run typecheck && bun run test",
         "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
