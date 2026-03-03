@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v2
+      
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Build project
+        run: bun run build
+        
+      - name: Create Zip Archive
+        run: |
+          PACKAGE_VERSION=$(cat package.json | jq -r '.version')
+          cd build && zip -r ../organigram-${PACKAGE_VERSION}.zip . && cd ..
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: organigram-*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
