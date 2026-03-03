@@ -1,9 +1,11 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Download, FileText, Image, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, Loader2 } from 'lucide-react';
 import moment from 'moment';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useReactFlow } from 'reactflow';
 
 import { Strings } from '../../globals/Strings';
 import { downloadTextFile } from '../../helpers/downloadTextFile';
+import { exportReactFlowToSVG } from '../../helpers/exportSvg';
 import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
@@ -23,10 +25,11 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const generateGraphMLData = useGenerateGraphMLData();
     const { data: groups } = useGroups();
     const { data: hierarchies } = useHierarchies();
+    const { getNodes } = useReactFlow();
 
     const isExporting = useAppStore((s) => s.isExporting);
+    const setIsExporting = useAppStore((s) => s.setIsExporting);
     const pendingExport = useAppStore((s) => s.pendingExport);
-    const setPendingExport = useAppStore((s) => s.setPendingExport);
 
     const orphanedGroups = useMemo(() => {
         if (!groups || !hierarchies) return [];
@@ -62,17 +65,28 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
         downloadTextFile(generateGraphMLData(), getFileName('graphml'), document);
     }, [generateGraphMLData, getFileName]);
 
-    const didPressDownloadPNG = useCallback(() => {
-        setPendingExport({ fileName: getFileName('png'), type: 'png' });
-    }, [getFileName, setPendingExport]);
+    const didPressDownloadSVG = useCallback(async () => {
+        setIsExporting(true);
+        try {
+            const nodes = getNodes();
+            if (nodes.length === 0) return;
 
-    const didPressDownloadPDF = useCallback(() => {
-        setPendingExport({ fileName: getFileName('pdf'), type: 'pdf' });
-    }, [getFileName, setPendingExport]);
+            const minX = Math.min(...nodes.map((n) => n.position.x));
+            const minY = Math.min(...nodes.map((n) => n.position.y));
+            const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
+            const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
 
-    const didPressDownloadSVG = useCallback(() => {
-        setPendingExport({ fileName: getFileName('svg'), type: 'svg' });
-    }, [getFileName, setPendingExport]);
+            const width = maxX - minX + 100; // Add some padding
+            const height = maxY - minY + 100;
+
+            const translateX = -minX + 50;
+            const translateY = -minY + 50;
+
+            await exportReactFlowToSVG(width, height, getFileName('svg'), translateX, translateY);
+        } finally {
+            setIsExporting(false);
+        }
+    }, [getNodes, getFileName, setIsExporting]);
 
     if (isLoading) {
         return (
@@ -133,47 +147,19 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     Export als GraphML Datei
                 </Button>
 
-                <div className="grid grid-cols-3 gap-2">
-                    <Button
-                        className="grow"
-                        disabled={isExporting}
-                        onClick={didPressDownloadPNG}
-                        variant="outline"
-                    >
-                        {isExporting && pendingExport?.type === 'png' ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                            <Image className="size-4" />
-                        )}
-                        PNG
-                    </Button>
-                    <Button
-                        className="grow"
-                        disabled={isExporting}
-                        onClick={didPressDownloadPDF}
-                        variant="outline"
-                    >
-                        {isExporting && pendingExport?.type === 'pdf' ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                            <FileText className="size-4" />
-                        )}
-                        PDF
-                    </Button>
-                    <Button
-                        className="grow"
-                        disabled={isExporting}
-                        onClick={didPressDownloadSVG}
-                        variant="outline"
-                    >
-                        {isExporting && pendingExport?.type === 'svg' ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                            <FileText className="size-4" />
-                        )}
-                        SVG
-                    </Button>
-                </div>
+                <Button
+                    className="w-full"
+                    disabled={isExporting}
+                    onClick={didPressDownloadSVG}
+                    variant="outline"
+                >
+                    {isExporting && (!pendingExport || pendingExport.type === 'svg') ? (
+                        <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                        <Download className="size-4" />
+                    )}
+                    Export als SVG Datei
+                </Button>
 
                 <Collapsible onOpenChange={setIsHelpOpen} open={isHelpOpen}>
                     <CollapsibleTrigger asChild>

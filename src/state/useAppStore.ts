@@ -7,7 +7,7 @@ import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
 export interface PendingExport {
     fileName: string;
-    type: 'graphml' | 'pdf' | 'png' | 'svg';
+    type: 'graphml' | 'svg';
 }
 
 interface GroupState {

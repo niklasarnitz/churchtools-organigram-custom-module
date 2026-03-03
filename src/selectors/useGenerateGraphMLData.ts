@@ -92,7 +92,6 @@ export const useGenerateGraphMLData = () => {
 
             const yFill = graphML.createElement('y:Fill');
             const color = node.data.color;
-            console.log(node.data.color)
             yFill.setAttribute('color', oklchToHex(color.shades[100]));
             yFill.setAttribute('transparent', 'false');
 

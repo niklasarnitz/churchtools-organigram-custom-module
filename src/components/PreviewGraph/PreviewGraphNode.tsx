@@ -3,7 +3,7 @@ import type { URecord } from "@ainias42/js-helper";
 import React, { useMemo } from "react";
 import { Handle, Position } from "reactflow";
 
-import type { getColorForGroupType } from '../../globals/Colors';
+import { oklchToHex, type getColorForGroupType } from '../../globals/Colors';
 import type { Group } from '../../types/Group';
 import type { GroupMember } from "../../types/GroupMember";
 import type { GroupRole } from "../../types/GroupRole";
@@ -34,10 +34,10 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
     const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
 
     const nodeStyle = useMemo(() => ({
-        '--node-bg-dark': data.color.shades[900],
-        '--node-bg-light': data.color.shades[100],
-        '--node-border-dark': data.color.shades[700],
-        '--node-border-light': data.color.shades[300],
+        '--node-bg-dark': oklchToHex(data.color.shades[900]),
+        '--node-bg-light': oklchToHex(data.color.shades[100]),
+        '--node-border-dark': oklchToHex(data.color.shades[700]),
+        '--node-border-light': oklchToHex(data.color.shades[300]),
     } as React.CSSProperties), [data.color.shades]);
 
     const renderedRoles = useMemo(() => {
