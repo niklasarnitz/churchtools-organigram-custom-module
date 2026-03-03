@@ -1,15 +1,16 @@
-import { churchtoolsClient } from "@churchtools/churchtools-client";
-import { useQuery } from "@tanstack/react-query";
+import { churchtoolsClient } from '@churchtools/churchtools-client';
+import { useQuery } from '@tanstack/react-query';
 
-import type { GroupRole } from "../types/GroupRole";
+import type { GroupRole } from '../types/GroupRole';
 
-import { Logger } from "../globals/Logger";
+import { Logger } from '../globals/Logger';
 
-export const useGroupRoles = () => useQuery({
-    queryFn: async () => {
-        Logger.log('API: Fetching group roles');
+export const useGroupRoles = () =>
+	useQuery({
+		queryFn: async () => {
+			Logger.log('API: Fetching group roles');
 
-        return churchtoolsClient.get<GroupRole[]>('/group/roles')
-    },
-    queryKey: ['groupRoles']
-})
+			return churchtoolsClient.get<GroupRole[]>('/group/roles');
+		},
+		queryKey: ['groupRoles'],
+	});

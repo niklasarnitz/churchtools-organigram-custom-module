@@ -14,124 +14,127 @@ import { FloatingHeader } from './FloatingHeader';
 import { GraphView } from './GraphView';
 
 export const MainComponent = React.memo(() => {
-    // Zustand
-    const excludedRoles = useAppStore((s) => s.excludedRoles);
-    const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
-    const excludedGroups = useAppStore((s) => s.excludedGroups);
-    const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
-    const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
-    const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
-    const showGroupTypes = useAppStore((s) => s.showGroupTypes);
-    const setAllSettings = useAppStore((s) => s.setAllSettings);
+	// Zustand
+	const excludedRoles = useAppStore((s) => s.excludedRoles);
+	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
+	const excludedGroups = useAppStore((s) => s.excludedGroups);
+	const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
+	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
+	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
+	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
+	const setAllSettings = useAppStore((s) => s.setAllSettings);
 
-    // Queries
-    const groupsQuery = useGroups();
-    const groupTypesQuery = useGroupTypes();
-    const groupRolesQuery = useGroupRoles();
-    const groupMembersQuery = useGroupMembers();
-    const hierarchiesQuery = useHierarchies();
-    const personsQuery = usePersons();
-    const { isLoading: isSettingsLoading, saveSettings, settings: persistedSettings } = useUserSettings();
+	// Queries
+	const groupsQuery = useGroups();
+	const groupTypesQuery = useGroupTypes();
+	const groupRolesQuery = useGroupRoles();
+	const groupMembersQuery = useGroupMembers();
+	const hierarchiesQuery = useHierarchies();
+	const personsQuery = usePersons();
+	const { isLoading: isSettingsLoading, saveSettings, settings: persistedSettings } = useUserSettings();
 
-    const groupRoles = groupRolesQuery.data;
-    const isInitialLoad = useRef(true);
-    const hasAppliedDefaultRoles = useRef(false);
+	const groupRoles = groupRolesQuery.data;
+	const isInitialLoad = useRef(true);
+	const hasAppliedDefaultRoles = useRef(false);
 
-    // Helper values
-    const isLoading =
-        groupsQuery.isLoading ||
-        groupTypesQuery.isLoading ||
-        groupRolesQuery.isLoading ||
-        groupMembersQuery.isLoading ||
-        hierarchiesQuery.isLoading ||
-        personsQuery.isLoading ||
-        isSettingsLoading;
+	// Helper values
+	const isLoading =
+		groupsQuery.isLoading ||
+		groupTypesQuery.isLoading ||
+		groupRolesQuery.isLoading ||
+		groupMembersQuery.isLoading ||
+		hierarchiesQuery.isLoading ||
+		personsQuery.isLoading ||
+		isSettingsLoading;
 
-    // Apply persisted settings once they are loaded
-    useEffect(() => {
-        if (persistedSettings && isInitialLoad.current) {
-            Logger.log('[MainComponent] Applying persisted settings', persistedSettings);
-            setAllSettings(persistedSettings);
-            isInitialLoad.current = false;
-        } else if (!isSettingsLoading) {
-            isInitialLoad.current = false;
-        }
-    }, [persistedSettings, isSettingsLoading, setAllSettings]);
+	// Apply persisted settings once they are loaded
+	useEffect(() => {
+		if (persistedSettings && isInitialLoad.current) {
+			Logger.log('[MainComponent] Applying persisted settings', persistedSettings);
+			setAllSettings(persistedSettings);
+			isInitialLoad.current = false;
+		} else if (!isSettingsLoading) {
+			isInitialLoad.current = false;
+		}
+	}, [persistedSettings, isSettingsLoading, setAllSettings]);
 
-    // Persist settings whenever they change (after initial load)
-    useEffect(() => {
-        if (isInitialLoad.current) return;
+	// Persist settings whenever they change (after initial load)
+	useEffect(() => {
+		if (isInitialLoad.current) return;
 
-        const settingsToSave = {
-            excludedGroups,
-            excludedGroupTypes,
-            excludedRoles,
-            groupIdToStartWith,
-            layoutAlgorithm,
-            showGroupTypes,
-        };
+		const settingsToSave = {
+			excludedGroups,
+			excludedGroupTypes,
+			excludedRoles,
+			groupIdToStartWith,
+			layoutAlgorithm,
+			showGroupTypes,
+		};
 
-        Logger.log('[MainComponent] Persisting settings', settingsToSave);
-        saveSettings(settingsToSave);
-    }, [
-        excludedGroups,
-        excludedGroupTypes,
-        excludedRoles,
-        groupIdToStartWith,
-        layoutAlgorithm,
-        showGroupTypes,
-        saveSettings
-    ]);
+		Logger.log('[MainComponent] Persisting settings', settingsToSave);
+		saveSettings(settingsToSave);
+	}, [
+		excludedGroups,
+		excludedGroupTypes,
+		excludedRoles,
+		groupIdToStartWith,
+		layoutAlgorithm,
+		showGroupTypes,
+		saveSettings,
+	]);
 
-    // Default excluded roles logic (only if no roles are excluded yet and settings aren't loaded)
-    useEffect(() => {
-        if (isInitialLoad.current || isSettingsLoading || hasAppliedDefaultRoles.current) return;
-        
-        const params = new URLSearchParams(window.location.search);
-        const hasPersistedSettings = !!persistedSettings;
-        const hasUrlSettings = 
-            params.has('start') || 
-            params.has('excludedGroups') || 
-            params.has('excludedGroupTypes') || 
-            params.has('excludedRoles') ||
-            params.has('includedGroups');
+	// Default excluded roles logic (only if no roles are excluded yet and settings aren't loaded)
+	useEffect(() => {
+		if (isInitialLoad.current || isSettingsLoading || hasAppliedDefaultRoles.current) return;
 
-        if (!hasPersistedSettings && !hasUrlSettings) {
-            if (groupRoles && groupRoles.length > 0) {
-                const newExcluded = groupRoles
-                    .filter((role) => !role.isLeader)
-                    .map((role) => String(role.id));
-                Logger.log(`[MainComponent] Setting default excludedRoles to ${String(newExcluded.length)} items:`, newExcluded);
-                setExcludedRoles(newExcluded);
-                hasAppliedDefaultRoles.current = true;
-            } else if (groupRolesQuery.isFetched) {
-                hasAppliedDefaultRoles.current = true;
-            }
-        } else {
-            hasAppliedDefaultRoles.current = true;
-        }
-    }, [groupRoles, groupRolesQuery.isFetched, setExcludedRoles, isSettingsLoading, persistedSettings]);
+		const params = new URLSearchParams(window.location.search);
+		const hasPersistedSettings = !!persistedSettings;
+		const hasUrlSettings =
+			params.has('start') ||
+			params.has('excludedGroups') ||
+			params.has('excludedGroupTypes') ||
+			params.has('excludedRoles') ||
+			params.has('includedGroups');
 
-    useEffect(() => {
-        Logger.log('[MainComponent] MOUNTED');
-        return () => { Logger.log('[MainComponent] UNMOUNTED'); };
-    }, []);
+		if (!hasPersistedSettings && !hasUrlSettings) {
+			if (groupRoles && groupRoles.length > 0) {
+				const newExcluded = groupRoles.filter((role) => !role.isLeader).map((role) => String(role.id));
+				Logger.log(
+					`[MainComponent] Setting default excludedRoles to ${String(newExcluded.length)} items:`,
+					newExcluded,
+				);
+				setExcludedRoles(newExcluded);
+				hasAppliedDefaultRoles.current = true;
+			} else if (groupRolesQuery.isFetched) {
+				hasAppliedDefaultRoles.current = true;
+			}
+		} else {
+			hasAppliedDefaultRoles.current = true;
+		}
+	}, [groupRoles, groupRolesQuery.isFetched, setExcludedRoles, isSettingsLoading, persistedSettings]);
 
-    return (
-        <div className="flex h-screen w-full flex-col overflow-hidden bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50">
-            {!isLoading && <FloatingHeader />}
-            <div className="relative w-full grow">
-                {isLoading ? (
-                    <div className="flex size-full items-center justify-center">
-                        <div className="flex flex-col items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                            <Loader2 className="size-8 animate-spin text-blue-600" />
-                            <span>Organigramm wird vorbereitet...</span>
-                        </div>
-                    </div>
-                ) : (
-                    <GraphView isLoading={isLoading} />
-                )}
-            </div>
-        </div>
-    );
+	useEffect(() => {
+		Logger.log('[MainComponent] MOUNTED');
+		return () => {
+			Logger.log('[MainComponent] UNMOUNTED');
+		};
+	}, []);
+
+	return (
+		<div className="flex h-screen w-full flex-col overflow-hidden bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+			{!isLoading && <FloatingHeader />}
+			<div className="relative w-full grow">
+				{isLoading ? (
+					<div className="flex size-full items-center justify-center">
+						<div className="flex flex-col items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+							<Loader2 className="size-8 animate-spin text-blue-600" />
+							<span>Organigramm wird vorbereitet...</span>
+						</div>
+					</div>
+				) : (
+					<GraphView isLoading={isLoading} />
+				)}
+			</div>
+		</div>
+	);
 });

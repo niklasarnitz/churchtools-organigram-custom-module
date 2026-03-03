@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import { arrayToIndexedObject } from "../helpers/arrayToIndexedObject";
-import { useHierarchies } from "../queries/useHierarchies";
+import { arrayToIndexedObject } from '../helpers/arrayToIndexedObject';
+import { useHierarchies } from '../queries/useHierarchies';
 
 export const useHierarchiesByGroupId = () => {
-    const { data: hierarchies } = useHierarchies();
+	const { data: hierarchies } = useHierarchies();
 
-    return useMemo(() => arrayToIndexedObject(hierarchies ?? [], 'groupId'), [hierarchies])
-}
+	return useMemo(() => arrayToIndexedObject(hierarchies ?? [], 'groupId'), [hierarchies]);
+};

@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import { arrayToIndexedObject } from "../helpers/arrayToIndexedObject";
-import { useGroupMembers } from "../queries/useGroupMembers";
+import { arrayToIndexedObject } from '../helpers/arrayToIndexedObject';
+import { useGroupMembers } from '../queries/useGroupMembers';
 
 export const useGroupMembersByPersonId = () => {
-    const { data: members } = useGroupMembers();
+	const { data: members } = useGroupMembers();
 
-    return useMemo(() => arrayToIndexedObject(members ?? [], 'personId'), [members])
-}
+	return useMemo(() => arrayToIndexedObject(members ?? [], 'personId'), [members]);
+};

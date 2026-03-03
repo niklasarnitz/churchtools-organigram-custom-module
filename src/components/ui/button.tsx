@@ -19,32 +19,28 @@ const buttonVariants = cva(
 				sm: 'h-8 rounded-md px-3 text-xs',
 			},
 			variant: {
-				default: 'bg-slate-900 dark:bg-slate-50 text-slate-50 dark:text-slate-900 shadow hover:bg-slate-800 dark:hover:bg-slate-200',
+				default:
+					'bg-slate-900 dark:bg-slate-50 text-slate-50 dark:text-slate-900 shadow hover:bg-slate-800 dark:hover:bg-slate-200',
 				ghost: 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
 				link: 'text-slate-900 dark:text-slate-100 underline-offset-4 hover:underline',
-				outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
-				secondary: 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-700',
+				outline:
+					'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100',
+				secondary:
+					'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-700',
 			},
 		},
 	},
 );
 
 export interface ButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-		VariantProps<typeof buttonVariants> {
+	extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
 	asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 	({ asChild = false, className, size, variant, ...props }, ref) => {
 		const Comp = asChild ? Slot : 'button';
-		return (
-			<Comp
-				className={cn(buttonVariants({ className, size, variant }))}
-				ref={ref}
-				{...props}
-			/>
-		);
+		return <Comp className={cn(buttonVariants({ className, size, variant }))} ref={ref} {...props} />;
 	},
 );
 Button.displayName = 'Button';
