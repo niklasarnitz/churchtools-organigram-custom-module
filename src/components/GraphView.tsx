@@ -36,6 +36,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const baseUrl = useAppStore((s) => s.baseUrl);
     const pendingExport = useAppStore((s) => s.pendingExport);
     const setPendingExport = useAppStore((s) => s.setPendingExport);
+    const setIsExporting = useAppStore((s) => s.setIsExporting);
     const { fitView } = useReactFlow();
 
     const clearPendingExport = useCallback(() => {
@@ -59,17 +60,21 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     useEffect(() => {
         if (!pendingExport) return;
 
+        setIsExporting(true);
+
         if (pendingExport.type === 'graphml') {
             downloadTextFile(generateGraphMLData(), pendingExport.fileName, document);
             setGroupIdToStartWith();
-            setTimeout(() => {
-                clearPendingExport();
-            }, 0);
+            clearPendingExport();
+            setIsExporting(false);
         } else {
             setTimeout(() => {
                 const reactFlow = document.querySelector('.react-flow');
                 if (reactFlow) {
                     const filter = (node: HTMLElement) => {
+                        // Safety check for classList
+                        if (!node.classList) return true;
+                        
                         return !(
                             node.classList.contains('react-flow__minimap') ||
                             node.classList.contains('react-flow__controls') ||
@@ -90,13 +95,12 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                             .finally(() => {
                                 setGroupIdToStartWith();
                                 clearPendingExport();
+                                setIsExporting(false);
                             });
-                    } else if (pendingExport.type === 'pdf') {
-                        // For PDF, we want high quality. Vectorized is hard due to foreignObjects,
-                        // so we use a very high pixel ratio and put it in a PDF.
+                    } else {
                         toPng(reactFlow as HTMLElement, {
                             filter,
-                            pixelRatio: 4, // High resolution for "zooming in"
+                            pixelRatio: 4,
                         })
                             .then((dataUrl) => {
                                 const pdf = new jsPDF('l', 'mm', 'a4');
@@ -113,15 +117,17 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                             .finally(() => {
                                 setGroupIdToStartWith();
                                 clearPendingExport();
+                                setIsExporting(false);
                             });
                     }
                 } else {
                     setGroupIdToStartWith();
                     clearPendingExport();
+                    setIsExporting(false);
                 }
             }, 200);
         }
-    }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data]);
+    }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data, setIsExporting]);
 
     const downloadGroupOrganigramAsGraphML = useCallback((groupId: number) => {
         const groupName = groupsById[groupId].name;
@@ -155,7 +161,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const onContextMenu = useCallback((e: ReactMouseEvent, node: Node) => {
         e.preventDefault();
         show({
-            event: e,
+            event: e.nativeEvent,
             props: { groupId: Number(node.id) },
         });
     }, [show]);
