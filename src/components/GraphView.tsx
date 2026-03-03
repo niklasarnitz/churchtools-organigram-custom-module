@@ -8,6 +8,7 @@ import moment from 'moment';
 import React, { useCallback, useEffect } from 'react';
 import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
 import ReactFlow, { Background, Controls, MiniMap, Panel, useReactFlow } from 'reactflow';
+import { svg2pdf } from 'svg2pdf.js';
 
 import { Constants } from '../globals/Constants';
 import { downloadImage } from '../globals/downloadImage';
@@ -85,9 +86,8 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         );
                     };
 
-                    // For PDF and SVG, we ALWAYS want light mode.
-                    // PNG can keep current mode if user wants, but request says "pdf and svg exports should always be in light mode"
-                    const needsLightMode = pendingExport.type === 'pdf' || pendingExport.type === 'svg';
+                    // Exports should always be in light mode as requested.
+                    const needsLightMode = true;
                     const isDarkMode = document.documentElement.classList.contains('dark');
                     
                     if (needsLightMode && isDarkMode) {
@@ -103,21 +103,22 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         setIsExporting(false);
                     };
 
+                    const exportOptions = {
+                        filter,
+                        font: [],
+                        pixelRatio: 2,
+                        skipFonts: true,
+                    };
+
                     if (pendingExport.type === 'png') {
-                        toPng(reactFlow as HTMLElement, {
-                            filter,
-                            pixelRatio: 2,
-                            skipFonts: true,
-                        })
+                        toPng(reactFlow as HTMLElement, exportOptions)
                             .then(downloadImage)
                             .catch((error: unknown) => {
                                 Logger.error('Failed to export as PNG:', error);
                             })
                             .finally(finalizeExport);
                     } else if (pendingExport.type === 'svg') {
-                        toSvg(reactFlow as HTMLElement, {
-                            filter,
-                        })
+                        toSvg(reactFlow as HTMLElement, exportOptions)
                             .then((dataUrl) => {
                                 const link = document.createElement('a');
                                 link.download = pendingExport.fileName;
@@ -129,46 +130,33 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                             })
                             .finally(finalizeExport);
                     } else {
-                        toPng(reactFlow as HTMLElement, {
-                            filter,
-                            pixelRatio: 2,
-                            skipFonts: true,
-                        })
-                            .then((dataUrl) => {
+                        toSvg(reactFlow as HTMLElement, exportOptions)
+                            .then(async (dataUrl) => {
+                                const svgString = decodeURIComponent(dataUrl.replace('data:image/svg+xml;charset=utf-8,', ''));
+                                const parser = new DOMParser();
+                                const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+                                const svgElement = svgDoc.documentElement;
+
+                                const width = Number(svgElement.getAttribute('width') ?? 0);
+                                const height = Number(svgElement.getAttribute('height') ?? 0);
+
                                 const pdf = new jsPDF({
-                                    format: 'a4',
-                                    orientation: 'landscape',
-                                    putOnlyUsedFonts: true,
-                                    unit: 'mm',
+                                    format: [width, height],
+                                    orientation: width > height ? 'landscape' : 'portrait',
+                                    unit: 'pt',
                                 });
-                                
-                                // Explicitly set font to avoid potential "font is undefined" errors in jsPDF
-                                pdf.setFont('helvetica', 'normal');
 
-                                const img = new Image();
-                                img.src = dataUrl;
-                                img.onload = () => {
-                                    try {
-                                        const pdfWidth = pdf.internal.pageSize.getWidth();
-                                        const pdfHeight = (img.height * pdfWidth) / img.width;
+                                await svg2pdf(svgElement, pdf, {
+                                    x: 0,
+                                    y: 0,
+                                });
 
-                                        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                                        pdf.save(pendingExport.fileName);
-                                    } catch (error) {
-                                        Logger.error('Failed to generate PDF document:', error);
-                                    } finally {
-                                        finalizeExport();
-                                    }
-                                };
-                                img.onerror = (err) => {
-                                    Logger.error('Failed to load image for PDF:', err);
-                                    finalizeExport();
-                                };
+                                pdf.save(pendingExport.fileName);
                             })
                             .catch((error: unknown) => {
                                 Logger.error('Failed to export as PDF:', error);
-                                finalizeExport();
-                            });
+                            })
+                            .finally(finalizeExport);
                     }
                 } else {
                     setGroupIdToStartWith();

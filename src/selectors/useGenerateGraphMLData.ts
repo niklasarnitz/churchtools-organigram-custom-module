@@ -91,12 +91,16 @@ export const useGenerateGraphMLData = () => {
             yGeometry.setAttribute('y', String(node.position.y));
 
             const yFill = graphML.createElement('y:Fill');
-            yFill.setAttribute('color', getColorForGroupType(group.information.groupTypeId).shades[100]);
+            const color = getColorForGroupType(group.information.groupTypeId);
+            yFill.setAttribute('color', color.shades[100]);
             yFill.setAttribute('transparent', 'false');
 
             const yBorderStyle = graphML.createElement('y:BorderStyle');
-            yBorderStyle.setAttribute('hasColor', 'false');
-            yBorderStyle.setAttribute('transparent', 'false');
+            yBorderStyle.setAttribute('color', color.shades[300]);
+            yBorderStyle.setAttribute('hasColor', 'true');
+            yBorderStyle.setAttribute('raised', 'false');
+            yBorderStyle.setAttribute('type', 'line');
+            yBorderStyle.setAttribute('width', '1.0');
 
             const yNodeLabelGroupName = graphML.createElement('y:NodeLabel');
             yNodeLabelGroupName.setAttribute('alignment', 'center');
