@@ -2,6 +2,7 @@ import { churchtoolsClient } from '@churchtools/churchtools-client';
 import moment from 'moment';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
 import { App } from './App';
 import { Logger } from './globals/Logger';
 import './index.css';

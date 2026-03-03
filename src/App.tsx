@@ -5,6 +5,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import 'react-contexify/dist/ReactContexify.css';
 import { ReactFlowProvider } from "reactflow";
 import 'reactflow/dist/style.css';
+
 import { MainComponent } from "./components/MainComponent";
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 import { useCustomModuleTitleBar } from "./hooks/useCustomModuleTitleBar";

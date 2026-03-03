@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { type Node } from 'reactflow';
 
 import { type PreviewGraphNodeData } from '../components/PreviewGraph/PreviewGraphNode';
-import { getColorForGroupType } from '../globals/Colors';
+import { oklchToHex } from '../globals/Colors';
 import {
     getGroupMetadataHeight,
     getGroupMetadataString,
@@ -91,12 +91,13 @@ export const useGenerateGraphMLData = () => {
             yGeometry.setAttribute('y', String(node.position.y));
 
             const yFill = graphML.createElement('y:Fill');
-            const color = getColorForGroupType(group.information.groupTypeId);
-            yFill.setAttribute('color', color.shades[100]);
+            const color = node.data.color;
+            console.log(node.data.color)
+            yFill.setAttribute('color', oklchToHex(color.shades[100]));
             yFill.setAttribute('transparent', 'false');
 
             const yBorderStyle = graphML.createElement('y:BorderStyle');
-            yBorderStyle.setAttribute('color', color.shades[300]);
+            yBorderStyle.setAttribute('color', oklchToHex(color.shades[700]));
             yBorderStyle.setAttribute('hasColor', 'true');
             yBorderStyle.setAttribute('raised', 'false');
             yBorderStyle.setAttribute('type', 'line');

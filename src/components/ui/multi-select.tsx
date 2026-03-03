@@ -66,7 +66,6 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 								const option = options.find((o) => o.value === v);
 								return (
 									<Badge
-										className="mr-1 mb-1"
 										key={v}
 										onClick={(e) => {
 											e.stopPropagation();
@@ -98,7 +97,7 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 									onSelect={() => {
 										handleSelect(option.value);
 									}}
-									value={option.value}
+									value={option.label}
 								>
 									<Check
 										className={cn(

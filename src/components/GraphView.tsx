@@ -8,17 +8,17 @@ import moment from 'moment';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
 import ReactFlow, { Background, Controls, MiniMap, Panel, useReactFlow } from 'reactflow';
-import { svg2pdf } from 'svg2pdf.js';
 
 import { Constants } from '../globals/Constants';
 import { downloadImage } from '../globals/downloadImage';
 import { Logger } from '../globals/Logger';
 import { downloadTextFile } from '../helpers/downloadTextFile';
+import { getGroupNodeWidth, getReflowGroupNodeHeight } from '../helpers/GraphHelper';
 import { useGenerateGraphMLData } from '../selectors/useGenerateGraphMLData';
 import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useGroupsById } from '../selectors/useGroupsById';
 import { useAppStore } from '../state/useAppStore';
-import { PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
+import { type PreviewGraphNodeData, PreviewGraphNode } from './PreviewGraph/PreviewGraphNode';
 import { Sidebar } from './Sidebar/Sidebar';
 
 const nodeTypes = {
@@ -40,6 +40,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const setIsExporting = useAppStore((s) => s.setIsExporting);
     const { fitView } = useReactFlow();
     const lastProcessedExportRef = useRef<null | string>(null);
+    const showGroupTypes = useAppStore(s => s.showGroupTypes)
 
     const clearPendingExport = useCallback(() => {
         setPendingExport(undefined);
@@ -113,7 +114,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     const exportOptions = {
                         filter,
                         font: [],
-                        pixelRatio: 2,
+                        pixelRatio: 10,
                         skipFonts: true,
                     };
 
@@ -137,36 +138,164 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                             })
                             .finally(finalizeExport);
                     } else {
-                        toSvg(reactFlow as HTMLElement, exportOptions)
-                            .then(async (dataUrl) => {
-                                const svgString = decodeURIComponent(dataUrl.replace('data:image/svg+xml;charset=utf-8,', ''));
-                                const parser = new DOMParser();
-                                const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
-                                const svgElement = svgDoc.documentElement;
+                        const { edges, nodes } = data;
+                        if (nodes.length === 0) {
+                            finalizeExport();
+                            return;
+                        }
 
-                                const width = Number(svgElement.getAttribute('width') ?? 0);
-                                const height = Number(svgElement.getAttribute('height') ?? 0);
+                        // Calculate bounds
+                        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                        nodes.forEach((node) => {
+                            const n = node as Node<PreviewGraphNodeData>;
+                            const w = Math.max(getGroupNodeWidth(n.data.title, n.data.metadata), 250);
+                            const hasMembers = n.data.roles.some((role) => 
+                                n.data.members.some((member) => member.groupTypeRoleId === role.id)
+                            );
+                            const h = Math.max(getReflowGroupNodeHeight(n.data.metadata, n.data.title, hasMembers, showGroupTypes), hasMembers ? 150 : 80);
 
-                                const pdf = new jsPDF({
-                                    format: [width, height],
-                                    orientation: width > height ? 'landscape' : 'portrait',
-                                    unit: 'pt',
+                            minX = Math.min(minX, node.position.x);
+                            minY = Math.min(minY, node.position.y);
+                            maxX = Math.max(maxX, node.position.x + w);
+                            maxY = Math.max(maxY, node.position.y + h);
+                        });
+
+                        const padding = 40;
+                        const gW = maxX - minX;
+                        const gH = maxY - minY;
+                        const orientation = gW > gH ? 'landscape' : 'portrait';
+
+                        const pdf = new jsPDF({
+                            format: 'a3',
+                            orientation,
+                            unit: 'pt',
+                        });
+
+                        const pageW = orientation === 'landscape' ? 1190.55 : 841.89;
+                        const pageH = orientation === 'landscape' ? 841.89 : 1190.55;
+
+                        const scale = Math.min((pageW - (padding * 2)) / gW, (pageH - (padding * 2)) / gH);
+
+                        const offsetX = ((pageW - (gW * scale)) / 2) - (minX * scale);
+                        const offsetY = ((pageH - (gH * scale)) / 2) - (minY * scale);
+
+                        // Draw edges
+                        pdf.setDrawColor(100, 116, 139); // #64748b
+                        pdf.setLineWidth(2 * scale);
+                        edges.forEach((edge) => {
+                            const sourceNode = nodes.find((n) => n.id === edge.source);
+                            const targetNode = nodes.find((n) => n.id === edge.target);
+                            if (sourceNode && targetNode) {
+                                const s = sourceNode as Node<PreviewGraphNodeData>;
+                                const t = targetNode as Node<PreviewGraphNodeData>;
+
+                                const sw = Math.max(getGroupNodeWidth(s.data.title, s.data.metadata), 250);
+                                const shm = s.data.roles.some((role) => 
+                                    s.data.members.some((member) => member.groupTypeRoleId === role.id)
+                                );
+                                const sh = Math.max(getReflowGroupNodeHeight(s.data.metadata, s.data.title, shm, showGroupTypes), shm ? 150 : 80);
+
+                                const tw = Math.max(getGroupNodeWidth(t.data.title, t.data.metadata), 250);
+                                const thm = t.data.roles.some((role) => 
+                                    t.data.members.some((member) => member.groupTypeRoleId === role.id)
+                                );
+                                const th = Math.max(getReflowGroupNodeHeight(t.data.metadata, t.data.title, thm, showGroupTypes), thm ? 150 : 80);
+
+                                const x1 = (sourceNode.position.x + (sw / 2)) * scale + offsetX;
+                                const y1 = (sourceNode.position.y + sh) * scale + offsetY;
+                                const x2 = (targetNode.position.x + (tw / 2)) * scale + offsetX;
+                                const y2 = (targetNode.position.y) * scale + offsetY;
+
+                                pdf.line(x1, y1, x2, y2);
+
+                                // Simple arrow head
+                                const angle = Math.atan2(y2 - y1, x2 - x1);
+                                const headLen = 10 * scale;
+                                pdf.line(x2, y2, x2 - (headLen * Math.cos(angle - (Math.PI / 6))), y2 - (headLen * Math.sin(angle - (Math.PI / 6))));
+                                pdf.line(x2, y2, x2 - (headLen * Math.cos(angle + (Math.PI / 6))), y2 - (headLen * Math.sin(angle + (Math.PI / 6))));
+                            }
+                        });
+
+                        // Draw nodes
+                        nodes.forEach((node) => {
+                            const n = node as Node<PreviewGraphNodeData>;
+                            const w = Math.max(getGroupNodeWidth(n.data.title, n.data.metadata), 250);
+                            const hasMembers = n.data.roles.some((role) => 
+                                n.data.members.some((member) => member.groupTypeRoleId === role.id)
+                            );
+                            const h = Math.max(getReflowGroupNodeHeight(n.data.metadata, n.data.title, hasMembers, showGroupTypes), hasMembers ? 150 : 80);
+                            const x = node.position.x * scale + offsetX;
+                            const y = node.position.y * scale + offsetY;
+                            const scaledW = w * scale;
+                            const scaledH = h * scale;
+
+                            // Node background
+                            pdf.setDrawColor(n.data.color.shades[300]);
+                            pdf.setLineWidth(1 * scale);
+                            pdf.setFillColor(255, 255, 255);
+                            pdf.roundedRect(x, y, scaledW, scaledH, 12 * scale, 12 * scale, 'FD');
+
+                            // Header background
+                            pdf.setFillColor(n.data.color.shades[100]);
+                            const headerHeight = showGroupTypes ? 50 : 40;
+                            const scaledHeaderH = headerHeight * scale;
+                            pdf.roundedRect(x, y, scaledW, scaledHeaderH, 12 * scale, 12 * scale, 'FD');
+                            // Cover bottom rounded corners of header
+                            pdf.rect(x, y + (scaledHeaderH / 2), scaledW, scaledHeaderH / 2, 'F');
+                            // Border for header bottom
+                            if (hasMembers) {
+                                pdf.setDrawColor(n.data.color.shades[300]);
+                                pdf.line(x, y + scaledHeaderH, x + scaledW, y + scaledHeaderH);
+                            }
+
+                            // Title
+                            pdf.setTextColor(15, 23, 42); // slate-900
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setFontSize(14 * scale);
+                            const titleLines = pdf.splitTextToSize(n.data.title, (w - 20) * scale);
+                            pdf.text(titleLines, x + (scaledW / 2), y + (20 * scale), { align: 'center' });
+
+                            // Group Type
+                            if (showGroupTypes) {
+                                pdf.setFont('helvetica', 'bold');
+                                pdf.setFontSize(10 * scale);
+                                pdf.setTextColor(100, 116, 139); // slate-500
+                                pdf.text(n.data.groupTypeName.toUpperCase(), x + (scaledW / 2), y + (38 * scale), { align: 'center' });
+                            }
+
+                            // Members & Roles
+                            if (hasMembers) {
+                                let currentY = y + scaledHeaderH + (20 * scale);
+                                n.data.roles.forEach((role) => {
+                                    const personsInRole = n.data.members.filter(m => m.groupTypeRoleId === role.id);
+                                    if (personsInRole.length === 0) return;
+
+                                    pdf.setFont('helvetica', 'bold');
+                                    pdf.setFontSize(10 * scale);
+                                    pdf.setTextColor(100, 116, 139); // slate-500
+                                    pdf.text(role.name.toUpperCase(), x + (20 * scale), currentY);
+                                    currentY += 15 * scale;
+
+                                    pdf.setFont('helvetica', 'normal');
+                                    pdf.setFontSize(11 * scale);
+                                    pdf.setTextColor(30, 41, 59); // slate-800
+
+                                    const names = personsInRole.map(member => {
+                                        const person = n.data.personsById[member.personId];
+                                        return person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
+                                    }).join(', ');
+
+                                    const nameLines = pdf.splitTextToSize(names, (w - 40) * scale);
+                                    pdf.text(nameLines, x + (20 * scale), currentY);
+                                    currentY += (nameLines.length * 14 * scale) + (10 * scale);
                                 });
+                            }
+                        });
 
-                                await svg2pdf(svgElement, pdf, {
-                                    x: 0,
-                                    y: 0,
-                                });
-
-                                pdf.save(pendingExport.fileName);
-                            })
-                            .catch((error: unknown) => {
-                                Logger.error('Failed to export as PDF:', error);
-                            })
-                            .finally(finalizeExport);
+                        pdf.save(pendingExport.fileName);
+                        finalizeExport();
                     }
-                } else {
-                    setGroupIdToStartWith();
+                } else {                    setGroupIdToStartWith();
                     clearPendingExport();
                     setIsExporting(false);
                 }

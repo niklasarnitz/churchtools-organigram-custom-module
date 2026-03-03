@@ -13,6 +13,7 @@ import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
+import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
 import { StartGroupSelect } from './StartGroupSelect';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
@@ -98,9 +99,23 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         </div>
                         <p className="mt-1 text-xs opacity-90">
                             Diese Gruppen haben keine Verbindung zu anderen Gruppen im aktuellen Filter:
-                            <br />
-                            <span className="italic">{orphanedGroups.join(', ')}</span>
                         </p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {orphanedGroups.slice(0, 10).map((name) => (
+                                <span
+                                    className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-300 border border-amber-200/50 dark:border-amber-700/50"
+                                    key={name}
+                                >
+                                    {name}
+                                </span>
+                            ))}
+                            {orphanedGroups.length > 10 && (
+                                <span className="text-[10px] italic opacity-70">
+                                    und {orphanedGroups.length - 10} weitere...
+                                </span>
+                            )}
+                        </div>
+                        <OrphanedGroupsWizard />
                     </div>
                 )}
 
