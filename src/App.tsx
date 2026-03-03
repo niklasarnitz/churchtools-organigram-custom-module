@@ -1,33 +1,39 @@
 import "@fontsource/lato";
 import 'reactflow/dist/style.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import 'react-contexify/dist/ReactContexify.css';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ReactFlowProvider } from "reactflow";
 
 import { MainComponent } from "./components/MainComponent";
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 
-let queryClient: QueryClient | undefined;
-
-function getQueryClient() {
-    queryClient ??= new QueryClient({
-        defaultOptions: {
-            queries: {
-                refetchOnWindowFocus: false,
-                staleTime: 1000 * 60 * 5, // 5 minutes
-            },
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            gcTime: 1000 * 60 * 60 * 24, // 24 hours
+            refetchOnWindowFocus: false,
+            staleTime: 1000 * 60 * 5, // 5 minutes
         },
-    });
-    return queryClient;
-}
+    },
+});
+
+const persister = createAsyncStoragePersister({
+    storage: window.sessionStorage,
+});
 
 export const App = () => {
     useChurchToolsTheme();
 
     return (
-        <QueryClientProvider client={getQueryClient()}>
+        <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{ persister }}
+        >
             <ReactFlowProvider>
                 <MainComponent />
             </ReactFlowProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
     );
 };

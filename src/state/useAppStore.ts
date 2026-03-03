@@ -1,6 +1,8 @@
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
 
+import type { UserSettings } from '../hooks/useUserSettings';
+
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
 export interface PendingExport {
@@ -16,10 +18,12 @@ interface GroupState {
     excludedRoles: number[];
 
     groupIdToStartWith: string | undefined;
+    isExporting: boolean;
     layoutAlgorithm: LayoutAlgorithm;
 
     pendingExport: PendingExport | undefined;
 
+    setAllSettings: (settings: Partial<UserSettings>) => void;
     setBaseUrl: (url: string | undefined) => void;
     setExcludedGroups: (groups: string | string[]) => void;
 
@@ -27,6 +31,7 @@ interface GroupState {
     setExcludedRoles: (roles: string | string[]) => void;
 
     setGroupIdToStartWith: (groupId?: number | string  ) => void;
+    setIsExporting: (isExporting: boolean) => void;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 
     setPendingExport: (pendingExport: PendingExport | undefined) => void;
@@ -45,9 +50,15 @@ export const useAppStore = create<GroupState>((set) => ({
 
     groupIdToStartWith: undefined,
 
+    isExporting: false,
+
     layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
 
     pendingExport: undefined,
+
+    setAllSettings: (settings: Partial<UserSettings>) => {
+        set((state) => ({ ...state, ...settings }));
+    },
 
     setBaseUrl: (url: string | undefined) => {
         churchtoolsClient.setBaseUrl(url ?? '');
@@ -62,6 +73,7 @@ export const useAppStore = create<GroupState>((set) => ({
         { set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }); },
     setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) =>
         { set({ groupIdToStartWith: groupIdToStartWith?.toString() }); },
+    setIsExporting: (isExporting: boolean) => { set({ isExporting }); },
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => { set({ layoutAlgorithm: algorithm }); },
 
     setPendingExport: (pendingExport: PendingExport | undefined) => { set({ pendingExport }); },
