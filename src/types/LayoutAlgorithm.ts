@@ -1,3 +1,6 @@
 export enum LayoutAlgorithm {
-	dagre = 'dagre',
+	elkLayeredLR = 'elkLayeredLR',
+	elkLayeredTB = 'elkLayeredTB',
+	elkMrTree = 'elkMrTree',
+	elkRadial = 'elkRadial',
 }

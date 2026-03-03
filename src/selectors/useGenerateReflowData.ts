@@ -1,12 +1,13 @@
-import type { Edge } from 'reactflow';
+import type { Edge, Node } from 'reactflow';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MarkerType, Position } from 'reactflow';
 
 import { getColorForGroupType } from '../globals/Colors';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
-import { layoutDagre } from '../helpers/layoutAlgorithms/dagre';
+import { layoutElk } from '../helpers/layoutAlgorithms/elk';
 import { useAppStore } from '../state/useAppStore';
+import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import { useCreateRelatedData } from './useCreateRelatedData';
 import { useGroupTypesById } from './useGroupTypesById';
 import { usePersonsById } from './usePersonsById';
@@ -14,11 +15,22 @@ import { usePersonsById } from './usePersonsById';
 export const useGenerateReflowData = () => {
     const { nodes, relations } = useCreateRelatedData();
     const showGroupTypes = useAppStore((s) => s.showGroupTypes);
+    const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
     const personsById = usePersonsById();
     const groupTypesById = useGroupTypesById();
 
-    return useMemo(() => {
-        const reflowEdges = relations.map((relation) => {
+    const [layoutedData, setLayoutedData] = useState<{ edges: Edge[]; nodes: Node[]; }>({
+        edges: [],
+        nodes: [],
+    });
+
+    const isVertical = 
+        layoutAlgorithm === LayoutAlgorithm.elkLayeredTB ||
+        layoutAlgorithm === LayoutAlgorithm.elkMrTree ||
+        layoutAlgorithm === LayoutAlgorithm.elkRadial;
+
+    const { reflowEdges, reflowNodes } = useMemo(() => {
+        const edges = relations.map((relation) => {
             return {
                 animated: true,
                 className: 'black-100',
@@ -36,7 +48,7 @@ export const useGenerateReflowData = () => {
             } as Edge;
         });
 
-        const reflowNodes = nodes.map((node) => {
+        const nodesList = nodes.map((node) => {
             return {
                 data: {
                     color: getColorForGroupType(node.group.information.groupTypeId),
@@ -54,17 +66,32 @@ export const useGenerateReflowData = () => {
                     x: 0,
                     y: 0,
                 },
-                sourcePosition: Position.Right,
-                targetPosition: Position.Left,
+                sourcePosition: isVertical ? Position.Bottom : Position.Right,
+                targetPosition: isVertical ? Position.Top : Position.Left,
                 type: 'previewGraphNode',
             };
         });
 
-        const { nodes: layoutedNodes } = layoutDagre(reflowNodes, reflowEdges);
+        return { reflowEdges: edges, reflowNodes: nodesList };
+    }, [relations, nodes, groupTypesById, personsById, showGroupTypes, isVertical]);
 
-        return {
-            edges: reflowEdges,
-            nodes: layoutedNodes,
+    useEffect(() => {
+        let active = true;
+
+        const performLayout = async () => {
+            const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm);
+
+            if (active) {
+                setLayoutedData(result);
+            }
         };
-    }, [relations, nodes, showGroupTypes, groupTypesById, personsById]);
+
+        void performLayout();
+
+        return () => {
+            active = false;
+        };
+    }, [reflowNodes, reflowEdges, layoutAlgorithm]);
+
+    return layoutedData;
 };

@@ -3,6 +3,11 @@ import { create } from 'zustand';
 
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
+export interface PendingExport {
+    fileName: string;
+    type: 'graphml' | 'pdf' | 'png';
+}
+
 interface GroupState {
     baseUrl: string | undefined;
     excludedGroups: number[];
@@ -13,6 +18,8 @@ interface GroupState {
     groupIdToStartWith: string | undefined;
     layoutAlgorithm: LayoutAlgorithm;
 
+    pendingExport: PendingExport | undefined;
+
     setBaseUrl: (url: string | undefined) => void;
     setExcludedGroups: (groups: string | string[]) => void;
 
@@ -21,6 +28,8 @@ interface GroupState {
 
     setGroupIdToStartWith: (groupId?: number | string  ) => void;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
+
+    setPendingExport: (pendingExport: PendingExport | undefined) => void;
 
     setShowGroupTypes: (show: boolean) => void;
     // Display Options
@@ -36,7 +45,9 @@ export const useAppStore = create<GroupState>((set) => ({
 
     groupIdToStartWith: undefined,
 
-    layoutAlgorithm: LayoutAlgorithm.dagre,
+    layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+
+    pendingExport: undefined,
 
     setBaseUrl: (url: string | undefined) => {
         churchtoolsClient.setBaseUrl(url ?? '');
@@ -52,6 +63,8 @@ export const useAppStore = create<GroupState>((set) => ({
     setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) =>
         { set({ groupIdToStartWith: groupIdToStartWith?.toString() }); },
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => { set({ layoutAlgorithm: algorithm }); },
+
+    setPendingExport: (pendingExport: PendingExport | undefined) => { set({ pendingExport }); },
 
     setShowGroupTypes: (show: boolean) => { set({ showGroupTypes: show }); },
     showGroupTypes: false,

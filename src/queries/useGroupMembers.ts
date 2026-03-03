@@ -9,7 +9,7 @@ export const useGroupMembers = () => useQuery({
     queryFn: async () => {
         Logger.log('API: Fetching group members');
 
-        return churchtoolsClient.getAllPages<GroupMember>(`/groups/members`)
+        return churchtoolsClient.get<GroupMember[]>(`/groups/members`)
     },
     queryKey: ['groupMembers']
 })

@@ -9,7 +9,7 @@ export const useGroupHierarchies = (groupIds: number[]) => useQuery({
     queryFn: async () => {
         Logger.log('API: Fetching group hierarchies for groups', groupIds);
 
-        return churchtoolsClient.getAllPages<Hierarchy>('/groups/hierarchies', { groupIds })
+        return churchtoolsClient.get<Hierarchy[]>('/groups/hierarchies', { groupIds })
     },
     queryKey: ['groupHierarchies', groupIds]
 })
@@ -18,7 +18,7 @@ export const useHierarchies = () => useQuery({
     queryFn: async () => {
         Logger.log('API: Fetching group hierarchies');
 
-        return churchtoolsClient.getAllPages<Hierarchy>('/groups/hierarchies')
+        return churchtoolsClient.get<Hierarchy[]>('/groups/hierarchies')
     },
     queryKey: ['hierarchies']
 })

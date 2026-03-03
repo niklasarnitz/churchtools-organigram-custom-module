@@ -9,7 +9,7 @@ export const useGroupRoles = () => useQuery({
     queryFn: async () => {
         Logger.log('API: Fetching group roles');
 
-        return churchtoolsClient.getAllPages<GroupRole>('/group/roles')
+        return churchtoolsClient.get<GroupRole[]>('/group/roles')
     },
     queryKey: ['groupRoles']
 })

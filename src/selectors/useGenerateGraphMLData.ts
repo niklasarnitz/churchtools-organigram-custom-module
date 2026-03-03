@@ -1,28 +1,30 @@
 import { useCallback } from 'react';
+import { type Node } from 'reactflow';
 
+import { type PreviewGraphNodeData } from '../components/PreviewGraph/PreviewGraphNode';
 import { getColorForGroupType } from '../globals/Colors';
 import {
-	getGroupMetadataHeight,
-	getGroupMetadataString,
-	getGroupNodeHeight,
-	getGroupNodeIdentifier,
-	getGroupNodeWidth,
-	getGroupTitle,
-	groupMetadataFontFamily,
-	groupMetadataFontSize,
-	groupMetadataFontStyle,
-	groupNameFontFamily,
-	groupNameFontSize,
-	groupNameFontStyle,
-	groupNameHeight,
+    getGroupMetadataHeight,
+    getGroupMetadataString,
+    getGroupNodeHeight,
+    getGroupNodeIdentifier,
+    getGroupNodeWidth,
+    getGroupTitle,
+    groupMetadataFontFamily,
+    groupMetadataFontSize,
+    groupMetadataFontStyle,
+    groupNameFontFamily,
+    groupNameFontSize,
+    groupNameFontStyle,
+    groupNameHeight,
 } from '../helpers/GraphHelper';
 import { useAppStore } from '../state/useAppStore';
-import { useCreateRelatedData } from './useCreateRelatedData';
+import { useGenerateReflowData } from './useGenerateReflowData';
 import { useGroupTypesById } from './useGroupTypesById';
 import { usePersonsById } from './usePersonsById';
 
 export const useGenerateGraphMLData = () => {
-    const { nodes, relations } = useCreateRelatedData();
+    const data = useGenerateReflowData();
     const showGroupTypes = useAppStore((s) => s.showGroupTypes);
     const personsById = usePersonsById();
     const groupTypesById = useGroupTypesById();
@@ -62,16 +64,16 @@ export const useGenerateGraphMLData = () => {
         graphElement.setAttribute('id', 'G');
         graphElement.setAttribute('edgedefault', 'undirected');
 
-        for (const node of nodes) {
-            const groupMembers = node.members;
-            const groupRoles = node.groupRoles;
+        for (const node of data.nodes as Node<PreviewGraphNodeData>[]) {
+            const groupMembers = node.data.members;
+            const groupRoles = node.data.roles;
+            const group = node.data.group;
 
-            const groupTitleString = getGroupTitle(node.group, showGroupTypes, groupTypesById);
+            const groupTitleString = getGroupTitle(group, showGroupTypes, groupTypesById);
             const groupMetadataString = getGroupMetadataString(groupRoles, groupMembers, personsById);
 
-            // Some crude logic to calculate a rough length because auto width doesn't work properly.
             const groupNode = graphML.createElement('node');
-            groupNode.setAttribute('id', getGroupNodeIdentifier(node.group));
+            groupNode.setAttribute('id', getGroupNodeIdentifier(group));
 
             const data4 = graphML.createElement('data');
             data4.setAttribute('key', 'd4');
@@ -85,9 +87,11 @@ export const useGenerateGraphMLData = () => {
             const yGeometry = graphML.createElement('y:Geometry');
             yGeometry.setAttribute('height', String(getGroupNodeHeight(groupMetadataString, groupTitleString)));
             yGeometry.setAttribute('width', String(getGroupNodeWidth(groupTitleString, groupMetadataString)));
+            yGeometry.setAttribute('x', String(node.position.x));
+            yGeometry.setAttribute('y', String(node.position.y));
 
             const yFill = graphML.createElement('y:Fill');
-            yFill.setAttribute('color', getColorForGroupType(node.group.information.groupTypeId).shades[100]);
+            yFill.setAttribute('color', getColorForGroupType(group.information.groupTypeId).shades[100]);
             yFill.setAttribute('transparent', 'false');
 
             const yBorderStyle = graphML.createElement('y:BorderStyle');
@@ -144,12 +148,17 @@ export const useGenerateGraphMLData = () => {
             graphElement.append(groupNode);
         }
 
-        for (const relation of relations) {
-            const edge = graphML.createElement('edge');
-            edge.setAttribute('source', getGroupNodeIdentifier(relation.source));
-            edge.setAttribute('target', getGroupNodeIdentifier(relation.target));
+        for (const edge of data.edges) {
+            const edgeElement = graphML.createElement('edge');
+            edgeElement.setAttribute('id', edge.id);
+            const sourceNode = data.nodes.find((n) => n.id === edge.source) as Node<PreviewGraphNodeData> | undefined;
+            const targetNode = data.nodes.find((n) => n.id === edge.target) as Node<PreviewGraphNodeData> | undefined;
 
-            graphElement.append(edge);
+            if (sourceNode && targetNode) {
+                edgeElement.setAttribute('source', getGroupNodeIdentifier(sourceNode.data.group));
+                edgeElement.setAttribute('target', getGroupNodeIdentifier(targetNode.data.group));
+                graphElement.append(edgeElement);
+            }
         }
 
         graphMLElement.append(graphElement);
@@ -166,5 +175,5 @@ export const useGenerateGraphMLData = () => {
         graphML.append(graphMLElement);
 
         return new XMLSerializer().serializeToString(graphML);
-    }, [relations, nodes, showGroupTypes, groupTypesById, personsById]);
+    }, [data, showGroupTypes, groupTypesById, personsById]);
 };

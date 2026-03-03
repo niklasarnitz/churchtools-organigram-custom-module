@@ -9,7 +9,7 @@ export const useGroupTypes = () => useQuery({
     queryFn: async () => {
         Logger.log('API: Fetching group types');
 
-        return churchtoolsClient.getAllPages<GroupType>('/group/grouptypes')
+        return churchtoolsClient.get<GroupType[]>('/group/grouptypes')
     },
     queryKey: ['groupTypes']
 })
