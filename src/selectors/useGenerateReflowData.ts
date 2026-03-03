@@ -79,7 +79,7 @@ export const useGenerateReflowData = () => {
         let active = true;
 
         const performLayout = async () => {
-            const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm);
+            const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes);
 
             if (active) {
                 setLayoutedData(result);
@@ -91,7 +91,7 @@ export const useGenerateReflowData = () => {
         return () => {
             active = false;
         };
-    }, [reflowNodes, reflowEdges, layoutAlgorithm]);
+    }, [reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes]);
 
     return layoutedData;
 };

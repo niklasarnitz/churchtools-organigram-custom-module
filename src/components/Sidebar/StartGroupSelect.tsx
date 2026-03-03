@@ -1,10 +1,10 @@
 import _ from 'lodash';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 
 import { useGroups } from '../../queries/useGroups';
 import { useAppStore } from '../../state/useAppStore';
 import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Combobox } from '../ui/combobox';
 
 export const StartGroupSelect = React.memo(() => {
     const { data: groups } = useGroups();
@@ -19,24 +19,25 @@ export const StartGroupSelect = React.memo(() => {
         setGroupIdToStartWith(val);
     }, [setGroupIdToStartWith]);
 
+    const options = useMemo(() => 
+        _.sortBy(groups ?? [], (g) => g.name).map((group) => ({
+            label: group.name,
+            value: String(group.id),
+        })),
+    [groups]);
+
     if (!groups) return <></>;
 
     return (
         <div className="flex flex-col">
             <h5 className="mb-1 text-sm font-semibold">Gruppe, mit der gestartet werden soll</h5>
 
-            <Select onValueChange={handleSelectChange} value={groupIdToStartWith ?? ''}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Keine Gruppe ausgewählt" />
-                </SelectTrigger>
-                <SelectContent>
-                    {_.sortBy(groups, (g) => g.name).map((group) => (
-                        <SelectItem key={group.id} value={String(group.id)}>
-                            {group.name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <Combobox
+                onValueChange={handleSelectChange}
+                options={options}
+                placeholder="Keine Gruppe ausgewählt"
+                value={groupIdToStartWith ?? ''}
+            />
 
             {groupIdToStartWith && (
                 <Button

@@ -60,6 +60,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
         setPendingExport({ fileName: getFileName('pdf'), type: 'pdf' });
     }, [getFileName, setPendingExport]);
 
+    const didPressDownloadSVG = useCallback(() => {
+        setPendingExport({ fileName: getFileName('svg'), type: 'svg' });
+    }, [getFileName, setPendingExport]);
+
     if (isLoading) {
         return (
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -105,7 +109,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     Export als GraphML Datei
                 </Button>
 
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     <Button 
                         className="grow" 
                         disabled={isExporting} 
@@ -130,7 +134,20 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         ) : (
                             <FileText className="size-4" />
                         )}
-                        PDF (A4)
+                        PDF
+                    </Button>
+                    <Button 
+                        className="grow" 
+                        disabled={isExporting} 
+                        onClick={didPressDownloadSVG} 
+                        variant="outline"
+                    >
+                        {isExporting && pendingExport?.type === 'svg' ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <FileText className="size-4" />
+                        )}
+                        SVG
                     </Button>
                 </div>
 

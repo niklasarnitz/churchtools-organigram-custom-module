@@ -8,6 +8,7 @@ import { ReactFlowProvider } from "reactflow";
 
 import { MainComponent } from "./components/MainComponent";
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
+import { useSyncSettingsWithUrl } from './hooks/useSyncSettingsWithUrl';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -25,6 +26,7 @@ const persister = createAsyncStoragePersister({
 
 export const App = () => {
     useChurchToolsTheme();
+    useSyncSettingsWithUrl();
 
     return (
         <PersistQueryClientProvider

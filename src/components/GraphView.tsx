@@ -2,7 +2,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { ItemParams } from 'react-contexify';
 import type { Node } from 'reactflow';
 
-import { toPng } from 'html-to-image';
+import { toPng, toSvg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import moment from 'moment';
 import React, { useCallback, useEffect } from 'react';
@@ -72,9 +72,11 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                 const reactFlow = document.querySelector('.react-flow');
                 if (reactFlow) {
                     const filter = (node: HTMLElement) => {
-                        // Safety check for classList
+                        // Safety check for nodes that might not have classList (e.g. text nodes)
+                        // despite the HTMLElement type definition from the library.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         if (!node.classList) return true;
-                        
+
                         return !(
                             node.classList.contains('react-flow__minimap') ||
                             node.classList.contains('react-flow__controls') ||
@@ -87,6 +89,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         toPng(reactFlow as HTMLElement, {
                             filter,
                             pixelRatio: 2,
+                            skipFonts: true,
                         })
                             .then(downloadImage)
                             .catch((error: unknown) => {
@@ -97,24 +100,67 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                                 clearPendingExport();
                                 setIsExporting(false);
                             });
+                    } else if (pendingExport.type === 'svg') {
+                        toSvg(reactFlow as HTMLElement, {
+                            filter,
+                        })
+                            .then((dataUrl) => {
+                                const link = document.createElement('a');
+                                link.download = pendingExport.fileName;
+                                link.href = dataUrl;
+                                link.click();
+                            })
+                            .catch((error: unknown) => {
+                                Logger.error('Failed to export as SVG:', error);
+                            })
+                            .finally(() => {
+                                setGroupIdToStartWith();
+                                clearPendingExport();
+                                setIsExporting(false);
+                            });
                     } else {
                         toPng(reactFlow as HTMLElement, {
                             filter,
-                            pixelRatio: 4,
+                            pixelRatio: 2,
+                            skipFonts: true,
                         })
                             .then((dataUrl) => {
-                                const pdf = new jsPDF('l', 'mm', 'a4');
-                                const imgProps = pdf.getImageProperties(dataUrl);
-                                const pdfWidth = pdf.internal.pageSize.getWidth();
-                                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                                const pdf = new jsPDF({
+                                    format: 'a4',
+                                    orientation: 'landscape',
+                                    putOnlyUsedFonts: true,
+                                    unit: 'mm',
+                                });
                                 
-                                pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                pdf.save(pendingExport.fileName);
+                                // Explicitly set font to avoid potential "font is undefined" errors in jsPDF
+                                pdf.setFont('helvetica', 'normal');
+
+                                const img = new Image();
+                                img.src = dataUrl;
+                                img.onload = () => {
+                                    try {
+                                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                                        const pdfHeight = (img.height * pdfWidth) / img.width;
+
+                                        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                                        pdf.save(pendingExport.fileName);
+                                    } catch (error) {
+                                        Logger.error('Failed to generate PDF document:', error);
+                                    } finally {
+                                        setGroupIdToStartWith();
+                                        clearPendingExport();
+                                        setIsExporting(false);
+                                    }
+                                };
+                                img.onerror = (err) => {
+                                    Logger.error('Failed to load image for PDF:', err);
+                                    setGroupIdToStartWith();
+                                    clearPendingExport();
+                                    setIsExporting(false);
+                                };
                             })
                             .catch((error: unknown) => {
                                 Logger.error('Failed to export as PDF:', error);
-                            })
-                            .finally(() => {
                                 setGroupIdToStartWith();
                                 clearPendingExport();
                                 setIsExporting(false);
@@ -151,6 +197,14 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
         setGroupIdToStartWith(groupId.toString());
         setPendingExport({ fileName, type: 'pdf' });
+    }, [groupsById, setGroupIdToStartWith, setPendingExport]);
+
+    const downloadGroupOrganigramAsSVG = useCallback((groupId: number) => {
+        const groupName = groupsById[groupId].name;
+        const fileName = `Organigramm-${groupName}-${moment().format('LD')}.svg`;
+
+        setGroupIdToStartWith(groupId.toString());
+        setPendingExport({ fileName, type: 'svg' });
     }, [groupsById, setGroupIdToStartWith, setPendingExport]);
 
     const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -201,6 +255,13 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
         }
     }, [downloadGroupOrganigramAsPDF]);
 
+    const didClickDownloadGroupOrganigramAsSVG = useCallback((params: ItemParams<ContextMenuProps>) => {
+        const groupId = params.props?.groupId;
+        if (groupId) {
+            downloadGroupOrganigramAsSVG(groupId);
+        }
+    }, [downloadGroupOrganigramAsSVG]);
+
     return (
         <div className="size-full">
             <ReactFlow
@@ -222,6 +283,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                         <Item onClick={didClickDownloadGroupOrganigramAsGraphml}>Export als GraphML Datei</Item>
                         <Item onClick={didClickDownloadGroupOrganigramAsPNG}>Export als PNG Datei</Item>
                         <Item onClick={didClickDownloadGroupOrganigramAsPDF}>Export als PDF Datei</Item>
+                        <Item onClick={didClickDownloadGroupOrganigramAsSVG}>Export als SVG Datei</Item>
                     </Submenu>
                 </Menu>
                 <MiniMap pannable position="bottom-right" zoomable />

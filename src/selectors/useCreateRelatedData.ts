@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import type { GraphData } from '../types/GraphData';
 import type { GraphNode } from '../types/GraphNode';
 import type { Group } from '../types/Group';
-import type { Hierarchy } from '../types/Hierarchy';
 import type { Relation } from '../types/Relation';
 
 import { useHierarchies } from '../queries/useHierarchies';
@@ -18,6 +17,9 @@ export const useCreateRelatedData = (): GraphData => {
     const excludedGroups = useAppStore((s) => s.excludedGroups);
     const excludedRoles = useAppStore((s) => s.excludedRoles);
     const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
+    const maxDepth = useAppStore((s) => s.maxDepth);
+    const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
+    const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
     
     const { data: hierarchies } = useHierarchies();
     const groupsById = useGroupsById();
@@ -26,12 +28,17 @@ export const useCreateRelatedData = (): GraphData => {
     const groupMembersByGroupId = useGroupMembersByGroupId();
 
     const shouldIncludeGroup = useMemo(() => (group: Group) => {
+        // Always include the start group, even if its type is excluded
+        if (groupIdToStartWith && group.id === Number(groupIdToStartWith)) {
+            return true;
+        }
+
         return (
-            group.information.groupTypeId &&
+            !!group.information.groupTypeId &&
             !excludedGroups.includes(group.id) &&
             !excludedGroupTypes.includes(group.information.groupTypeId)
         );
-    }, [excludedGroups, excludedGroupTypes]);
+    }, [excludedGroups, excludedGroupTypes, groupIdToStartWith]);
 
     const getGraphNodeFromGroup = useMemo(() => (group: Group): GraphNode => {
         const members = groupMembersByGroupId[group.id] ?? [];
@@ -50,70 +57,90 @@ export const useCreateRelatedData = (): GraphData => {
         };
     }, [groupMembersByGroupId, groupRolesByType, excludedRoles]);
 
-    const getHierarchiesForGroup = useMemo(() => (groupId: number) => {
-        const localHierarchies: Hierarchy[] = [];
-        const localChildren: number[] = [];
-
-        const hierarchy = hierarchiesByGroupId[groupId];
-
-        localHierarchies.push(hierarchy);
-        localChildren.push(...hierarchy.children);
-
-        const visited = new Set<number>([groupId]);
-
-        while (localChildren.length > 0) {
-            const child = localChildren.pop();
-
-            if (child && !visited.has(child)) {
-                visited.add(child);
-                const childHierarchy = hierarchiesByGroupId[child];
-
-                localHierarchies.push(childHierarchy);
-                localChildren.push(...childHierarchy.children);
-            }
-        }
-
-        return localHierarchies;
-    }, [hierarchiesByGroupId]);
-
-    return useMemo(() => {
-        const currentHierarchies = groupIdToStartWith ? getHierarchiesForGroup(Number(groupIdToStartWith)) : (hierarchies ?? []);
-
-        const relations: Relation[] = [];
+    const getHierarchicalData = useMemo(() => () => {
+        const startGroupId = groupIdToStartWith ? Number(groupIdToStartWith) : undefined;
+        const rootNodes = startGroupId ? [startGroupId] : (hierarchies ?? []).map(h => h.groupId);
+        
         const nodes: GraphNode[] = [];
+        const relations: Relation[] = [];
         const addedNodeIds = new Set<number>();
+        const addedRelationIds = new Set<string>();
 
-        const addNodeIfMissing = (group: Group) => {
-            if (!addedNodeIds.has(group.id)) {
-                nodes.push(getGraphNodeFromGroup(group));
-                addedNodeIds.add(group.id);
-                return true;
-            }
-            return false;
-        };
+        const queue: { depth: number; groupId: number }[] = rootNodes.map(id => ({ depth: 0, groupId: id }));
+        const visited = new Set<number>();
 
-        for (const hierarchy of currentHierarchies) {
-            const group = groupsById[hierarchy.groupId];
+        while (queue.length > 0) {
+            const currentItem = queue.shift();
+            if (!currentItem) continue;
+
+            const { depth, groupId } = currentItem;
+            
+            if (visited.has(groupId)) continue;
+            visited.add(groupId);
+
+            const group = groupsById[groupId];
             if (!shouldIncludeGroup(group)) continue;
 
-            addNodeIfMissing(group);
+            // Add node
+            if (!addedNodeIds.has(groupId)) {
+                nodes.push(getGraphNodeFromGroup(group));
+                addedNodeIds.add(groupId);
+            }
 
-            for (const child of hierarchy.children) {
-                const childGroup = groupsById[child];
+            // Check depth limit - if we reached maxDepth, we don't process children anymore
+            if (maxDepth !== undefined && depth >= maxDepth) continue;
+
+            const hierarchy = hierarchiesByGroupId[groupId];
+            if (!hierarchy) continue;
+
+            for (const childId of hierarchy.children) {
+                const childGroup = groupsById[childId];
                 if (!shouldIncludeGroup(childGroup)) continue;
 
-                addNodeIfMissing(childGroup);
+                // Implement showOnlyDirectChildren: if enabled, only allow children of the root nodes (depth 0)
+                if (showOnlyDirectChildren && depth > 0) continue;
 
-                relations.push({
-                    source: group,
-                    target: childGroup,
-                });
+                // Implement hideIndirectSubgroups: if current group and child have different types, and it's not a root node
+                if (hideIndirectSubgroups && group.information.groupTypeId !== childGroup.information.groupTypeId && depth > 0) continue;
+
+                // Add node if not already added
+                if (!addedNodeIds.has(childId)) {
+                    nodes.push(getGraphNodeFromGroup(childGroup));
+                    addedNodeIds.add(childId);
+                }
+
+                // Add relation
+                const relationId = `${String(groupId)}-${String(childId)}`;
+                if (!addedRelationIds.has(relationId)) {
+                    relations.push({
+                        source: group,
+                        target: childGroup,
+                    });
+                    addedRelationIds.add(relationId);
+                }
+
+                queue.push({ depth: depth + 1, groupId: childId });
             }
         }
 
+        return { nodes, relations };
+    }, [
+        groupIdToStartWith, 
+        hierarchies, 
+        hierarchiesByGroupId, 
+        groupsById, 
+        shouldIncludeGroup, 
+        getGraphNodeFromGroup, 
+        maxDepth, 
+        showOnlyDirectChildren, 
+        hideIndirectSubgroups
+    ]);
+
+    return useMemo(() => {
+        const { nodes, relations } = getHierarchicalData();
         return {
             nodes,
             relations,
         } as GraphData;
-    }, [groupIdToStartWith, getHierarchiesForGroup, hierarchies, groupsById, shouldIncludeGroup, getGraphNodeFromGroup]);
+    }, [getHierarchicalData]);
 };

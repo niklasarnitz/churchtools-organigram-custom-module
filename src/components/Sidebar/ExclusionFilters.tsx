@@ -6,6 +6,7 @@ import { useGroups } from '../../queries/useGroups';
 import { useGroupTypes } from '../../queries/useGroupTypes';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
+import { Combobox } from '../ui/combobox';
 import { MultiSelect } from '../ui/multi-select';
 import { Switch } from '../ui/switch';
 
@@ -23,10 +24,37 @@ export const ExclusionFilters = React.memo(() => {
     const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
     const showGroupTypes = useAppStore((s) => s.showGroupTypes);
     const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
+    const maxDepth = useAppStore((s) => s.maxDepth);
+    const setMaxDepth = useAppStore((s) => s.setMaxDepth);
+    const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
+    const setShowOnlyDirectChildren = useAppStore((s) => s.setShowOnlyDirectChildren);
+    const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
+    const setHideIndirectSubgroups = useAppStore((s) => s.setHideIndirectSubgroups);
 
     const showGroupTypesDidChange = useCallback((checked: boolean) => {
         setShowGroupTypes(checked);
     }, [setShowGroupTypes]);
+
+    const showOnlyDirectChildrenDidChange = useCallback((checked: boolean) => {
+        setShowOnlyDirectChildren(checked);
+    }, [setShowOnlyDirectChildren]);
+
+    const hideIndirectSubgroupsDidChange = useCallback((checked: boolean) => {
+        setHideIndirectSubgroups(checked);
+    }, [setHideIndirectSubgroups]);
+
+    const handleMaxDepthChange = useCallback((value: string) => {
+        setMaxDepth(value === 'none' ? undefined : parseInt(value, 10));
+    }, [setMaxDepth]);
+
+    const depthOptions = useMemo(() => [
+        { label: 'Alle Ebenen', value: 'none' },
+        { label: '1 Ebene', value: '1' },
+        { label: '2 Ebenen', value: '2' },
+        { label: '3 Ebenen', value: '3' },
+        { label: '4 Ebenen', value: '4' },
+        { label: '5 Ebenen', value: '5' },
+    ], []);
 
     const groupTypeOptions = useMemo(() =>
         _.sortBy(groupTypes ?? [], (g) => g.sortKey).map((groupType) => ({
@@ -101,9 +129,31 @@ export const ExclusionFilters = React.memo(() => {
 
             <div className="flex flex-col">
                 <h5 className="mb-1 text-sm font-semibold">Darstellungsoptionen</h5>
-                <div className="flex flex-row items-center gap-x-2">
-                    <Switch checked={showGroupTypes} onCheckedChange={showGroupTypesDidChange} />
-                    <span className="text-sm">Gruppentypen anzeigen</span>
+                <div className="flex flex-col gap-y-3">
+                    <div className="flex flex-row items-center gap-x-2">
+                        <Switch checked={showGroupTypes} onCheckedChange={showGroupTypesDidChange} />
+                        <span className="text-sm">Gruppentypen anzeigen</span>
+                    </div>
+
+                    <div className="flex flex-row items-center gap-x-2">
+                        <Switch checked={showOnlyDirectChildren} onCheckedChange={showOnlyDirectChildrenDidChange} />
+                        <span className="text-sm">Nur direkte Untergruppen</span>
+                    </div>
+
+                    <div className="flex flex-row items-center gap-x-2">
+                        <Switch checked={hideIndirectSubgroups} onCheckedChange={hideIndirectSubgroupsDidChange} />
+                        <span className="text-sm">Indirekte Gruppenzweige ausblenden</span>
+                    </div>
+
+                    <div className="flex flex-col gap-y-1">
+                        <span className="text-sm font-medium">Maximale Tiefe</span>
+                        <Combobox
+                            onValueChange={handleMaxDepthChange}
+                            options={depthOptions}
+                            placeholder="Tiefe wählen"
+                            value={maxDepth?.toString() ?? 'none'}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

@@ -13,6 +13,7 @@ export const layoutElk = async (
 	nodes: Node[],
 	edges: Edge[],
 	algorithm: LayoutAlgorithm = LayoutAlgorithm.elkLayeredTB,
+    showGroupTypes = false,
 ): Promise<{ edges: Edge[]; nodes: Node[]; }> => {
     let elkAlgorithm = 'layered';
     let direction = 'DOWN';
@@ -33,7 +34,7 @@ export const layoutElk = async (
             const hasMembers = data.roles.some((role) => 
                 data.members.some((member) => member.groupTypeRoleId === role.id)
             );
-            const height = Math.max(getReflowGroupNodeHeight(data.metadata, data.title, hasMembers), hasMembers ? 150 : 80);
+            const height = Math.max(getReflowGroupNodeHeight(data.metadata, data.title, hasMembers, showGroupTypes), hasMembers ? 150 : 80);
 
             return {
                 height,

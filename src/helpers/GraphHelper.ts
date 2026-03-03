@@ -22,11 +22,13 @@ export const getGroupNodeHeight = (groupMemberString: string, groupTitleString: 
 export const getGroupMetadataHeight = (groupMemberString: string) =>
 	groupMetadataFontSize * 1.5 * groupMemberString.split('\n').length;
 
-export const getReflowGroupNodeHeight = (groupMemberString: string, groupTitleString: string, hasMembers = true) => {
-	if (!hasMembers) {
-		return 60 + (groupTitleString.split('\n').length * 20);
-	}
-	return reflowLineHeight * (groupMemberString.split('\n').length + groupTitleString.split('\n').length + 2);
+export const getReflowGroupNodeHeight = (groupMemberString: string, groupTitleString: string, hasMembers = true, showGroupTypes = false) => {
+	const baseHeight = hasMembers 
+		? reflowLineHeight * (groupMemberString.split('\n').length + groupTitleString.split('\n').length + 2)
+		: 60 + (groupTitleString.split('\n').length * 20);
+	
+	// Add space for group type if shown
+	return showGroupTypes ? baseHeight + 20 : baseHeight;
 };
 
 export const getGroupNodeIdentifier = (group: Group) => `group-${String(group.id)}`;

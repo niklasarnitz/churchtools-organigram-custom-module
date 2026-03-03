@@ -11,33 +11,6 @@ import type {
 
 const EXTENSION_KEY = (import.meta.env.VITE_KEY as string | undefined) ?? 'organigram';
 
-function safeParseJSON(json: null | string | undefined): unknown {
-    if (!json) return undefined;
-    try {
-        return JSON.parse(json);
-    } catch {
-        return undefined;
-    }
-}
-
-async function createModule(
-    extensionkey: string,
-    name: string,
-    description: string
-): Promise<CustomModule> {
-    const createData: CustomModuleCreate = {
-        description,
-        name,
-        shorty: extensionkey,
-        sortKey: 100,
-    };
-
-    return await churchtoolsClient.post<CustomModule>(
-        '/custommodules',
-        createData
-    );
-}
-
 export async function getModule(
     extensionkey: string = EXTENSION_KEY,
 ): Promise<CustomModule> {
@@ -68,12 +41,16 @@ export async function getOrCreateCustomDataCategory(
     );
 
     const category = categories.find(c => c.shorty === shorty);
-    if (category) return category;
+    if (category) {
+        return { ...category, moduleId: mId };
+    }
 
-    return await churchtoolsClient.post(
+    const newCategory = await churchtoolsClient.post<CustomModuleDataCategory>(
         `/custommodules/${String(mId)}/customdatacategories`,
-        { data: "{}", name, shorty } as CustomModuleDataCategoryCreate
+        { customModuleId: mId, data: "{}", name, shorty } as CustomModuleDataCategoryCreate & { customModuleId: number }
     );
+
+    return { ...newCategory, moduleId: mId };
 }
 
 export async function getOrCreateModule(
@@ -88,7 +65,7 @@ export async function getOrCreateModule(
     }
 }
 
-export async function getUserSettings<T extends object>(
+export async function getUserSettings<T>(
     categoryShorty: string,
     categoryName: string
 ): Promise<T | undefined> {
@@ -99,10 +76,9 @@ export async function getUserSettings<T extends object>(
         `/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues`,
     );
 
-    const userValue = values[0];
-    if (!userValue) return undefined;
+    const userValue: CustomModuleDataValue | undefined = values[0];
 
-    return safeParseJSON(userValue.value) as T | undefined;
+    return safeParseJSON(userValue ? userValue.value : undefined) as T | undefined;
 }
 
 export async function saveUserSettings<T extends object>(
@@ -117,27 +93,55 @@ export async function saveUserSettings<T extends object>(
         `/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues`,
     );
 
-    const userValue = values[0];
+    const userValue: CustomModuleDataValue | undefined = values[0];
     const valueStr = JSON.stringify(settings);
 
     if (userValue) {
         await churchtoolsClient.put(
             `/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues/${String(userValue.id)}`,
-            { value: valueStr }
+            { customModuleId: mId, value: valueStr } as { customModuleId: number; value: string }
         );
     } else {
         await churchtoolsClient.post(
             `/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues`,
             {
+                customModuleId: mId,
                 dataCategoryId: category.id,
                 value: valueStr
-            } as CustomModuleDataValueCreate
+            } as CustomModuleDataValueCreate & { customModuleId: number }
         );
     }
+}
+
+async function createModule(
+    extensionkey: string,
+    name: string,
+    description: string
+): Promise<CustomModule> {
+    const createData: CustomModuleCreate = {
+        description,
+        name,
+        shorty: extensionkey,
+        sortKey: 100,
+    };
+
+    return await churchtoolsClient.post<CustomModule>(
+        '/custommodules',
+        createData
+    );
 }
 
 async function resolveModuleId(moduleId?: number): Promise<number> {
     if (moduleId) return moduleId;
     const module = await getOrCreateModule();
     return module.id;
+}
+
+function safeParseJSON(json: null | string | undefined): unknown {
+    if (!json) return undefined;
+    try {
+        return JSON.parse(json);
+    } catch {
+        return undefined;
+    }
 }

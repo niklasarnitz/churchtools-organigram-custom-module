@@ -7,38 +7,44 @@ import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
 export interface PendingExport {
     fileName: string;
-    type: 'graphml' | 'pdf' | 'png';
+    type: 'graphml' | 'pdf' | 'png' | 'svg';
 }
 
 interface GroupState {
     baseUrl: string | undefined;
     excludedGroups: number[];
-
     excludedGroupTypes: number[];
+
     excludedRoles: number[];
 
     groupIdToStartWith: string | undefined;
+    hideIndirectSubgroups: boolean;
     isExporting: boolean;
     layoutAlgorithm: LayoutAlgorithm;
+    maxDepth: number | undefined;
 
     pendingExport: PendingExport | undefined;
 
     setAllSettings: (settings: Partial<UserSettings>) => void;
     setBaseUrl: (url: string | undefined) => void;
     setExcludedGroups: (groups: string | string[]) => void;
-
     setExcludedGroupTypes: (groups: string | string[]) => void;
+
     setExcludedRoles: (roles: string | string[]) => void;
 
     setGroupIdToStartWith: (groupId?: number | string  ) => void;
+    setHideIndirectSubgroups: (hide: boolean) => void;
     setIsExporting: (isExporting: boolean) => void;
     setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
+    setMaxDepth: (depth: number | undefined) => void;
 
     setPendingExport: (pendingExport: PendingExport | undefined) => void;
 
     setShowGroupTypes: (show: boolean) => void;
+    setShowOnlyDirectChildren: (show: boolean) => void;
     // Display Options
     showGroupTypes: boolean;
+    showOnlyDirectChildren: boolean;
 }
 
 export const useAppStore = create<GroupState>((set) => ({
@@ -49,10 +55,12 @@ export const useAppStore = create<GroupState>((set) => ({
     excludedRoles: [] as number[],
 
     groupIdToStartWith: undefined,
+    hideIndirectSubgroups: false,
 
     isExporting: false,
 
     layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+    maxDepth: undefined,
 
     pendingExport: undefined,
 
@@ -65,19 +73,50 @@ export const useAppStore = create<GroupState>((set) => ({
         set({ baseUrl: url });
     },
 
-    setExcludedGroups: (groups: string | string[]) =>
-        { set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }); },
-    setExcludedGroupTypes: (groups: string | string[]) =>
-        { set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }); },
-    setExcludedRoles: (roles: string | string[]) =>
-        { set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }); },
-    setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) =>
-        { set({ groupIdToStartWith: groupIdToStartWith?.toString() }); },
-    setIsExporting: (isExporting: boolean) => { set({ isExporting }); },
-    setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => { set({ layoutAlgorithm: algorithm }); },
+    setExcludedGroups: (groups: string | string[]) => {
+        set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+    },
 
-    setPendingExport: (pendingExport: PendingExport | undefined) => { set({ pendingExport }); },
+    setExcludedGroupTypes: (groups: string | string[]) => {
+        set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+    },
 
-    setShowGroupTypes: (show: boolean) => { set({ showGroupTypes: show }); },
-    showGroupTypes: false,
+    setExcludedRoles: (roles: string | string[]) => {
+        set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
+    },
+
+    setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
+        set({ groupIdToStartWith: groupIdToStartWith?.toString() });
+    },
+
+    setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
+        set({ hideIndirectSubgroups });
+    },
+
+    setIsExporting: (isExporting: boolean) => {
+        set({ isExporting });
+    },
+
+    setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
+        set({ layoutAlgorithm: algorithm });
+    },
+
+    setMaxDepth: (maxDepth: number | undefined) => {
+        set({ maxDepth });
+    },
+
+    setPendingExport: (pendingExport: PendingExport | undefined) => {
+        set({ pendingExport });
+    },
+
+    setShowGroupTypes: (show: boolean) => {
+        set({ showGroupTypes: show });
+    },
+
+    setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
+        set({ showOnlyDirectChildren });
+    },
+
+    showGroupTypes: true,
+    showOnlyDirectChildren: false,
 }));
