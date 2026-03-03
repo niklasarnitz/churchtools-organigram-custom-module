@@ -2,6 +2,6 @@ import { useEffect } from "react";
 
 export const useCustomModuleTitleBar = () => {
     useEffect(() => {
-        document.title = `${document.title.replaceAll(' Organigram', '')} Organigramm`
+        document.title = `${document.title.replaceAll(' Organigram', '').replaceAll("Organigramm", '')} Organigramm`
     }, [window.location]);
 }
