@@ -1,18 +1,18 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  :root {
-    color-scheme: light dark;
-  }
+	:root {
+		color-scheme: light dark;
+	}
 
-  html {
-    @apply h-full w-full bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50;
-  }
+	html {
+		@apply h-full w-full bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50;
+	}
 
-  body {
-    @apply h-full w-full bg-inherit text-inherit antialiased;
-  }
+	body {
+		@apply h-full w-full bg-inherit text-inherit antialiased;
+	}
 }

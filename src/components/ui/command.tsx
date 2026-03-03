@@ -43,7 +43,7 @@ const CommandList = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
 >(({ className, ...props }, ref) => (
 	<CommandPrimitive.List
-		className={cn('max-h-[300px] overflow-y-auto overflow-x-hidden', className)}
+		className={cn('max-h-[300px] overflow-x-hidden overflow-y-auto', className)}
 		ref={ref}
 		{...props}
 	/>
@@ -54,9 +54,7 @@ CommandList.displayName = CommandPrimitive.List.displayName;
 const CommandEmpty = React.forwardRef<
 	React.ComponentRef<typeof CommandPrimitive.Empty>,
 	React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
->((props, ref) => (
-	<CommandPrimitive.Empty className="py-6 text-center text-sm" ref={ref} {...props} />
-));
+>((props, ref) => <CommandPrimitive.Empty className="py-6 text-center text-sm" ref={ref} {...props} />);
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 
@@ -94,7 +92,7 @@ const CommandItem = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<CommandPrimitive.Item
 		className={cn(
-			"relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-slate-900 outline-none data-[disabled='true']:pointer-events-none data-[selected='true']:bg-slate-100 data-[selected='true']:text-slate-900 data-[disabled='true']:opacity-50 dark:text-slate-100 dark:data-[selected='true']:bg-slate-800 dark:data-[selected='true']:text-slate-50",
+			"relative flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm text-slate-900 outline-none select-none data-[disabled='true']:pointer-events-none data-[disabled='true']:opacity-50 data-[selected='true']:bg-slate-100 data-[selected='true']:text-slate-900 dark:text-slate-100 dark:data-[selected='true']:bg-slate-800 dark:data-[selected='true']:text-slate-50",
 			className,
 		)}
 		ref={ref}

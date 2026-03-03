@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import { arrayToIndexedObject } from "../helpers/arrayToIndexedObject";
-import { useGroupTypes } from "../queries/useGroupTypes";
+import { arrayToIndexedObject } from '../helpers/arrayToIndexedObject';
+import { useGroupTypes } from '../queries/useGroupTypes';
 
 export const useGroupTypesById = () => {
-    const { data: groupTypes } = useGroupTypes();
+	const { data: groupTypes } = useGroupTypes();
 
-    return useMemo(() => arrayToIndexedObject(groupTypes ?? [], 'id'), [groupTypes])
-}
+	return useMemo(() => arrayToIndexedObject(groupTypes ?? [], 'id'), [groupTypes]);
+};

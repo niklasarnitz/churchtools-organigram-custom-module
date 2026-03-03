@@ -3,14 +3,7 @@ import * as React from 'react';
 
 import { cn } from '../../lib/utils';
 import { Button } from './button';
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from './command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './command';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 export interface ComboboxOption {
@@ -55,16 +48,11 @@ export function Combobox({ className, onValueChange, options, placeholder, value
 							{options.map((option) => (
 								<CommandItem
 									key={option.value}
-									onSelect={(currentValue) => {
-										// cmdk returns lowercase label if no value is provided, but here we have explicit values
-										// We need to find the option by label if currentValue is the label
-										const selectedOption = options.find(o => 
-                                            o.value === currentValue || o.label.toLowerCase() === currentValue.toLowerCase()
-                                        );
-										onValueChange(selectedOption?.value === value ? '' : (selectedOption?.value ?? ''));
+									onSelect={() => {
+										onValueChange(option.value === value ? '' : option.value);
 										setOpen(false);
 									}}
-									value={option.value}
+									value={option.label}
 								>
 									<Check
 										className={cn(

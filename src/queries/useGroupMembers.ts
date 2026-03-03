@@ -5,11 +5,12 @@ import type { GroupMember } from '../types/GroupMember';
 
 import { Logger } from '../globals/Logger';
 
-export const useGroupMembers = () => useQuery({
-    queryFn: async () => {
-        Logger.log('API: Fetching group members');
+export const useGroupMembers = () =>
+	useQuery({
+		queryFn: async () => {
+			Logger.log('API: Fetching group members');
 
-        return churchtoolsClient.get<GroupMember[]>(`/groups/members`)
-    },
-    queryKey: ['groupMembers']
-})
+			return churchtoolsClient.get<GroupMember[]>(`/groups/members`);
+		},
+		queryKey: ['groupMembers'],
+	});

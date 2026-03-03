@@ -4,14 +4,7 @@ import * as React from 'react';
 import { cn } from '../../lib/utils';
 import { Badge } from './badge';
 import { Button } from './button';
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from './command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './command';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 export interface MultiSelectOption {
@@ -66,7 +59,6 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 								const option = options.find((o) => o.value === v);
 								return (
 									<Badge
-										className="mr-1 mb-1"
 										key={v}
 										onClick={(e) => {
 											e.stopPropagation();
@@ -75,7 +67,7 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 										variant="secondary"
 									>
 										{option?.label ?? v}
-										<X className="ml-1 h-3 w-3 hover:text-destructive" />
+										<X className="hover:text-destructive ml-1 h-3 w-3" />
 									</Badge>
 								);
 							})
@@ -98,7 +90,7 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 									onSelect={() => {
 										handleSelect(option.value);
 									}}
-									value={option.value}
+									value={option.label}
 								>
 									<Check
 										className={cn(
