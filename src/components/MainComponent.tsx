@@ -35,6 +35,7 @@ export const MainComponent = React.memo(() => {
 
     const groupRoles = groupRolesQuery.data;
     const isInitialLoad = useRef(true);
+    const hasAppliedDefaultRoles = useRef(false);
 
     // Helper values
     const isLoading =
@@ -84,16 +85,32 @@ export const MainComponent = React.memo(() => {
 
     // Default excluded roles logic (only if no roles are excluded yet and settings aren't loaded)
     useEffect(() => {
-        if (isInitialLoad.current || isSettingsLoading) return;
+        if (isInitialLoad.current || isSettingsLoading || hasAppliedDefaultRoles.current) return;
         
-        if (groupRoles && groupRoles.length > 0 && excludedRoles.length === 0) {
-            const newExcluded = groupRoles
-                .filter((role) => !role.isLeader)
-                .map((role) => String(role.id));
-            Logger.log(`[MainComponent] Setting default excludedRoles to ${String(newExcluded.length)} items:`, newExcluded);
-            setExcludedRoles(newExcluded);
+        const params = new URLSearchParams(window.location.search);
+        const hasPersistedSettings = !!persistedSettings;
+        const hasUrlSettings = 
+            params.has('start') || 
+            params.has('excludedGroups') || 
+            params.has('excludedGroupTypes') || 
+            params.has('excludedRoles') ||
+            params.has('includedGroups');
+
+        if (!hasPersistedSettings && !hasUrlSettings) {
+            if (groupRoles && groupRoles.length > 0) {
+                const newExcluded = groupRoles
+                    .filter((role) => !role.isLeader)
+                    .map((role) => String(role.id));
+                Logger.log(`[MainComponent] Setting default excludedRoles to ${String(newExcluded.length)} items:`, newExcluded);
+                setExcludedRoles(newExcluded);
+                hasAppliedDefaultRoles.current = true;
+            } else if (groupRolesQuery.isFetched) {
+                hasAppliedDefaultRoles.current = true;
+            }
+        } else {
+            hasAppliedDefaultRoles.current = true;
         }
-    }, [groupRoles, excludedRoles.length, setExcludedRoles, isSettingsLoading]);
+    }, [groupRoles, groupRolesQuery.isFetched, setExcludedRoles, isSettingsLoading, persistedSettings]);
 
     useEffect(() => {
         Logger.log('[MainComponent] MOUNTED');
