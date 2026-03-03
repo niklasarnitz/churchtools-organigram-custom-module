@@ -11,7 +11,6 @@ import { useAppStore } from '../../state/useAppStore';
 import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { ExclusionFilters } from './ExclusionFilters';
-import { GroupSearch } from './GroupSearch';
 import { LayoutSelect } from './LayoutSelect';
 import { StartGroupSelect } from './StartGroupSelect';
 
@@ -22,6 +21,8 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const generateGraphMLData = useGenerateGraphMLData();
     const data = useGenerateReflowData();
 
+    const isExporting = useAppStore((s) => s.isExporting);
+    const pendingExport = useAppStore((s) => s.pendingExport);
     const setPendingExport = useAppStore((s) => s.setPendingExport);
 
     const orphanedGroups = useMemo(() => {
@@ -72,7 +73,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
         <div className="h-full overflow-y-auto rounded-md border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 shadow-sm">
             <StartGroupSelect />
             <LayoutSelect />
-            <GroupSearch />
             <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
             <ExclusionFilters />
             
@@ -91,18 +91,45 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     </div>
                 )}
 
-                <Button className="w-full" onClick={didPressDownloadGraphML} variant="outline">
-                    <Download className="size-4" />
+                <Button 
+                    className="w-full" 
+                    disabled={isExporting} 
+                    onClick={didPressDownloadGraphML} 
+                    variant="outline"
+                >
+                    {isExporting && pendingExport?.type === 'graphml' ? (
+                        <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                        <Download className="size-4" />
+                    )}
                     Export als GraphML Datei
                 </Button>
 
                 <div className="flex gap-2">
-                    <Button className="grow" onClick={didPressDownloadPNG} variant="outline">
-                        <Image className="size-4" />
+                    <Button 
+                        className="grow" 
+                        disabled={isExporting} 
+                        onClick={didPressDownloadPNG} 
+                        variant="outline"
+                    >
+                        {isExporting && pendingExport?.type === 'png' ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <Image className="size-4" />
+                        )}
                         PNG
                     </Button>
-                    <Button className="grow" onClick={didPressDownloadPDF} variant="outline">
-                        <FileText className="size-4" />
+                    <Button 
+                        className="grow" 
+                        disabled={isExporting} 
+                        onClick={didPressDownloadPDF} 
+                        variant="outline"
+                    >
+                        {isExporting && pendingExport?.type === 'pdf' ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <FileText className="size-4" />
+                        )}
                         PDF (A4)
                     </Button>
                 </div>
