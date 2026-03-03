@@ -1,22 +1,17 @@
-import './index.css';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import moment from 'moment';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-
 import { App } from './App';
 import { Logger } from './globals/Logger';
+import './index.css';
 import { fetchPermissions } from './queries/usePermissions';
 import { useAppStore } from './state/useAppStore';
 
 const start = async () => {
     moment.locale('de');
-    const permissions = await fetchPermissions();
 
-    if (!permissions.churchcore['administer persons']) {
-        alert('churchtools-organigram-custom-module: You do not have the permission to administer persons. This right is needed to use this module.');
-        return;
-    }
+    await fetchPermissions();
 
     const rootElement = document.querySelector('#root');
 
