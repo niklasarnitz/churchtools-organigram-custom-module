@@ -3,6 +3,7 @@ import 'reactflow/dist/style.css';
 import { MainComponent } from "./components/MainComponent";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactFlowProvider } from "reactflow";
+import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 
 let queryClient: QueryClient;
 
@@ -21,6 +22,8 @@ function getQueryClient() {
 }
 
 export const App = () => {
+    useChurchToolsTheme();
+
     return (
         <QueryClientProvider client={getQueryClient()}>
             <ReactFlowProvider>
