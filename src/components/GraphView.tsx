@@ -5,7 +5,7 @@ import type { Node } from 'reactflow';
 import { toPng, toSvg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import moment from 'moment';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
 import ReactFlow, { Background, Controls, MiniMap, Panel, useReactFlow } from 'reactflow';
 import { svg2pdf } from 'svg2pdf.js';
@@ -39,6 +39,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const setPendingExport = useAppStore((s) => s.setPendingExport);
     const setIsExporting = useAppStore((s) => s.setIsExporting);
     const { fitView } = useReactFlow();
+    const lastProcessedExportRef = useRef<string | null>(null);
 
     const clearPendingExport = useCallback(() => {
         setPendingExport(undefined);
@@ -59,7 +60,14 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
     // Handle pending exports after data has settled from group change
     useEffect(() => {
-        if (!pendingExport) return;
+        if (!pendingExport) {
+            lastProcessedExportRef.current = null;
+            return;
+        }
+
+        const exportId = `${pendingExport.type}-${pendingExport.fileName}`;
+        if (lastProcessedExportRef.current === exportId) return;
+        lastProcessedExportRef.current = exportId;
 
         setIsExporting(true);
 
@@ -165,7 +173,7 @@ export const GraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
                 }
             }, 200);
         }
-    }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, data, setIsExporting]);
+    }, [pendingExport, generateGraphMLData, setGroupIdToStartWith, clearPendingExport, setIsExporting]);
 
     const downloadGroupOrganigramAsGraphML = useCallback((groupId: number) => {
         const groupName = groupsById[groupId]?.name ?? 'Unknown Group';

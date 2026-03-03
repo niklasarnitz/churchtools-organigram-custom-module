@@ -84,7 +84,7 @@ export const FloatingHeader = React.memo(() => {
                             </Command.Empty>
                             {sortedNodes.map((node) => (
                                 <Command.Item
-                                    className="flex cursor-default select-none items-center rounded-lg px-3 py-2 text-sm outline-none aria-selected:bg-blue-50 aria-selected:text-blue-900 dark:aria-selected:bg-blue-900/20 dark:aria-selected:text-blue-400"
+                                    className="flex cursor-default select-none items-center rounded-lg px-3 py-2 text-sm text-slate-900 outline-none aria-selected:bg-blue-50 aria-selected:text-blue-900 dark:text-slate-100 dark:aria-selected:bg-blue-900/20 dark:aria-selected:text-blue-400"
                                     key={node.id}
                                     onSelect={() => {
                                         handleSelect(node.id);
@@ -92,7 +92,7 @@ export const FloatingHeader = React.memo(() => {
                                     value={node.data.title}
                                 >
                                     {node.data.title}
-                                    <span className="ml-auto text-[10px] text-slate-400">
+                                    <span className="ml-auto text-[10px] text-slate-500 dark:text-slate-400">
                                         {node.data.groupTypeName}
                                     </span>
                                 </Command.Item>

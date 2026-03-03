@@ -27,7 +27,7 @@ const CommandInput = React.forwardRef<
 		<Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
 		<CommandPrimitive.Input
 			className={cn(
-				'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder:text-slate-400',
+				'flex h-10 w-full rounded-md bg-transparent py-3 text-sm text-slate-900 outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-100 dark:placeholder:text-slate-400',
 				className,
 			)}
 			ref={ref}
@@ -94,7 +94,7 @@ const CommandItem = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<CommandPrimitive.Item
 		className={cn(
-			"relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled='true']:pointer-events-none data-[selected='true']:bg-slate-100 data-[selected='true']:text-slate-900 data-[disabled='true']:opacity-50 dark:data-[selected='true']:bg-slate-800 dark:data-[selected='true']:text-slate-50",
+			"relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-slate-900 outline-none data-[disabled='true']:pointer-events-none data-[selected='true']:bg-slate-100 data-[selected='true']:text-slate-900 data-[disabled='true']:opacity-50 dark:text-slate-100 dark:data-[selected='true']:bg-slate-800 dark:data-[selected='true']:text-slate-50",
 			className,
 		)}
 		ref={ref}

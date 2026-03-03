@@ -52,6 +52,13 @@ export const PreviewGraphNode = React.memo(({ data }: PreviewGraphNodeProps) => 
                         <div className="mt-1 flex flex-wrap gap-1">
                             {personsInRole.map(member => {
                                 const person = data.personsById[member.personId];
+                                if (!person) {
+                                    return (
+                                        <Badge className="text-md" key={member.personId} variant="secondary">
+                                            Unknown Person
+                                        </Badge>
+                                    );
+                                }
                                 const name = `${person.firstName} ${person.lastName}`;
                                 return (
                                     <Badge className="text-md" key={member.personId} variant="secondary">
