@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import React, { useEffect } from 'react';
 
 import { Logger } from '../globals/Logger';
+import { useGroupMembers } from '../queries/useGroupMembers';
 import { useGroupRoles } from '../queries/useGroupRoles';
 import { useGroups } from '../queries/useGroups';
 import { useGroupTypes } from '../queries/useGroupTypes';
@@ -20,6 +21,7 @@ export const MainComponent = React.memo(() => {
     const groupsQuery = useGroups();
     const groupTypesQuery = useGroupTypes();
     const groupRolesQuery = useGroupRoles();
+    const groupMembersQuery = useGroupMembers();
     const hierarchiesQuery = useHierarchies();
     const personsQuery = usePersons();
 
@@ -30,6 +32,7 @@ export const MainComponent = React.memo(() => {
         groupsQuery.isLoading ||
         groupTypesQuery.isLoading ||
         groupRolesQuery.isLoading ||
+        groupMembersQuery.isLoading ||
         hierarchiesQuery.isLoading ||
         personsQuery.isLoading;
 
