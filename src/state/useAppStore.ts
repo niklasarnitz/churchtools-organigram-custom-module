@@ -1,165 +1,127 @@
-import { LayoutAlgorithm } from '../models/LayoutAlgorithm';
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
-import { fetchGroupMembers } from '../api/routes/fetchGroupMembers';
-import { fetchGroupRoles } from '../api/routes/fetchGroupRoles';
-import { fetchGroupTypes } from '../api/routes/fetchGroupTypes';
-import { fetchGroups } from '../api/routes/fetchGroups';
-import { fetchHierarchies } from '../api/routes/fetchHierarchies';
-import { fetchPersons } from '../api/routes/fetchPersons';
-import _ from 'lodash';
-import type { Group } from '../models/Group';
-import type { GroupMember } from '../models/GroupMember';
-import type { GroupRole } from '../models/GroupRole';
-import type { GroupType } from '../models/GroupType';
-import type { Hierarchy } from '../models/Hierarchy';
-import type { Person } from '../models/Person';
 
-type GroupState = {
-	persons: Person[];
-	personsById: Record<number, Person>;
-	groups: Group[];
-	groupsById: Record<number, Group>;
-	groupMembers: GroupMember[];
-	groupMembersByGroup: Record<number, GroupMember[]>;
-	hierarchies: Hierarchy[];
-	hierarchiesByGroup: Record<number, Hierarchy>;
-	isLoading: boolean;
-	groupTypes: GroupType[];
-	groupTypesById: Record<number, GroupType>;
-	groupRoles: GroupRole[];
-	groupRolesByType: Record<number, GroupRole[]>;
+import type { UserSettings } from '../hooks/useUserSettings';
 
-	excludedRoles: number[];
-	setExcludedRoles: (roles: string | string[]) => void;
+import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
-	excludedGroupTypes: number[];
-	setExcludedGroupTypes: (groups: string | string[]) => void;
+export interface PendingExport {
+    fileName: string;
+    type: 'graphml' | 'pdf' | 'png' | 'svg';
+}
 
-	excludedGroups: number[];
-	setExcludedGroups: (groups: string | string[]) => void;
+interface GroupState {
+    baseUrl: string | undefined;
+    excludedGroups: number[];
+    excludedGroupTypes: number[];
+    excludedRoles: number[];
 
-	// Display Options
-	showGroupTypes: boolean;
-	setShowGroupTypes: (show: boolean) => void;
+    groupIdToStartWith: string | undefined;
+    hideIndirectSubgroups: boolean;
+    includedGroups: number[];
+    isExporting: boolean;
+    layoutAlgorithm: LayoutAlgorithm;
+    maxDepth: number | undefined;
 
-	groupIdToStartWith: string | undefined;
-	setGroupIdToStartWith: (groupId: string | string[] | undefined) => void;
+    pendingExport: PendingExport | undefined;
 
-	layoutAlgorithm: LayoutAlgorithm;
-	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
+    setAllSettings: (settings: Partial<UserSettings>) => void;
+    setBaseUrl: (url: string | undefined) => void;
+    setExcludedGroups: (groups: string | string[]) => void;
+    setExcludedGroupTypes: (groups: string | string[]) => void;
 
-	baseUrl: string | undefined;
-	setBaseUrl: (url: string | undefined) => void;
+    setExcludedRoles: (roles: string | string[]) => void;
 
-	// Fetching
-	fetchGroups: (withMembers?: boolean) => Promise<void>;
-	fetchHierarchies: () => Promise<void>;
-	fetchPersons: () => Promise<void>;
-	fetchGroupRoles: () => Promise<void>;
-	fetchGroupTypes: () => Promise<void>;
-};
+    setGroupIdToStartWith: (groupId?: number | string  ) => void;
+    setHideIndirectSubgroups: (hide: boolean) => void;
+    setIncludedGroups: (groups: string | string[]) => void;
+    setIsExporting: (isExporting: boolean) => void;
+    setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
+    setMaxDepth: (depth: number | undefined) => void;
 
-export const useAppStore = create<GroupState>((set, get) => ({
-	isLoading: false,
-	persons: [] as Person[],
-	personsById: {} as Record<number, Person>,
-	groups: [] as Group[],
-	groupsById: {} as Record<number, Group>,
-	groupMembers: [] as GroupMember[],
-	groupMembersByGroup: {} as Record<number, GroupMember[]>,
-	hierarchies: [] as Hierarchy[],
-	hierarchiesByGroup: {} as Record<number, Hierarchy>,
-	groupTypes: [] as GroupType[],
-	groupTypesById: {} as Record<number, GroupType>,
-	groupRoles: [] as GroupRole[],
-	groupRolesByType: {} as Record<number, GroupRole[]>,
-	excludedRoles: [] as number[],
-	excludedGroupTypes: [] as number[],
-	excludedGroups: [] as number[],
+    setPendingExport: (pendingExport: PendingExport | undefined) => void;
 
-	showGroupTypes: false,
+    setShowGroupTypes: (show: boolean) => void;
+    setShowOnlyDirectChildren: (show: boolean) => void;
+    // Display Options
+    showGroupTypes: boolean;
+    showOnlyDirectChildren: boolean;
+}
 
-	groupIdToStartWith: undefined,
+export const useAppStore = create<GroupState>((set) => ({
+    baseUrl: undefined,
+    excludedGroups: [] as number[],
+    excludedGroupTypes: [] as number[],
+    excludedRoles: [] as number[],
 
-	layoutAlgorithm: LayoutAlgorithm.dagre,
+    groupIdToStartWith: undefined,
+    hideIndirectSubgroups: false,
+    includedGroups: [] as number[],
 
-	baseUrl: undefined,
+    isExporting: false,
 
-	fetchGroups: async (withMembers: boolean = true) => {
-		set({ isLoading: true });
-		const groups = await fetchGroups();
+    layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+    maxDepth: undefined,
 
-		if (groups) set({ groups, groupsById: Object.fromEntries(groups.map((group) => [group.id, group])) });
+    pendingExport: undefined,
 
-		if (withMembers) {
-			const groupMembers = await fetchGroupMembers();
+    setAllSettings: (settings: Partial<UserSettings>) => {
+        set((state) => ({ ...state, ...settings }));
+    },
 
-			if (groupMembers) {
-				set({ groupMembers });
+    setBaseUrl: (url: string | undefined) => {
+        churchtoolsClient.setBaseUrl(url ?? '');
+        set({ baseUrl: url });
+    },
 
-				const groupMembersByGroup = {} as Record<number, GroupMember[]>;
+    setExcludedGroups: (groups: string | string[]) => {
+        set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+    },
 
-				for (const member of groupMembers) {
-					if (!groupMembersByGroup[member.groupId]) groupMembersByGroup[member.groupId] = [];
-					groupMembersByGroup[member.groupId].push(member);
-				}
+    setExcludedGroupTypes: (groups: string | string[]) => {
+        set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+    },
 
-				set({ groupMembersByGroup });
-			}
-		}
+    setExcludedRoles: (roles: string | string[]) => {
+        set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
+    },
 
-		set({ isLoading: false });
-	},
-	fetchHierarchies: async () => {
-		set({ isLoading: true });
-		const hierarchies = await fetchHierarchies();
-		if (hierarchies)
-			set({
-				hierarchies,
-				hierarchiesByGroup: Object.fromEntries(hierarchies.map((hierarchy) => [hierarchy.groupId, hierarchy])),
-			});
-		set({ isLoading: false });
-	},
-	fetchPersons: async () => {
-		set({ isLoading: true });
-		const persons = await fetchPersons();
-		if (persons) set({ persons, personsById: Object.fromEntries(persons.map((person) => [person.id, person])) });
-		set({ isLoading: false });
-	},
-	fetchGroupTypes: async () => {
-		set({ isLoading: true });
-		const groupTypes = await fetchGroupTypes();
-		if (groupTypes)
-			set({
-				groupTypes,
-				groupTypesById: Object.fromEntries(groupTypes.map((groupType) => [groupType.id, groupType])),
-			});
-		set({ isLoading: false });
-	},
-	fetchGroupRoles: async () => {
-		set({ isLoading: true });
-		const groupRoles = await fetchGroupRoles();
-		if (groupRoles)
-			set({
-				groupRoles,
-				groupRolesByType: _.groupBy(groupRoles, 'groupTypeId'),
-			});
-		set({ isLoading: false });
-	},
-	setExcludedRoles: (roles: string | string[]) =>
-		set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) }),
-	setExcludedGroupTypes: (groups: string | string[]) =>
-		set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
-	setExcludedGroups: (groups: string | string[]) =>
-		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) }),
-	setShowGroupTypes: (show: boolean) => set({ showGroupTypes: show }),
-	setGroupIdToStartWith: (groupIdToStartWith: string | string[] | undefined) =>
-		typeof groupIdToStartWith === 'string' ? set({ groupIdToStartWith }) : set({ groupIdToStartWith: undefined }),
+    setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
+        set({ groupIdToStartWith: groupIdToStartWith?.toString() });
+    },
 
-	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => set({ layoutAlgorithm: algorithm }),
-	setBaseUrl: (url: string | undefined) => {
-		churchtoolsClient.setBaseUrl(url ?? '');
-		set({ baseUrl: url });
-	},
+    setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
+        set({ hideIndirectSubgroups });
+    },
+
+    setIncludedGroups: (groups: string | string[]) => {
+        set({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+    },
+
+    setIsExporting: (isExporting: boolean) => {
+        set({ isExporting });
+    },
+
+    setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
+        set({ layoutAlgorithm: algorithm });
+    },
+
+    setMaxDepth: (maxDepth: number | undefined) => {
+        set({ maxDepth });
+    },
+
+    setPendingExport: (pendingExport: PendingExport | undefined) => {
+        set({ pendingExport });
+    },
+
+    setShowGroupTypes: (show: boolean) => {
+        set({ showGroupTypes: show });
+    },
+
+    setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
+        set({ showOnlyDirectChildren });
+    },
+
+    showGroupTypes: true,
+    showOnlyDirectChildren: false,
 }));
