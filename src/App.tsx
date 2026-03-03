@@ -1,13 +1,13 @@
 import "@fontsource/lato";
-import 'reactflow/dist/style.css';
-import 'react-contexify/dist/ReactContexify.css';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import 'react-contexify/dist/ReactContexify.css';
 import { ReactFlowProvider } from "reactflow";
-
+import 'reactflow/dist/style.css';
 import { MainComponent } from "./components/MainComponent";
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
+import { useCustomModuleTitleBar } from "./hooks/useCustomModuleTitleBar";
 import { useSyncSettingsWithUrl } from './hooks/useSyncSettingsWithUrl';
 
 const queryClient = new QueryClient({
@@ -27,6 +27,7 @@ const persister = createAsyncStoragePersister({
 export const App = () => {
     useChurchToolsTheme();
     useSyncSettingsWithUrl();
+    useCustomModuleTitleBar();
 
     return (
         <PersistQueryClientProvider

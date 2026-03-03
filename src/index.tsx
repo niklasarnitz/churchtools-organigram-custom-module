@@ -36,7 +36,7 @@ if (import.meta.env.DEV) {
     Logger.log('Running in development mode.');
 
     // These environment variables are only available during local development
-    useAppStore.getState().setBaseUrl(import.meta.env.VITE_CTURL as string);
+    useAppStore.getState().setBaseUrl(import.meta.env.VITE_CT_URL as string);
 
     await churchtoolsClient.post('/login', {
         password: import.meta.env.VITE_CT_PASSWORD as string,
