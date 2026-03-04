@@ -1,26 +1,26 @@
 {
-  "versions": [
-    {
-      "version": "1.1.0",
-      "date": "2026-03-03",
-      "changes": [
-        "Major architectural migration from Create React App (CRA) to Vite and Bun",
-        "Upgraded to React 19 and TypeScript 5",
-        "Integrated Tailwind CSS v4 with @tailwindcss/vite",
-        "Migrated state management to Zustand v5",
-        "Implemented TanStack Query v5 for robust data fetching and persistence",
-        "Added support for persistent user settings (excluded groups, roles, group types, layout algorithm, start group) using local storage",
-        "Redesigned sidebar with collapsible sections and improved exclusion filters",
-        "Added Orphaned Groups Wizard to identify and manage disconnected groups",
-        "Switched to ELK.js as the primary layout engine for superior graph rendering",
-        "Added SVG export functionality for high-quality vector graphics",
-        "Refined GraphML export for better compatibility with external graph tools",
-        "Implemented URL synchronization for sharing specific graph views and settings",
-        "Modernized UI with Radix UI primitives and Lucide icons",
-        "Implemented dark mode support throughout the application",
-        "Modernized development environment with Flat ESLint Config, Prettier 3, and Husky",
-        "Added automated deployment scripts and GitHub Actions for CI/CD"
-      ]
-    }
-  ]
+	"versions": [
+		{
+			"version": "1.1.0",
+			"date": "2026-03-04",
+			"changes": [
+				"Major architectural migration from Create React App (CRA) to Vite and Bun",
+				"Upgraded to React 19 and TypeScript 5",
+				"Integrated Tailwind CSS v4 with @tailwindcss/vite",
+				"Migrated state management to Zustand v5",
+				"Implemented TanStack Query v5 for robust data fetching and persistence",
+				"Added support for persistent user settings (excluded groups, roles, group types, layout algorithm, start group) using local storage",
+				"Redesigned sidebar with collapsible sections and improved exclusion filters",
+				"Added Orphaned Groups Wizard to identify and manage disconnected groups",
+				"Switched to ELK.js as the primary layout engine for superior graph rendering",
+				"Added SVG export functionality for high-quality vector graphics",
+				"Refined GraphML export for better compatibility with external graph tools",
+				"Implemented URL synchronization for sharing specific graph views and settings",
+				"Modernized UI with Radix UI primitives and Lucide icons",
+				"Implemented dark mode support throughout the application",
+				"Modernized development environment with Flat ESLint Config, Prettier 3, and Husky",
+				"Added automated deployment scripts and GitHub Actions for CI/CD"
+			]
+		}
+	]
 }
