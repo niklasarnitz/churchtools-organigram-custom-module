@@ -1,6 +1,6 @@
 {
 	"name": "churchtools-organigram-custom-module",
-	"version": "0.1.0",
+	"version": "1.1.0",
 	"private": true,
 	"dependencies": {
 		"@churchtools/churchtools-client": "^1.6.0",
@@ -44,6 +44,7 @@
 		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo 'You can now upload the organigram.zip to your churchtools instance. Hint: Please keep in mind to use organigram as the shorty.'",
 		"preview": "vite preview",
 		"deploy": "bun scripts/deploy.ts",
+		"changelog": "bun scripts/generate-changelog.ts",
 		"lint": "eslint src/",
 		"ci": "bun run lint && bun run typecheck",
 		"typecheck": "tsc --noEmit",

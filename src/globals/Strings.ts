@@ -8,4 +8,6 @@ export const Strings = {
 	hideHelp: 'Hilfe ausblenden',
 	showHelp: 'Hilfe anzeigen',
 	versionTitle: 'Version',
+	changelogTitle: 'Changelog',
+	showChangelog: 'Changelog anzeigen',
 };

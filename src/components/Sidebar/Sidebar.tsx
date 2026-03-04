@@ -1,8 +1,9 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Download, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, History, Loader2 } from 'lucide-react';
 import moment from 'moment';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useReactFlow } from 'reactflow';
 
+import changelog from '../../changelog.json';
 import { Strings } from '../../globals/Strings';
 import { downloadTextFile } from '../../helpers/downloadTextFile';
 import { exportReactFlowToSVG } from '../../helpers/exportSvg';
@@ -13,6 +14,7 @@ import { useGroupsById } from '../../selectors/useGroupsById';
 import { useAppStore } from '../../state/useAppStore';
 import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
 import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
@@ -20,6 +22,7 @@ import { StartGroupSelect } from './StartGroupSelect';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 	const [isHelpOpen, setIsHelpOpen] = useState(false);
+	const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
 	const groupsById = useGroupsById();
 	const generateGraphMLData = useGenerateGraphMLData();
@@ -167,9 +170,46 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 				</Collapsible>
 
 				<div className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400">
-					<div>
-						<h6 className="font-semibold">{Strings.versionTitle}</h6>
-						<p>{import.meta.env.VITE_VERSION}</p>
+					<div className="flex items-end justify-between">
+						<div>
+							<h6 className="font-semibold">{Strings.versionTitle}</h6>
+							<p>{import.meta.env.VITE_VERSION}</p>
+						</div>
+						<Dialog onOpenChange={setIsChangelogOpen} open={isChangelogOpen}>
+							<DialogTrigger asChild>
+								<Button className="h-7 px-2 text-[10px]" size="sm" variant="outline">
+									<History className="mr-1 size-3" />
+									{Strings.showChangelog}
+								</Button>
+							</DialogTrigger>
+							<DialogContent className="max-w-md">
+								<DialogHeader>
+									<DialogTitle className="flex items-center gap-2">
+										<History className="size-5" />
+										{Strings.changelogTitle}
+									</DialogTitle>
+								</DialogHeader>
+								<div className="max-h-[60vh] overflow-y-auto pr-2">
+									{changelog.versions.map((v) => (
+										<div className="mb-6 last:mb-0" key={v.version}>
+											<div className="mb-2 flex items-baseline justify-between border-b border-slate-100 pb-1 dark:border-slate-800">
+												<span className="text-base font-bold text-slate-900 dark:text-slate-100">
+													v{v.version}
+												</span>
+												<span className="text-[10px] text-slate-500">{v.date}</span>
+											</div>
+											<ul className="list-inside list-disc space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+												{v.changes.map((change, i) => (
+													<li className="leading-relaxed" key={i}>
+														{change}
+													</li>
+												))}
+											</ul>
+										</div>
+									))}
+								</div>
+							</DialogContent>
+						</Dialog>
 					</div>
 					<div>
 						<h6 className="font-semibold">{Strings.aboutTitle}</h6>

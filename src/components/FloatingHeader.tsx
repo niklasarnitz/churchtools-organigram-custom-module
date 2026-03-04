@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { type Node, useReactFlow } from 'reactflow';
 
 import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
+import { ChangelogDialog } from './ChangelogDialog';
 import { type PreviewGraphNodeData } from './PreviewGraph/PreviewGraphNode';
 
 export const FloatingHeader = React.memo(() => {
@@ -49,6 +50,8 @@ export const FloatingHeader = React.memo(() => {
 			<div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 font-bold shadow-lg backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
 				<span className="text-blue-600 dark:text-blue-400">Organigramm</span>
 			</div>
+
+			<ChangelogDialog />
 
 			<div className="group relative flex-1">
 				<button
