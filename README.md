@@ -15,11 +15,11 @@ To run churchtools-organigram-custom-module locally, you need to create a .env f
 Then you can run the following commands:
 
 ```bash
-npm install
-npm start
+bun install
+bun run dev
 ```
 
-The project will then be reachable via `http://localhost:3000`.
+The project will then be reachable via `http://localhost:5173`.
 (Styling can be a bit broken, because ChurchTools' CSS is not loaded locally.)
 
 ## Building for production
@@ -27,7 +27,7 @@ The project will then be reachable via `http://localhost:3000`.
 To build the project for production, run the following command:
 
 ```bash
-npm run build:module
+bun run build:module
 ```
 
 You can then install the custom module in ChurchTools by uploading the `.zip` file.
