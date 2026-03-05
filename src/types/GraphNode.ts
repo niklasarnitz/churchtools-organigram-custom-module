@@ -1,8 +1,6 @@
-import type { URecord } from '@ainias42/js-helper';
 import type { Group } from './Group';
 import type { GroupMember } from './GroupMember';
 import type { GroupRole } from './GroupRole';
-import type { Person } from './Person';
 import type { getColorForGroupType } from '../globals/Colors';
 
 export interface GraphNode {
@@ -17,8 +15,8 @@ export interface PreviewGraphNodeData {
 	groupTypeName: string;
 	id: number;
 	members: GroupMember[];
+	memberNamesByRoleId: Map<number, string[]>;
 	metadata: string;
-	personsById: URecord<number, Person>;
 	roles: GroupRole[];
 	title: string;
 }

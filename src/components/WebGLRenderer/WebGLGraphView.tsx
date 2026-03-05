@@ -19,7 +19,6 @@ interface ContextMenuProps {
 export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const data = useGenerateReflowData();
     const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
-    const commitFilters = useAppStore((s) => s.commitFilters);
     const baseUrl = useAppStore((s) => s.baseUrl);
     const showGroupTypes = useAppStore((s) => s.committedFilters?.showGroupTypes ?? true);
     const focusNodeId = useAppStore((s) => s.focusNodeId);
@@ -144,9 +143,8 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
         if (hit) {
             Logger.log(`onNodeClick::${hit.node.id}`);
             setGroupIdToStartWith(hit.node.id);
-            commitFilters();
         }
-    }, [setGroupIdToStartWith, commitFilters]);
+    }, [setGroupIdToStartWith]);
 
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -262,10 +260,9 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
             const groupId = params.props?.groupId;
             if (groupId) {
                 setGroupIdToStartWith(String(groupId));
-                commitFilters();
             }
         },
-        [setGroupIdToStartWith, commitFilters],
+        [setGroupIdToStartWith],
     );
 
     return (

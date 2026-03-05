@@ -1,14 +1,10 @@
 import { useCallback } from 'react';
 
-import type { URecord } from '@ainias42/js-helper';
-
 import { oklchToHex } from '../globals/Colors';
 import { useAppStore } from '../state/useAppStore';
 import type { PreviewGraphNodeData } from '../types/GraphNode';
-import type { GroupMember } from '../types/GroupMember';
 import type { GroupRole } from '../types/GroupRole';
 import type { Node } from '../types/GraphTypes';
-import type { Person } from '../types/Person';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
 export const useGenerateGraphMLData = () => {
@@ -36,7 +32,7 @@ export const useGenerateGraphMLData = () => {
 			const shade500 = d.color.shades[500];
 			const colorHex = shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
 
-			const richLabel = buildRichLabel(d.title, showGroupTypes ? d.groupTypeName : '', d.roles, d.members, d.personsById);
+			const richLabel = buildRichLabel(d.title, showGroupTypes ? d.groupTypeName : '', d.roles, d.memberNamesByRoleId);
 
 			const nodeWidth = node.width ?? 250;
 			const nodeHeight = node.height ?? 80;
@@ -81,20 +77,8 @@ function buildRichLabel(
 	title: string,
 	groupTypeName: string,
 	roles: GroupRole[],
-	members: GroupMember[],
-	personsById: URecord<number, Person>,
+	memberNamesByRoleId: Map<number, string[]>,
 ): string {
-	const membersByRoleId = new Map<number, GroupMember[]>();
-	for (const member of members) {
-		let list = membersByRoleId.get(member.groupTypeRoleId);
-		if (!list) {
-			list = [];
-			membersByRoleId.set(member.groupTypeRoleId, list);
-		}
-		list.push(member);
-	}
-
-	// e() escapes text for HTML content
 	const e = escapeHtml;
 
 	let html = `<html><body style="word-wrap: break-word;">`;
@@ -107,11 +91,7 @@ function buildRichLabel(
 	if (roles.length > 0) {
 		html += `<br/>`;
 		for (const role of roles) {
-			const personsWithRole = membersByRoleId.get(role.id) ?? [];
-			const names = personsWithRole.map((m) => {
-				const person = personsById[m.personId];
-				return person ? `${person.firstName} ${person.lastName}` : 'Unknown';
-			});
+			const names = memberNamesByRoleId.get(role.id) ?? [];
 
 			html += `<p align="center"><b>${e(role.name)}:</b><br/>`;
 			html += `${names.map((n) => e(n)).join('<br/>')}</p>`;
@@ -119,7 +99,6 @@ function buildRichLabel(
 	}
 
 	html += `</body></html>`;
-	// XML-escape the entire HTML so it embeds correctly inside <y:NodeLabel>
 	return escapeXml(html);
 }
 

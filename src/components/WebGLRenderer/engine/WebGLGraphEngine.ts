@@ -30,6 +30,8 @@ export class WebGLGraphEngine {
     private dpr = 1;
     private needsRender = true;
     private nodeMap: Map<string, Node<PreviewGraphNodeData>> = new Map();
+    private spatialGrid: Map<string, Node<PreviewGraphNodeData>[]> = new Map();
+    private spatialCellSize = 200;
 
     // Offscreen canvas for node texture caching
     private nodeCanvasCache: Map<string, { canvas: HTMLCanvasElement; width: number; height: number }> = new Map();
@@ -69,6 +71,8 @@ export class WebGLGraphEngine {
             const metrics = measureNodeCard(this.measureCtx, node.data, showGroupTypes);
             this.nodeMetrics.set(node.id, metrics);
         }
+
+        this.buildSpatialGrid();
         
         this.needsRender = true;
     }
@@ -376,14 +380,57 @@ export class WebGLGraphEngine {
         return idealX;
     }
 
-    private railIntersectsNode(railY: number, railMinX: number, railMaxX: number, padding: number): boolean {
+    private buildSpatialGrid() {
+        this.spatialGrid.clear();
         for (const node of this.nodes) {
+            const m = this.nodeMetrics.get(node.id);
+            const w = m?.width ?? 250;
+            const h = m?.height ?? 80;
+            const minCellX = Math.floor(node.position.x / this.spatialCellSize);
+            const maxCellX = Math.floor((node.position.x + w) / this.spatialCellSize);
+            const minCellY = Math.floor(node.position.y / this.spatialCellSize);
+            const maxCellY = Math.floor((node.position.y + h) / this.spatialCellSize);
+            for (let cx = minCellX; cx <= maxCellX; cx++) {
+                for (let cy = minCellY; cy <= maxCellY; cy++) {
+                    const key = `${cx},${cy}`;
+                    let cell = this.spatialGrid.get(key);
+                    if (!cell) {
+                        cell = [];
+                        this.spatialGrid.set(key, cell);
+                    }
+                    cell.push(node);
+                }
+            }
+        }
+    }
+
+    private getSpatialCandidates(minX: number, minY: number, maxX: number, maxY: number): Set<Node<PreviewGraphNodeData>> {
+        const result = new Set<Node<PreviewGraphNodeData>>();
+        const minCellX = Math.floor(minX / this.spatialCellSize);
+        const maxCellX = Math.floor(maxX / this.spatialCellSize);
+        const minCellY = Math.floor(minY / this.spatialCellSize);
+        const maxCellY = Math.floor(maxY / this.spatialCellSize);
+        for (let cx = minCellX; cx <= maxCellX; cx++) {
+            for (let cy = minCellY; cy <= maxCellY; cy++) {
+                const cell = this.spatialGrid.get(`${cx},${cy}`);
+                if (cell) {
+                    for (const node of cell) {
+                        result.add(node);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private railIntersectsNode(railY: number, railMinX: number, railMaxX: number, padding: number): boolean {
+        const candidates = this.getSpatialCandidates(railMinX - padding, railY - padding, railMaxX + padding, railY + padding);
+        for (const node of candidates) {
             const m = this.nodeMetrics.get(node.id);
             const w = m?.width ?? 250;
             const h = m?.height ?? 80;
             const nx = node.position.x;
             const ny = node.position.y;
-            // Check if the horizontal rail at railY overlaps with this node's bounding box
             if (railY >= ny - padding && railY <= ny + h + padding &&
                 railMaxX >= nx - padding && railMinX <= nx + w + padding) {
                 return true;
@@ -393,7 +440,8 @@ export class WebGLGraphEngine {
     }
 
     private railIntersectsNodeH(railX: number, railMinY: number, railMaxY: number, padding: number): boolean {
-        for (const node of this.nodes) {
+        const candidates = this.getSpatialCandidates(railX - padding, railMinY - padding, railX + padding, railMaxY + padding);
+        for (const node of candidates) {
             const m = this.nodeMetrics.get(node.id);
             const w = m?.width ?? 250;
             const h = m?.height ?? 80;

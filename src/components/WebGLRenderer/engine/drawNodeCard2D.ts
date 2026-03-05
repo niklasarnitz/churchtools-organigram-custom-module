@@ -65,25 +65,12 @@ export function measureNodeCard(
         contentWidth = Math.max(contentWidth, gtWidth);
     }
 
-    // Pre-group members by roleId to avoid repeated filtering
-    const membersByRoleId = new Map<number, typeof data.members>();
-    for (const m of data.members) {
-        let list = membersByRoleId.get(m.groupTypeRoleId);
-        if (!list) {
-            list = [];
-            membersByRoleId.set(m.groupTypeRoleId, list);
-        }
-        list.push(m);
-    }
-
-    const rolesWithMembers = data.roles.filter(role => membersByRoleId.has(role.id));
+    const rolesWithMembers = data.roles.filter(role => data.memberNamesByRoleId.has(role.id));
 
     for (const role of rolesWithMembers) {
-        const personsInRole = membersByRoleId.get(role.id)!;
+        const names = data.memberNamesByRoleId.get(role.id)!;
         let rowWidth = 0;
-        for (const member of personsInRole) {
-            const person = data.personsById[member.personId];
-            const name = person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
+        for (const name of names) {
             const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
             rowWidth += badgeWidth + BADGE_GAP;
         }
@@ -102,7 +89,7 @@ export function measureNodeCard(
     if (rolesWithMembers.length > 0) {
         bodyHeight = NODE_PADDING;
         for (const role of rolesWithMembers) {
-            const personsInRole = membersByRoleId.get(role.id)!;
+            const names = data.memberNamesByRoleId.get(role.id)!;
             
             bodyHeight += ROLE_FONT_SIZE + 4; // role label
             
@@ -110,9 +97,7 @@ export function measureNodeCard(
             const innerWidth = width - NODE_PADDING * 2;
             let currentRowWidth = 0;
             let rows = 1;
-            for (const member of personsInRole) {
-                const person = data.personsById[member.personId];
-                const name = person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
+            for (const name of names) {
                 const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
                 if (currentRowWidth + badgeWidth + BADGE_GAP > innerWidth && currentRowWidth > 0) {
                     rows++;
@@ -245,10 +230,7 @@ export function drawNodeCard(
         headerHeight += GROUP_TYPE_FONT_SIZE + 4;
     }
 
-    // Check if we have members to decide if we draw border-bottom
-    const rolesWithMembers = data.roles.filter(role =>
-        data.members.some(m => m.groupTypeRoleId === role.id)
-    );
+    const rolesWithMembers = data.roles.filter(role => data.memberNamesByRoleId.has(role.id));
     const hasMembers = rolesWithMembers.length > 0;
 
     ctx.fillStyle = headerBg;
@@ -291,8 +273,8 @@ export function drawNodeCard(
         const innerWidth = width - NODE_PADDING * 2;
 
         for (const role of rolesWithMembers) {
-            const personsInRole = data.members.filter(m => m.groupTypeRoleId === role.id);
-            if (personsInRole.length === 0) continue;
+            const names = data.memberNamesByRoleId.get(role.id)!;
+            if (names.length === 0) continue;
 
             // Role label
             ctx.fillStyle = '#64748b'; // slate-500
@@ -308,9 +290,7 @@ export function drawNodeCard(
             ctx.font = `${MEMBER_FONT_SIZE}px Lato, sans-serif`;
             let badgeX = x + NODE_PADDING;
 
-            for (const member of personsInRole) {
-                const person = data.personsById[member.personId];
-                const name = person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
+            for (const name of names) {
                 const textWidth = ctx.measureText(name).width;
                 const badgeWidth = textWidth + BADGE_PADDING_X * 2;
 

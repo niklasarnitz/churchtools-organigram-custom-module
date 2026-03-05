@@ -1,5 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Download, History, Loader2, Play } from 'lucide-react';
-import moment from 'moment';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, History, Loader2 } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 
 import changelog from '../../changelog.json';
@@ -30,12 +29,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const { data: hierarchies } = useHierarchies();
 
     const isExporting = useAppStore((s) => s.isExporting);
-    const committedFilters = useAppStore((s) => s.committedFilters);
-    const commitFilters = useAppStore((s) => s.commitFilters);
-
-    const handleRenderClick = useCallback(() => {
-        commitFilters();
-    }, [commitFilters]);
 
     const orphanedGroups = useMemo(() => {
         if (!groups || !hierarchies) return [];
@@ -59,10 +52,11 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const getFileName = useCallback(
         (extension: string) => {
             const groupName = groupIdToStartWith ? groupsById[Number(groupIdToStartWith)]?.name : undefined;
+            const dateStr = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' }).format(new Date());
 
             return groupName
-                ? `Gruppenorganigramm-${groupName}-${moment().format('LD')}.${extension}`
-                : `Organigramm-${moment().format('LD')}.${extension}`;
+                ? `Gruppenorganigramm-${groupName}-${dateStr}.${extension}`
+                : `Organigramm-${dateStr}.${extension}`;
         },
         [groupIdToStartWith, groupsById],
     );
@@ -89,14 +83,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
             <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
             <ExclusionFilters />
 
-            <div className="mt-4">
-                <Button className="w-full" onClick={handleRenderClick}>
-                    <Play className="size-4" />
-                    {committedFilters ? 'Organigramm aktualisieren' : 'Organigramm erstellen'}
-                </Button>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-4">
+            <div className="mt-4 flex flex-col gap-4">
                 {orphanedGroups.length > 0 && (
                     <div className="rounded-md bg-amber-50 p-4 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
                         <div className="flex items-center gap-2 font-semibold">

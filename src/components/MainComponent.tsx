@@ -70,8 +70,7 @@ export const MainComponent = React.memo(() => {
 		};
 	}, []);
 
-	const renderRequested = !!committedFilters;
-	const showGraph = renderRequested && !isGraphLoading;
+	const showGraph = !!committedFilters && !isGraphLoading;
 
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50">
@@ -81,7 +80,7 @@ export const MainComponent = React.memo(() => {
 					<Sidebar isLoading={isBaseLoading} />
 				</div>
 
-				{renderRequested && isGraphLoading ? (
+				{isGraphLoading ? (
 					<div className="flex size-full items-center justify-center">
 						<div className="flex flex-col items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
 							<Loader2 className="size-8 animate-spin text-blue-600" />
@@ -90,14 +89,6 @@ export const MainComponent = React.memo(() => {
 					</div>
 				) : showGraph ? (
 					<GraphView isLoading={isGraphLoading} />
-				) : !isBaseLoading ? (
-					<div className="flex size-full items-center justify-center">
-						<div className="flex flex-col items-center gap-4 text-slate-400 dark:text-slate-500">
-							<span className="text-sm">
-								Filter konfigurieren und Organigramm erstellen.
-							</span>
-						</div>
-					</div>
 				) : null}
 			</div>
 		</div>

@@ -58,6 +58,18 @@ export const useGenerateReflowData = () => {
 		});
 
 		const nodesList = nodes.map((node) => {
+			const memberNamesByRoleId = new Map<number, string[]>();
+			for (const member of node.members) {
+				const person = personsById[member.personId];
+				const name = person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
+				let list = memberNamesByRoleId.get(member.groupTypeRoleId);
+				if (!list) {
+					list = [];
+					memberNamesByRoleId.set(member.groupTypeRoleId, list);
+				}
+				list.push(name);
+			}
+
 			return {
 				data: {
 					color: getColorForGroupType(node.group.information.groupTypeId),
@@ -65,8 +77,8 @@ export const useGenerateReflowData = () => {
 					groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
 					id: node.group.id,
 					members: node.members,
+					memberNamesByRoleId,
 					metadata: getGroupMetadataString(node.groupRoles, node.members, personsById),
-					personsById,
 					roles: node.groupRoles,
 					title: getGroupTitle(node.group, showGroupTypes, groupTypesById, true),
 				},

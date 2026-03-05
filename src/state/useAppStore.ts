@@ -102,116 +102,125 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 	};
 }
 
-export const useAppStore = create<GroupState>((set) => ({
-	baseUrl: undefined,
-	committedFilters: undefined,
-	excludedGroups: [] as number[],
-	excludedGroupTypes: [] as number[],
-	filteredAgeGroupIds: [] as number[],
-	filteredCampusIds: [] as number[],
-	filteredGroupCategoryIds: [] as number[],
-	includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
-	excludedRoles: [] as number[],
+export const useAppStore = create<GroupState>((set) => {
+	const setAndCommit = (updates: Partial<GroupState>) => {
+		set((state) => {
+			const newState = { ...state, ...updates };
+			return { ...updates, committedFilters: snapshotFilters(newState as GroupState) };
+		});
+	};
 
-	groupIdToStartWith: undefined,
-	hideIndirectSubgroups: false,
-	includedGroups: [] as number[],
+	return {
+		baseUrl: undefined,
+		committedFilters: undefined,
+		excludedGroups: [] as number[],
+		excludedGroupTypes: [] as number[],
+		filteredAgeGroupIds: [] as number[],
+		filteredCampusIds: [] as number[],
+		filteredGroupCategoryIds: [] as number[],
+		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
+		excludedRoles: [] as number[],
 
-	isExporting: false,
+		groupIdToStartWith: undefined,
+		hideIndirectSubgroups: false,
+		includedGroups: [] as number[],
 
-	layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
-	maxDepth: undefined,
+		isExporting: false,
 
-	focusNodeId: undefined,
-	pendingExport: undefined,
+		layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+		maxDepth: undefined,
 
-	renderer: 'webgl' as RendererType,
+		focusNodeId: undefined,
+		pendingExport: undefined,
 
-	commitFilters: () => {
-		set((state) => ({ committedFilters: snapshotFilters(state) }));
-	},
+		renderer: 'webgl' as RendererType,
 
-	setFocusNodeId: (id: string | undefined) => {
-		set({ focusNodeId: id });
-	},
+		commitFilters: () => {
+			set((state) => ({ committedFilters: snapshotFilters(state) }));
+		},
 
-	setAllSettings: (settings: Partial<UserSettings>) => {
-		set((state) => ({ ...state, ...settings }));
-	},
+		setFocusNodeId: (id: string | undefined) => {
+			set({ focusNodeId: id });
+		},
 
-	setBaseUrl: (url: string | undefined) => {
-		churchtoolsClient.setBaseUrl(url ?? '');
-		set({ baseUrl: url });
-	},
+		setAllSettings: (settings: Partial<UserSettings>) => {
+			setAndCommit(settings);
+		},
 
-	setExcludedGroups: (groups: string | string[]) => {
-		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
-	},
+		setBaseUrl: (url: string | undefined) => {
+			churchtoolsClient.setBaseUrl(url ?? '');
+			set({ baseUrl: url });
+		},
 
-	setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
-		set({ includedGroupStatuses });
-	},
+		setExcludedGroups: (groups: string | string[]) => {
+			setAndCommit({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
 
-	setExcludedGroupTypes: (groups: string | string[]) => {
-		set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
-	},
+		setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
+			setAndCommit({ includedGroupStatuses });
+		},
 
-	setFilteredAgeGroupIds: (filteredAgeGroupIds: number[]) => {
-		set({ filteredAgeGroupIds });
-	},
+		setExcludedGroupTypes: (groups: string | string[]) => {
+			setAndCommit({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
 
-	setFilteredCampusIds: (filteredCampusIds: number[]) => {
-		set({ filteredCampusIds });
-	},
+		setFilteredAgeGroupIds: (filteredAgeGroupIds: number[]) => {
+			setAndCommit({ filteredAgeGroupIds });
+		},
 
-	setFilteredGroupCategoryIds: (filteredGroupCategoryIds: number[]) => {
-		set({ filteredGroupCategoryIds });
-	},
+		setFilteredCampusIds: (filteredCampusIds: number[]) => {
+			setAndCommit({ filteredCampusIds });
+		},
 
-	setExcludedRoles: (roles: string | string[]) => {
-		set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
-	},
+		setFilteredGroupCategoryIds: (filteredGroupCategoryIds: number[]) => {
+			setAndCommit({ filteredGroupCategoryIds });
+		},
 
-	setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
-		set({ groupIdToStartWith: groupIdToStartWith?.toString() });
-	},
+		setExcludedRoles: (roles: string | string[]) => {
+			setAndCommit({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
+		},
 
-	setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
-		set({ hideIndirectSubgroups });
-	},
+		setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
+			setAndCommit({ groupIdToStartWith: groupIdToStartWith?.toString() });
+		},
 
-	setIncludedGroups: (groups: string | string[]) => {
-		set({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
-	},
+		setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
+			setAndCommit({ hideIndirectSubgroups });
+		},
 
-	setIsExporting: (isExporting: boolean) => {
-		set({ isExporting });
-	},
+		setIncludedGroups: (groups: string | string[]) => {
+			setAndCommit({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
 
-	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
-		set({ layoutAlgorithm: algorithm });
-	},
+		setIsExporting: (isExporting: boolean) => {
+			set({ isExporting });
+		},
 
-	setMaxDepth: (maxDepth: number | undefined) => {
-		set({ maxDepth });
-	},
+		setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
+			setAndCommit({ layoutAlgorithm: algorithm });
+		},
 
-	setPendingExport: (pendingExport: PendingExport | undefined) => {
-		set({ pendingExport });
-	},
+		setMaxDepth: (maxDepth: number | undefined) => {
+			setAndCommit({ maxDepth });
+		},
 
-	setRenderer: (renderer: RendererType) => {
-		set({ renderer });
-	},
+		setPendingExport: (pendingExport: PendingExport | undefined) => {
+			set({ pendingExport });
+		},
 
-	setShowGroupTypes: (show: boolean) => {
-		set({ showGroupTypes: show });
-	},
+		setRenderer: (renderer: RendererType) => {
+			setAndCommit({ renderer });
+		},
 
-	setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
-		set({ showOnlyDirectChildren });
-	},
+		setShowGroupTypes: (show: boolean) => {
+			setAndCommit({ showGroupTypes: show });
+		},
 
-	showGroupTypes: true,
-	showOnlyDirectChildren: false,
-}));
+		setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
+			setAndCommit({ showOnlyDirectChildren });
+		},
+
+		showGroupTypes: true,
+		showOnlyDirectChildren: false,
+	};
+});
