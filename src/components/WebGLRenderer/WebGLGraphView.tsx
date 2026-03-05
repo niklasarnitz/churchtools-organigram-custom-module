@@ -10,6 +10,7 @@ import type { Node } from '../../types/GraphTypes';
 import { Constants } from '../../globals/Constants';
 import { Logger } from '../../globals/Logger';
 import { useGenerateReflowData } from '../../selectors/useGenerateReflowData';
+import { useIsDarkMode } from '../../hooks/useChurchToolsTheme';
 import { useAppStore } from '../../state/useAppStore';
 import { FloatingHeader } from '../FloatingHeader';
 import { WebGLGraphEngine } from './engine/WebGLGraphEngine';
@@ -27,6 +28,7 @@ export const WebGLGraphView = React.memo(() => {
     const focusNodeId = useAppStore((s) => s.focusNodeId);
     const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
     const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
+    const isDarkMode = useIsDarkMode();
     
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engineRef = useRef<null | WebGLGraphEngine>(null);
@@ -75,15 +77,13 @@ export const WebGLGraphView = React.memo(() => {
         const engine = engineRef.current;
         if (!engine || data.nodes.length === 0) return;
 
-        engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes);
+        engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes, isDarkMode);
         
-        // Fit view after a short delay to ensure metrics are computed
-        setTimeout(() => {
-            engine.fitView(0.05);
-            const cam = engine.getCamera();
-            setCameraState(cam);
-        }, 50);
-    }, [data.nodes, data.edges, showGroupTypes]);
+        // Fit view immediately after data is set
+        engine.fitView(0.05);
+        const cam = engine.getCamera();
+        setCameraState(cam);
+    }, [data.nodes, data.edges, showGroupTypes, isDarkMode]);
 
     // Focus on a specific node when requested
     useEffect(() => {
@@ -418,6 +418,7 @@ export const WebGLGraphView = React.memo(() => {
             <WebGLMinimap
                 camera={cameraState}
                 engine={engine}
+                isDarkMode={isDarkMode}
                 onCameraChange={(cam) => {
                     engineRef.current?.setCamera(cam);
                     updateCameraState();

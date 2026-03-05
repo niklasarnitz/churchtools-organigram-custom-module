@@ -1,6 +1,17 @@
 {
 	"versions": [
 		{
+			"version": "1.2.1",
+			"date": "2026-03-05",
+			"changes": [
+				"Implemented dark mode support for the high-performance WebGL renderer",
+				"Added theme-aware coloring for nodes, edges, grid, and ports",
+				"Updated the minimap to respect the active application theme",
+				"Optimized node texture caching to automatically refresh when switching between light and dark modes",
+				"Fixed a UI issue where the grid would flash for a fraction of a second during initial render"
+			]
+		},
+		{
 			"version": "1.2.0",
 			"date": "2026-03-05",
 			"changes": [

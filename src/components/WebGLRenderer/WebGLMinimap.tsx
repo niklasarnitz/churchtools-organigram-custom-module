@@ -7,6 +7,7 @@ import { oklchToHex } from '../../globals/Colors';
 interface WebGLMinimapProps {
     camera: Camera;
     engine: null | WebGLGraphEngine;
+    isDarkMode?: boolean;
     onCameraChange: (camera: Camera) => void;
 }
 
@@ -14,7 +15,7 @@ const MINIMAP_WIDTH = 200;
 const MINIMAP_HEIGHT = 150;
 const MINIMAP_PADDING = 10;
 
-export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebGLMinimapProps) => {
+export const WebGLMinimap = React.memo(({ camera, engine, isDarkMode = false, onCameraChange }: WebGLMinimapProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const draw = useCallback(() => {
@@ -30,9 +31,9 @@ export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebG
         ctx.scale(dpr, dpr);
 
         // Background
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillStyle = isDarkMode ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)';
         ctx.fillRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT);
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+        ctx.strokeStyle = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(148, 163, 184, 0.5)';
         ctx.lineWidth = 1;
         ctx.strokeRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT);
 
@@ -67,7 +68,7 @@ export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebG
             const mw = w * scale;
             const mh = h * scale;
 
-            ctx.fillStyle = oklchToHex(node.data.color.shades[300]);
+            ctx.fillStyle = oklchToHex(node.data.color.shades[isDarkMode ? 700 : 300]);
             ctx.fillRect(mx, my, Math.max(mw, 2), Math.max(mh, 2));
         }
 

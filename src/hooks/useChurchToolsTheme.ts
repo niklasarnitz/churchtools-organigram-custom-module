@@ -1,8 +1,34 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 type ChurchToolsTheme = 'dark' | 'light' | 'system';
 
 const STORAGE_KEY = 'theme';
+
+export function useIsDarkMode() {
+	const [isDark, setIsDark] = useState(() => getEffectiveDark(readTheme()));
+
+	useEffect(() => {
+		const update = () => setIsDark(getEffectiveDark(readTheme()));
+		
+		const onStorage = (e: StorageEvent) => {
+			if (e.key === STORAGE_KEY) update();
+		};
+		window.addEventListener('storage', onStorage);
+
+		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		mediaQuery.addEventListener('change', update);
+
+		const interval = setInterval(update, 1000);
+
+		return () => {
+			window.removeEventListener('storage', onStorage);
+			mediaQuery.removeEventListener('change', update);
+			clearInterval(interval);
+		};
+	}, []);
+
+	return isDark;
+}
 
 export function useChurchToolsTheme() {
 	useEffect(() => {
