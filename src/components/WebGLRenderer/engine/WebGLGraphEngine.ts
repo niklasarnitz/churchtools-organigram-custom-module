@@ -26,12 +26,13 @@ export class WebGLGraphEngine {
     private edges: Edge[] = [];
     private isDarkMode = false;
     private lastFrameTime = 0;
+    private frameCount = 0;
+    private fps = 0;
+    private lastFpsUpdate = 0;
     // Measuring canvas (offscreen)
     private measureCanvas: HTMLCanvasElement;
     private measureCtx: CanvasRenderingContext2D;
     private needsRender = true;
-    // Offscreen canvas for node texture caching
-    private nodeCanvasCache = new Map<string, { canvas: HTMLCanvasElement; height: number; width: number; }>();
     private nodeMap = new Map<string, Node<PreviewGraphNodeData>>();
     private nodeMetrics = new Map<string, NodeCardMetrics>();
     private nodes: Node<PreviewGraphNodeData>[] = [];
@@ -184,7 +185,6 @@ export class WebGLGraphEngine {
     }
 
     setData(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean, isDarkMode: boolean) {
-        const themeChanged = this.isDarkMode !== isDarkMode;
         this.nodes = nodes;
         this.edges = edges;
         this.showGroupTypes = showGroupTypes;
@@ -195,10 +195,7 @@ export class WebGLGraphEngine {
             this.nodeMap.set(node.id, node);
         }
         
-        // Recalculate metrics and invalidate caches
-        if (themeChanged) {
-            this.nodeCanvasCache.clear();
-        }
+        // Recalculate metrics
         this.nodeMetrics.clear();
         
         for (const node of nodes) {
@@ -544,17 +541,23 @@ export class WebGLGraphEngine {
     private drawNodes(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
         const zoom = this.camera.zoom;
 
-        // LOD levels:
-        // zoom >= 0.4  → full card with members + ports
-        // zoom >= 0.15 → header only (title + group type + ports, no members)
-        // zoom < 0.15  → simple colored rectangle, no text
+        // Use spatial grid to only check nodes that are in or near the viewport
+        const viewportMin = this.screenToWorld(0, 0);
+        const viewportMax = this.screenToWorld(viewW, viewH);
+        
+        const candidates = this.getSpatialCandidates(
+            viewportMin.x,
+            viewportMin.y,
+            viewportMax.x,
+            viewportMax.y
+        );
 
-        for (const node of this.nodes) {
+        for (const node of candidates) {
             const metrics = this.nodeMetrics.get(node.id) ?? { headerHeight: 38, height: 80, width: 250 };
             const w = metrics.width;
             const h = metrics.height;
 
-            // Frustum culling
+            // Frustum culling (more precise than spatial grid)
             const screenPos = this.worldToScreen(node.position.x, node.position.y);
             const screenW = w * zoom;
             const screenH = h * zoom;
@@ -568,13 +571,12 @@ export class WebGLGraphEngine {
             }
 
             if (zoom >= 0.4) {
-                // Full node card from cached canvas
-                const cached = this.getOrCreateNodeCanvas(node);
-                ctx.drawImage(cached.canvas, node.position.x, node.position.y, cached.width, cached.height);
+                // Full node card drawn directly (vectorized)
+                drawNodeCard(ctx, node.data, this.showGroupTypes, node.position.x, node.position.y, w, h, this.isDarkMode);
                 // Ports drawn on world canvas so they aren't clipped
                 this.drawNodePorts(ctx, node, w, h);
             } else if (zoom >= 0.15) {
-                // Header-only: colored header with white body, no member details
+                // Header-only
                 drawNodeCardHeaderOnly(
                     ctx,
                     node.data,
@@ -588,7 +590,7 @@ export class WebGLGraphEngine {
                 );
                 this.drawNodePorts(ctx, node, w, h);
             } else {
-                // Minimal LOD: simple colored rectangle
+                // Minimal LOD
                 const borderColor = oklchToHex(node.data.color.shades[this.isDarkMode ? 700 : 300]);
                 const headerBg = oklchToHex(node.data.color.shades[this.isDarkMode ? 900 : 100]);
 
@@ -656,29 +658,6 @@ export class WebGLGraphEngine {
             }
         }
         return idealY;
-    }
-
-    private getOrCreateNodeCanvas(node: Node<PreviewGraphNodeData>): { canvas: HTMLCanvasElement; height: number; width: number; } {
-        const cached = this.nodeCanvasCache.get(node.id);
-        if (cached) return cached;
-
-        const metrics = this.nodeMetrics.get(node.id);
-        const w = metrics?.width ?? 250;
-        const h = metrics?.height ?? 80;
-        
-        const scale = 2; // high-res textures
-        const offscreen = document.createElement('canvas');
-        offscreen.width = w * scale;
-        offscreen.height = h * scale;
-        const offCtx = offscreen.getContext('2d');
-        if (!offCtx) throw new Error('Failed to get offscreen 2D context');
-        offCtx.scale(scale, scale);
-
-        drawNodeCard(offCtx, node.data, this.showGroupTypes, 0, 0, w, h, this.isDarkMode);
-
-        const entry = { canvas: offscreen, height: h, width: w };
-        this.nodeCanvasCache.set(node.id, entry);
-        return entry;
     }
 
     private getPortPosition(
@@ -793,6 +772,30 @@ export class WebGLGraphEngine {
         this.drawNodes(ctx, viewW, viewH);
 
         ctx.restore();
+
+        // FPS Counter - drawn on screen (not affected by camera)
+        this.frameCount++;
+        const now = performance.now();
+        const elapsed = now - this.lastFpsUpdate;
+        if (elapsed >= 500) {
+            this.fps = Math.round((this.frameCount * 1000) / elapsed);
+            this.lastFpsUpdate = now;
+            this.frameCount = 0;
+        }
+
+        if (this.fps > 0) {
+            ctx.fillStyle = this.isDarkMode ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(viewW - 70, 10, 60, 25);
+            ctx.strokeStyle = this.isDarkMode ? '#334155' : '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(viewW - 70, 10, 60, 25);
+            
+            ctx.fillStyle = this.fps < 30 ? '#ef4444' : this.isDarkMode ? '#94a3b8' : '#64748b';
+            ctx.font = 'bold 12px Lato, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${this.fps} FPS`, viewW - 40, 23);
+        }
     }
 }
 

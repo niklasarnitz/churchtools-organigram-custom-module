@@ -38,18 +38,10 @@ export function drawNodeCard(
     const borderColor = oklchToHex(data.color.shades[isDarkMode ? 700 : 300]);
     const headerBg = oklchToHex(data.color.shades[isDarkMode ? 900 : 100]);
 
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.1)';
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-
     // Card background
     roundRect(ctx, x, y, width, height, BORDER_RADIUS);
     ctx.fillStyle = isDarkMode ? '#0f172a' : '#ffffff';
     ctx.fill();
-    ctx.restore();
 
     // Border
     roundRect(ctx, x, y, width, height, BORDER_RADIUS);
@@ -172,18 +164,10 @@ export function drawNodeCardHeaderOnly(
     const borderColor = oklchToHex(data.color.shades[isDarkMode ? 700 : 300]);
     const headerBg = oklchToHex(data.color.shades[isDarkMode ? 900 : 100]);
 
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.1)';
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-
     // Card background (white body)
     roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
     ctx.fillStyle = isDarkMode ? '#0f172a' : '#ffffff';
     ctx.fill();
-    ctx.restore();
 
     // Border
     roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
