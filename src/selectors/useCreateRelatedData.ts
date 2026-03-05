@@ -15,6 +15,7 @@ import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 export const useCreateRelatedData = (): GraphData => {
 	const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
 	const excludedGroups = useAppStore((s) => s.excludedGroups);
+	const excludedGroupStatuses = useAppStore((s) => s.excludedGroupStatuses);
 	const includedGroups = useAppStore((s) => s.includedGroups);
 	const excludedRoles = useAppStore((s) => s.excludedRoles);
 	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
@@ -44,10 +45,11 @@ export const useCreateRelatedData = (): GraphData => {
 			return (
 				!!group.information.groupTypeId &&
 				!excludedGroups.includes(group.id) &&
-				!excludedGroupTypes.includes(group.information.groupTypeId)
+				!excludedGroupTypes.includes(group.information.groupTypeId) &&
+				!excludedGroupStatuses.includes(group.information.groupStatusId)
 			);
 		},
-		[excludedGroups, excludedGroupTypes, includedGroups, groupIdToStartWith],
+		[excludedGroups, excludedGroupTypes, excludedGroupStatuses, includedGroups, groupIdToStartWith],
 	);
 
 	const getGraphNodeFromGroup = useMemo(

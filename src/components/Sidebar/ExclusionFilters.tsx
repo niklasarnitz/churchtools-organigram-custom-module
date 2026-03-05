@@ -6,6 +6,7 @@ import { useGroups } from '../../queries/useGroups';
 import { useGroupTypes } from '../../queries/useGroupTypes';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
+import { GroupStatus } from '../../types/GroupStatus';
 import { Combobox } from '../ui/combobox';
 import { MultiSelect } from '../ui/multi-select';
 import { Switch } from '../ui/switch';
@@ -24,6 +25,8 @@ export const ExclusionFilters = React.memo(() => {
 	const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
 	const excludedRoles = useAppStore((s) => s.excludedRoles);
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
+	const excludedGroupStatuses = useAppStore((s) => s.excludedGroupStatuses);
+	const setExcludedGroupStatuses = useAppStore((s) => s.setExcludedGroupStatuses);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
 	const maxDepth = useAppStore((s) => s.maxDepth);
@@ -143,6 +146,23 @@ export const ExclusionFilters = React.memo(() => {
 		[setExcludedRoles],
 	);
 
+	const groupStatusOptions = useMemo(
+		() => [
+			{ label: 'Aktiv', value: String(GroupStatus.ACTIVE) },
+			{ label: 'In Gründung', value: String(GroupStatus.PENDING) },
+			{ label: 'Archiviert', value: String(GroupStatus.ARCHIVED) },
+			{ label: 'Beendet', value: String(GroupStatus.FINISHED) },
+		],
+		[],
+	);
+
+	const handleGroupStatusChange = useCallback(
+		(values: string[]) => {
+			setExcludedGroupStatuses(values.length > 0 ? values.map(Number) as GroupStatus[] : []);
+		},
+		[setExcludedGroupStatuses],
+	);
+
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col">
@@ -186,6 +206,18 @@ export const ExclusionFilters = React.memo(() => {
 					options={roleOptions}
 					placeholder="Keine Gruppenrollen ausgeschlossen"
 					value={excludedRoles.map(String)}
+				/>
+			</div>
+
+			<div className="flex flex-col">
+				<h5 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">
+					Gruppenstatus ausschließen
+				</h5>
+				<MultiSelect
+					onChange={handleGroupStatusChange}
+					options={groupStatusOptions}
+					placeholder="Keine Status ausgeschlossen"
+					value={excludedGroupStatuses.map(String)}
 				/>
 			</div>
 

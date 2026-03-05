@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 import type { UserSettings } from '../hooks/useUserSettings';
 
+import { GroupStatus } from '../types/GroupStatus';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
 export interface PendingExport {
@@ -13,6 +14,7 @@ export interface PendingExport {
 interface GroupState {
 	baseUrl: string | undefined;
 	excludedGroups: number[];
+	excludedGroupStatuses: GroupStatus[];
 	excludedGroupTypes: number[];
 	excludedRoles: number[];
 
@@ -28,6 +30,7 @@ interface GroupState {
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
 	setExcludedGroups: (groups: string | string[]) => void;
+	setExcludedGroupStatuses: (statuses: GroupStatus[]) => void;
 	setExcludedGroupTypes: (groups: string | string[]) => void;
 
 	setExcludedRoles: (roles: string | string[]) => void;
@@ -51,6 +54,7 @@ interface GroupState {
 export const useAppStore = create<GroupState>((set) => ({
 	baseUrl: undefined,
 	excludedGroups: [] as number[],
+	excludedGroupStatuses: [GroupStatus.PENDING, GroupStatus.ARCHIVED, GroupStatus.FINISHED] as GroupStatus[],
 	excludedGroupTypes: [] as number[],
 	excludedRoles: [] as number[],
 
@@ -76,6 +80,10 @@ export const useAppStore = create<GroupState>((set) => ({
 
 	setExcludedGroups: (groups: string | string[]) => {
 		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+	},
+
+	setExcludedGroupStatuses: (excludedGroupStatuses: GroupStatus[]) => {
+		set({ excludedGroupStatuses });
 	},
 
 	setExcludedGroupTypes: (groups: string | string[]) => {

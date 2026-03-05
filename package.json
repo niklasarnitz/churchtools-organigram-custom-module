@@ -11,6 +11,7 @@
 		"@radix-ui/react-select": "^2.2.6",
 		"@radix-ui/react-slot": "^1.2.4",
 		"@radix-ui/react-switch": "^1.2.6",
+
 		"@tanstack/query-async-storage-persister": "^5.90.24",
 		"@tanstack/query-sync-storage-persister": "^5.90.24",
 		"@tanstack/react-query": "^5.90.21",
@@ -24,8 +25,7 @@
 		"cmdk": "^1.1.1",
 		"dom-to-svg": "^0.12.2",
 		"elkjs": "^0.11.0",
-		"graphology": "^0.26.0",
-		"graphology-types": "^0.24.8",
+
 		"lodash": "^4.17.23",
 		"lucide-react": "^0.576.0",
 		"moment": "^2.30.1",
@@ -33,6 +33,7 @@
 		"react-contexify": "^6.0.0",
 		"react-dom": "^19.2.4",
 		"reactflow": "^11.11.4",
+
 		"tailwind-merge": "^3.5.0",
 		"tough-cookie": "^6.0.0",
 		"typescript": "^5.9.3",
@@ -44,6 +45,7 @@
 		"build:module": "PACKAGE_VERSION=$(cat package.json | jq -r '.version') && rm -rf build/* && rm -rf organigram-${PACKAGE_VERSION}.zip && npm run build && zip -r organigram-${PACKAGE_VERSION}.zip build/ && echo 'You can now upload the organigram.zip to your churchtools instance. Hint: Please keep in mind to use organigram as the shorty.'",
 		"preview": "vite preview",
 		"deploy": "bun scripts/deploy.ts",
+		"seed": "bun scripts/seed-testdata.ts",
 		"changelog": "bun scripts/generate-changelog.ts",
 		"lint": "eslint src/",
 		"ci": "bun run lint && bun run typecheck",
