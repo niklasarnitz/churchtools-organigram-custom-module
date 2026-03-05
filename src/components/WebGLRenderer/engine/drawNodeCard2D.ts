@@ -33,20 +33,21 @@ export function drawNodeCard(
     y: number,
     width: number,
     height: number,
+    isDarkMode = false,
 ): void {
-    const borderColor = oklchToHex(data.color.shades[300]);
-    const headerBg = oklchToHex(data.color.shades[100]);
+    const borderColor = oklchToHex(data.color.shades[isDarkMode ? 700 : 300]);
+    const headerBg = oklchToHex(data.color.shades[isDarkMode ? 900 : 100]);
 
     // Shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowColor = isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.1)';
     ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 4;
 
     // Card background
     roundRect(ctx, x, y, width, height, BORDER_RADIUS);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = isDarkMode ? '#0f172a' : '#ffffff';
     ctx.fill();
     ctx.restore();
 
@@ -84,7 +85,7 @@ export function drawNodeCard(
     }
 
     // Title
-    ctx.fillStyle = '#0f172a'; // slate-900
+    ctx.fillStyle = isDarkMode ? '#f8fafc' : '#0f172a';
     ctx.font = `bold ${String(TITLE_FONT_SIZE)}px Lato, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -92,7 +93,7 @@ export function drawNodeCard(
 
     // Group type
     if (showGroupTypes) {
-        ctx.fillStyle = '#64748b'; // slate-500
+        ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
         ctx.font = `bold ${String(GROUP_TYPE_FONT_SIZE)}px Lato, sans-serif`;
         ctx.letterSpacing = '2px';
         ctx.fillText(
@@ -113,7 +114,7 @@ export function drawNodeCard(
             if (names.length === 0) continue;
 
             // Role label
-            ctx.fillStyle = '#64748b'; // slate-500
+            ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
             ctx.font = `bold ${String(ROLE_FONT_SIZE)}px Lato, sans-serif`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
@@ -139,11 +140,11 @@ export function drawNodeCard(
                 // Badge background
                 const badgeR = BADGE_HEIGHT / 2;
                 roundRect(ctx, badgeX, cursorY, badgeWidth, BADGE_HEIGHT, badgeR);
-                ctx.fillStyle = '#f1f5f9'; // slate-100
+                ctx.fillStyle = isDarkMode ? '#1e293b' : '#f1f5f9';
                 ctx.fill();
 
                 // Badge text
-                ctx.fillStyle = '#334155'; // slate-700
+                ctx.fillStyle = isDarkMode ? '#cbd5e1' : '#334155';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(name, badgeX + BADGE_PADDING_X, cursorY + BADGE_HEIGHT / 2);
@@ -166,20 +167,21 @@ export function drawNodeCardHeaderOnly(
     width: number,
     totalHeight: number,
     headerHeight: number,
+    isDarkMode = false,
 ): void {
-    const borderColor = oklchToHex(data.color.shades[300]);
-    const headerBg = oklchToHex(data.color.shades[100]);
+    const borderColor = oklchToHex(data.color.shades[isDarkMode ? 700 : 300]);
+    const headerBg = oklchToHex(data.color.shades[isDarkMode ? 900 : 100]);
 
     // Shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowColor = isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.1)';
     ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 4;
 
     // Card background (white body)
     roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = isDarkMode ? '#0f172a' : '#ffffff';
     ctx.fill();
     ctx.restore();
 
@@ -209,7 +211,7 @@ export function drawNodeCardHeaderOnly(
     }
 
     // Title
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = isDarkMode ? '#f8fafc' : '#0f172a';
     ctx.font = `bold ${String(TITLE_FONT_SIZE)}px Lato, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -217,7 +219,7 @@ export function drawNodeCardHeaderOnly(
 
     // Group type
     if (showGroupTypes) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
         ctx.font = `bold ${String(GROUP_TYPE_FONT_SIZE)}px Lato, sans-serif`;
         ctx.letterSpacing = '2px';
         ctx.fillText(

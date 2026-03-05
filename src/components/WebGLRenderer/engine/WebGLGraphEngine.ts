@@ -24,6 +24,7 @@ export class WebGLGraphEngine {
     private ctx: CanvasRenderingContext2D;
     private dpr = 1;
     private edges: Edge[] = [];
+    private isDarkMode = false;
     private lastFrameTime = 0;
     // Measuring canvas (offscreen)
     private measureCanvas: HTMLCanvasElement;
@@ -182,10 +183,12 @@ export class WebGLGraphEngine {
         this.needsRender = true;
     }
 
-    setData(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean) {
+    setData(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean, isDarkMode: boolean) {
+        const themeChanged = this.isDarkMode !== isDarkMode;
         this.nodes = nodes;
         this.edges = edges;
         this.showGroupTypes = showGroupTypes;
+        this.isDarkMode = isDarkMode;
         
         this.nodeMap.clear();
         for (const node of nodes) {
@@ -193,8 +196,10 @@ export class WebGLGraphEngine {
         }
         
         // Recalculate metrics and invalidate caches
+        if (themeChanged) {
+            this.nodeCanvasCache.clear();
+        }
         this.nodeMetrics.clear();
-        this.nodeCanvasCache.clear();
         
         for (const node of nodes) {
             const metrics = measureNodeCard(this.measureCtx, node.data, showGroupTypes);
@@ -314,9 +319,9 @@ export class WebGLGraphEngine {
             group.targets.push(tgt);
         }
 
-        ctx.strokeStyle = '#64748b';
+        ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
         ctx.lineWidth = 2;
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
 
         for (const group of edgesBySource.values()) {
             const { src, targets } = group;
@@ -359,7 +364,9 @@ export class WebGLGraphEngine {
                     ctx.beginPath();
                     ctx.moveTo(src.x, src.y);
                     ctx.lineTo(targets[0].x, targets[0].y);
+                    ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                     ctx.stroke();
+                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                     this.drawArrowHead(ctx, targets[0].x, targets[0].y, isVertical, targets[0].y > src.y ? 1 : -1, arrowSize);
                     continue;
                 }
@@ -368,6 +375,7 @@ export class WebGLGraphEngine {
                 ctx.beginPath();
                 ctx.moveTo(src.x, src.y);
                 ctx.lineTo(src.x, midY);
+                ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                 ctx.stroke();
 
                 // Draw horizontal rail at midY
@@ -385,6 +393,7 @@ export class WebGLGraphEngine {
                     ctx.lineTo(tgt.x, tgt.y);
                     ctx.stroke();
 
+                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                     this.drawArrowHead(ctx, tgt.x, tgt.y, isVertical, dirY, arrowSize);
                 }
             } else {
@@ -420,7 +429,9 @@ export class WebGLGraphEngine {
                     ctx.beginPath();
                     ctx.moveTo(src.x, src.y);
                     ctx.lineTo(targets[0].x, targets[0].y);
+                    ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                     ctx.stroke();
+                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                     this.drawArrowHead(ctx, targets[0].x, targets[0].y, isVertical, targets[0].x > src.x ? 1 : -1, arrowSize);
                     continue;
                 }
@@ -429,6 +440,7 @@ export class WebGLGraphEngine {
                 ctx.beginPath();
                 ctx.moveTo(src.x, src.y);
                 ctx.lineTo(midX, src.y);
+                ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                 ctx.stroke();
 
                 // Vertical rail at midX
@@ -445,6 +457,7 @@ export class WebGLGraphEngine {
                     ctx.lineTo(tgt.x, tgt.y);
                     ctx.stroke();
 
+                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
                     this.drawArrowHead(ctx, tgt.x, tgt.y, isVertical, dirX, arrowSize);
                 }
             }
@@ -452,6 +465,8 @@ export class WebGLGraphEngine {
     }
 
     private drawGrid(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
+        if (this.nodes.length === 0) return;
+
         const zoom = this.camera.zoom;
         
         // Only draw grid when zoomed in enough
@@ -463,8 +478,8 @@ export class WebGLGraphEngine {
         const maxDots = 2500;
         const gridSize = Math.max(baseGridSize, Math.ceil(Math.sqrt(worldW * worldH / maxDots)));
 
-        const opacity = Math.min(1, (zoom - 0.3) / 0.7) * 0.3;
-        ctx.fillStyle = `rgba(148, 163, 184, ${String(opacity)})`;
+        const opacity = Math.min(1, (zoom - 0.3) / 0.7) * (this.isDarkMode ? 0.2 : 0.3);
+        ctx.fillStyle = this.isDarkMode ? `rgba(51, 65, 85, ${String(opacity)})` : `rgba(148, 163, 184, ${String(opacity)})`;
 
         const startX = Math.floor(this.camera.x / gridSize) * gridSize;
         const startY = Math.floor(this.camera.y / gridSize) * gridSize;
@@ -569,12 +584,13 @@ export class WebGLGraphEngine {
                     w,
                     h,
                     metrics.headerHeight,
+                    this.isDarkMode
                 );
                 this.drawNodePorts(ctx, node, w, h);
             } else {
                 // Minimal LOD: simple colored rectangle
-                const borderColor = oklchToHex(node.data.color.shades[300]);
-                const headerBg = oklchToHex(node.data.color.shades[100]);
+                const borderColor = oklchToHex(node.data.color.shades[this.isDarkMode ? 700 : 300]);
+                const headerBg = oklchToHex(node.data.color.shades[this.isDarkMode ? 900 : 100]);
 
                 ctx.fillStyle = headerBg;
                 roundRect(ctx, node.position.x, node.position.y, w, h, 6);
@@ -589,9 +605,9 @@ export class WebGLGraphEngine {
     private drawPort(ctx: CanvasRenderingContext2D, px: number, py: number) {
         ctx.beginPath();
         ctx.arc(px, py, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = this.isDarkMode ? '#64748b' : '#94a3b8';
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = this.isDarkMode ? '#0f172a' : '#ffffff';
         ctx.lineWidth = 2;
         ctx.stroke();
     }
@@ -658,7 +674,7 @@ export class WebGLGraphEngine {
         if (!offCtx) throw new Error('Failed to get offscreen 2D context');
         offCtx.scale(scale, scale);
 
-        drawNodeCard(offCtx, node.data, this.showGroupTypes, 0, 0, w, h);
+        drawNodeCard(offCtx, node.data, this.showGroupTypes, 0, 0, w, h, this.isDarkMode);
 
         const entry = { canvas: offscreen, height: h, width: w };
         this.nodeCanvasCache.set(node.id, entry);
@@ -749,6 +765,8 @@ export class WebGLGraphEngine {
     }
 
     private render() {
+        if (this.nodes.length === 0) return;
+
         const ctx = this.ctx;
         const rect = this.canvas.getBoundingClientRect();
         const viewW = rect.width;
@@ -757,13 +775,16 @@ export class WebGLGraphEngine {
         ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
         
         // Clear
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = this.isDarkMode ? '#020617' : '#ffffff';
         ctx.fillRect(0, 0, viewW, viewH);
 
         // Apply camera transform
         ctx.save();
         ctx.translate(-this.camera.x * this.camera.zoom, -this.camera.y * this.camera.zoom);
         ctx.scale(this.camera.zoom, this.camera.zoom);
+
+        // Draw grid
+        this.drawGrid(ctx, viewW, viewH);
 
         // Draw edges
         this.drawEdges(ctx);

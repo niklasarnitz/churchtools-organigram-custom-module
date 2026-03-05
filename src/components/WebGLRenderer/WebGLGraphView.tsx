@@ -10,6 +10,7 @@ import type { Node } from '../../types/GraphTypes';
 import { Constants } from '../../globals/Constants';
 import { Logger } from '../../globals/Logger';
 import { useGenerateReflowData } from '../../selectors/useGenerateReflowData';
+import { useIsDarkMode } from '../../hooks/useChurchToolsTheme';
 import { useAppStore } from '../../state/useAppStore';
 import { FloatingHeader } from '../FloatingHeader';
 import { WebGLGraphEngine } from './engine/WebGLGraphEngine';
@@ -26,14 +27,18 @@ export const WebGLGraphView = React.memo(() => {
     const showGroupTypes = useAppStore((s) => s.committedFilters?.showGroupTypes ?? true);
     const focusNodeId = useAppStore((s) => s.focusNodeId);
     const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
+    const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
+    const isDarkMode = useIsDarkMode();
     
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engineRef = useRef<null | WebGLGraphEngine>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     
-    // Pan state
+    // Pointer state
+    const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+    const lastPinchDistance = useRef<number | null>(null);
+    const lastTapTime = useRef<number>(0);
     const isPanning = useRef(false);
-    const lastPointer = useRef({ x: 0, y: 0 });
     
     // Camera state for minimap reactivity
     const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
@@ -72,15 +77,13 @@ export const WebGLGraphView = React.memo(() => {
         const engine = engineRef.current;
         if (!engine || data.nodes.length === 0) return;
 
-        engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes);
+        engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes, isDarkMode);
         
-        // Fit view after a short delay to ensure metrics are computed
-        setTimeout(() => {
-            engine.fitView(0.05);
-            const cam = engine.getCamera();
-            setCameraState(cam);
-        }, 50);
-    }, [data.nodes, data.edges, showGroupTypes]);
+        // Fit view immediately after data is set
+        engine.fitView(0.05);
+        const cam = engine.getCamera();
+        setCameraState(cam);
+    }, [data.nodes, data.edges, showGroupTypes, isDarkMode]);
 
     // Focus on a specific node when requested
     useEffect(() => {
@@ -104,35 +107,128 @@ export const WebGLGraphView = React.memo(() => {
 
     // Pointer handlers
     const handlePointerDown = useCallback((e: React.PointerEvent) => {
-        if (e.button === 0) {
-            isPanning.current = true;
-            lastPointer.current = { x: e.clientX, y: e.clientY };
-            (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        const canvas = canvasRef.current;
+        const engine = engineRef.current;
+        if (!canvas || !engine) return;
+
+        const now = Date.now();
+        const timeSinceLastTap = now - lastTapTime.current;
+        
+        if (timeSinceLastTap < 300 && activePointers.current.size === 0) {
+            // Double tap detected
+            const rect = canvas.getBoundingClientRect();
+            const tapX = e.clientX - rect.left;
+            const tapY = e.clientY - rect.top;
+            
+            const cam = engine.getCamera();
+            const zoomFactor = 1.5;
+            const newZoom = Math.min(4, cam.zoom * zoomFactor);
+            
+            const worldBefore = engine.screenToWorld(tapX, tapY);
+            engine.setCamera({
+                x: worldBefore.x - tapX / newZoom,
+                y: worldBefore.y - tapY / newZoom,
+                zoom: newZoom,
+            });
+            updateCameraState();
+            
+            // Reset tap time to prevent triple-tap double-zooming
+            lastTapTime.current = 0;
+            return;
         }
-    }, []);
+        
+        lastTapTime.current = now;
+
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        canvas.setPointerCapture(e.pointerId);
+
+        if (activePointers.current.size === 1) {
+            isPanning.current = true;
+        } else if (activePointers.current.size === 2) {
+            isPanning.current = false; // Stop panning when starting pinch
+            const pointers = Array.from(activePointers.current.values());
+            lastPinchDistance.current = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
+        }
+    }, [updateCameraState]);
 
     const handlePointerMove = useCallback((e: React.PointerEvent) => {
-        if (!isPanning.current) return;
+        if (activePointers.current.size === 0) return;
+        
         const engine = engineRef.current;
-        if (!engine) return;
+        const canvas = canvasRef.current;
+        if (!engine || !canvas) return;
 
-        const dx = e.clientX - lastPointer.current.x;
-        const dy = e.clientY - lastPointer.current.y;
-        lastPointer.current = { x: e.clientX, y: e.clientY };
+        const prevPointer = activePointers.current.get(e.pointerId);
+        if (!prevPointer) return;
 
-        const cam = engine.getCamera();
-        engine.setCamera({
-            ...cam,
-            x: cam.x - dx / cam.zoom,
-            y: cam.y - dy / cam.zoom,
-        });
-        updateCameraState();
+        // Update current pointer
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.current.size === 1 && isPanning.current) {
+            // Single-finger panning
+            const dx = e.clientX - prevPointer.x;
+            const dy = e.clientY - prevPointer.y;
+
+            const cam = engine.getCamera();
+            engine.setCamera({
+                ...cam,
+                x: cam.x - dx / cam.zoom,
+                y: cam.y - dy / cam.zoom,
+            });
+            updateCameraState();
+        } else if (activePointers.current.size === 2) {
+            // Two-finger pinch to zoom
+            const pointers = Array.from(activePointers.current.values());
+            const currentDistance = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
+            
+            if (lastPinchDistance.current !== null && lastPinchDistance.current !== 0) {
+                const zoomFactor = currentDistance / lastPinchDistance.current;
+                const cam = engine.getCamera();
+                const newZoom = Math.min(4, Math.max(0.05, cam.zoom * zoomFactor));
+
+                // Zoom toward midpoint of pointers
+                const rect = canvas.getBoundingClientRect();
+                const midX = (pointers[0].x + pointers[1].x) / 2 - rect.left;
+                const midY = (pointers[0].y + pointers[1].y) / 2 - rect.top;
+
+                const worldBefore = engine.screenToWorld(midX, midY);
+                engine.setCamera({
+                    x: worldBefore.x - midX / newZoom,
+                    y: worldBefore.y - midY / newZoom,
+                    zoom: newZoom,
+                });
+                updateCameraState();
+            }
+            lastPinchDistance.current = currentDistance;
+
+            // Also allow panning while pinching by calculating the midpoint delta
+            const midX = (pointers[0].x + pointers[1].x) / 2;
+            const midY = (pointers[0].y + pointers[1].y) / 2;
+            
+            // We need previous midpoint too, but for simplicity let's just do zoom for now
+            // or we could track previous midpoints. Let's just focus on zoom as it's the primary request.
+        }
     }, [updateCameraState]);
 
     const handlePointerUp = useCallback((e: React.PointerEvent) => {
-        if (isPanning.current) {
+        activePointers.current.delete(e.pointerId);
+        const canvas = canvasRef.current;
+        if (canvas) {
+            canvas.releasePointerCapture(e.pointerId);
+        }
+
+        if (activePointers.current.size < 2) {
+            lastPinchDistance.current = null;
+        }
+        if (activePointers.current.size === 0) {
             isPanning.current = false;
-            (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+        } else if (activePointers.current.size === 1) {
+            isPanning.current = true;
+            // Update the remaining pointer's reference point to avoid jumps
+            const remainingPointerId = activePointers.current.keys().next().value;
+            if (remainingPointerId !== undefined) {
+                // The current pointer being moved will be updated in handlePointerMove
+            }
         }
     }, []);
 
@@ -273,7 +369,9 @@ export const WebGLGraphView = React.memo(() => {
 
     return (
         <div className="relative size-full" ref={containerRef}>
-            <FloatingHeader nodes={data.nodes} />
+            <div className={isSidebarOpen ? 'hidden lg:block' : 'block'}>
+                <FloatingHeader nodes={data.nodes} />
+            </div>
             <canvas
                 className="size-full cursor-grab active:cursor-grabbing"
                 onClick={handleClick}
@@ -292,27 +390,27 @@ export const WebGLGraphView = React.memo(() => {
             </Menu>
 
             {/* Controls */}
-            <div className="absolute right-2 bottom-2 flex flex-col gap-1">
+            <div className="absolute bottom-6 left-2 flex flex-col gap-2">
                 <button
-                    className="flex size-7 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
                     onClick={handleZoomIn}
                     title="Zoom In"
                 >
-                    <Plus className="size-4" />
+                    <Plus className="size-5" />
                 </button>
                 <button
-                    className="flex size-7 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
                     onClick={handleZoomOut}
                     title="Zoom Out"
                 >
-                    <Minus className="size-4" />
+                    <Minus className="size-5" />
                 </button>
                 <button
-                    className="flex size-7 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
                     onClick={handleFitView}
                     title="Fit View"
                 >
-                    <Maximize className="size-4" />
+                    <Maximize className="size-5" />
                 </button>
             </div>
 
@@ -320,6 +418,7 @@ export const WebGLGraphView = React.memo(() => {
             <WebGLMinimap
                 camera={cameraState}
                 engine={engine}
+                isDarkMode={isDarkMode}
                 onCameraChange={(cam) => {
                     engineRef.current?.setCamera(cam);
                     updateCameraState();

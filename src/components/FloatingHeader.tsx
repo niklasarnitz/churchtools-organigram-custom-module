@@ -43,7 +43,7 @@ export const FloatingHeader = React.memo(({ nodes }: FloatingHeaderProps) => {
     }, [nodes]);
 
     return (
-        <div className="absolute top-6 left-1/2 z-50 flex w-full max-w-2xl -translate-x-1/2 items-center gap-4 px-4">
+        <div className="absolute top-6 left-1/2 z-40 flex w-full max-w-2xl -translate-x-1/2 items-center gap-4 px-4">
             <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 font-bold shadow-lg backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
                 <span className="text-blue-600 dark:text-blue-400">Organigramm</span>
             </div>
