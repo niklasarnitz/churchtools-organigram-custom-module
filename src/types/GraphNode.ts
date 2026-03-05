@@ -1,7 +1,7 @@
+import type { getColorForGroupType } from '../globals/Colors';
 import type { Group } from './Group';
 import type { GroupMember } from './GroupMember';
 import type { GroupRole } from './GroupRole';
-import type { getColorForGroupType } from '../globals/Colors';
 
 export interface GraphNode {
 	group: Group;
@@ -14,8 +14,8 @@ export interface PreviewGraphNodeData {
 	group: Group;
 	groupTypeName: string;
 	id: number;
-	members: GroupMember[];
 	memberNamesByRoleId: Map<number, string[]>;
+	members: GroupMember[];
 	metadata: string;
 	roles: GroupRole[];
 	title: string;

@@ -88,7 +88,7 @@ export const MainComponent = React.memo(() => {
 						</div>
 					</div>
 				) : showGraph ? (
-					<GraphView isLoading={isGraphLoading} />
+					<GraphView />
 				) : null}
 			</div>
 		</div>

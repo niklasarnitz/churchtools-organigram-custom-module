@@ -12,6 +12,7 @@ export const useGroupMembers = () => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
 
 	return useQuery({
+		enabled: !!committedFilters && filteredGroupIds.length > 0,
 		queryFn: async () => {
 			if (filteredGroupIds.length === 0) return [];
 
@@ -41,6 +42,5 @@ export const useGroupMembers = () => {
 			return result;
 		},
 		queryKey: ['groupMembers', filteredGroupIds.join(',')],
-		enabled: !!committedFilters && filteredGroupIds.length > 0,
 	});
 };

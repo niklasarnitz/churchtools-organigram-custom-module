@@ -1,10 +1,11 @@
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
+
 import { oklchToHex } from '../../../globals/Colors';
 
 export interface NodeCardMetrics {
-    width: number;
-    height: number;
     headerHeight: number;
+    height: number;
+    width: number;
 }
 
 const NODE_MIN_WIDTH = 220;
@@ -23,170 +24,6 @@ const BADGE_GAP = 4;
 const ROLE_GAP = 8;
 const BORDER_RADIUS = 12;
 const BORDER_WIDTH = 2;
-
-function measureText(ctx: CanvasRenderingContext2D, text: string, font: string): number {
-    ctx.font = font;
-    return ctx.measureText(text).width;
-}
-
-function roundRect(
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, w: number, h: number, r: number
-) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-
-export function measureNodeCard(
-    ctx: CanvasRenderingContext2D,
-    data: PreviewGraphNodeData,
-    showGroupTypes: boolean,
-): NodeCardMetrics {
-    const titleFont = `bold ${TITLE_FONT_SIZE}px Lato, sans-serif`;
-    const groupTypeFont = `bold ${GROUP_TYPE_FONT_SIZE}px Lato, sans-serif`;
-    const memberFont = `${MEMBER_FONT_SIZE}px Lato, sans-serif`;
-
-    // Measure title width
-    let contentWidth = measureText(ctx, data.title, titleFont) + HEADER_PADDING_X * 2;
-    
-    // Check group type width
-    if (showGroupTypes) {
-        const gtWidth = measureText(ctx, data.groupTypeName.toUpperCase(), groupTypeFont) + HEADER_PADDING_X * 2;
-        contentWidth = Math.max(contentWidth, gtWidth);
-    }
-
-    const rolesWithMembers = data.roles.filter(role => data.memberNamesByRoleId.has(role.id));
-
-    for (const role of rolesWithMembers) {
-        const names = data.memberNamesByRoleId.get(role.id)!;
-        let rowWidth = 0;
-        for (const name of names) {
-            const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
-            rowWidth += badgeWidth + BADGE_GAP;
-        }
-        contentWidth = Math.max(contentWidth, rowWidth + NODE_PADDING * 2);
-    }
-
-    const width = Math.min(NODE_MAX_WIDTH, Math.max(NODE_MIN_WIDTH, contentWidth));
-
-    // Calculate height
-    let headerHeight = HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE;
-    if (showGroupTypes) {
-        headerHeight += GROUP_TYPE_FONT_SIZE + 4;
-    }
-
-    let bodyHeight = 0;
-    if (rolesWithMembers.length > 0) {
-        bodyHeight = NODE_PADDING;
-        for (const role of rolesWithMembers) {
-            const names = data.memberNamesByRoleId.get(role.id)!;
-            
-            bodyHeight += ROLE_FONT_SIZE + 4; // role label
-            
-            // Calculate badge rows
-            const innerWidth = width - NODE_PADDING * 2;
-            let currentRowWidth = 0;
-            let rows = 1;
-            for (const name of names) {
-                const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
-                if (currentRowWidth + badgeWidth + BADGE_GAP > innerWidth && currentRowWidth > 0) {
-                    rows++;
-                    currentRowWidth = 0;
-                }
-                currentRowWidth += badgeWidth + BADGE_GAP;
-            }
-            bodyHeight += rows * (BADGE_HEIGHT + BADGE_GAP) + ROLE_GAP;
-        }
-        bodyHeight += NODE_PADDING / 2;
-    }
-
-    return { width, height: headerHeight + bodyHeight, headerHeight };
-}
-
-export function drawNodeCardHeaderOnly(
-    ctx: CanvasRenderingContext2D,
-    data: PreviewGraphNodeData,
-    showGroupTypes: boolean,
-    x: number,
-    y: number,
-    width: number,
-    totalHeight: number,
-    headerHeight: number,
-): void {
-    const borderColor = oklchToHex(data.color.shades[300]);
-    const headerBg = oklchToHex(data.color.shades[100]);
-
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-
-    // Card background (white body)
-    roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.restore();
-
-    // Border
-    roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = BORDER_WIDTH;
-    ctx.stroke();
-
-    // Clip to card bounds
-    ctx.save();
-    roundRect(ctx, x + 1, y + 1, width - 2, totalHeight - 2, BORDER_RADIUS - 1);
-    ctx.clip();
-
-    // Header background
-    ctx.fillStyle = headerBg;
-    ctx.fillRect(x, y, width, headerHeight);
-
-    // Header bottom border
-    if (totalHeight > headerHeight) {
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = BORDER_WIDTH;
-        ctx.beginPath();
-        ctx.moveTo(x, y + headerHeight);
-        ctx.lineTo(x + width, y + headerHeight);
-        ctx.stroke();
-    }
-
-    // Title
-    ctx.fillStyle = '#0f172a';
-    ctx.font = `bold ${TITLE_FONT_SIZE}px Lato, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(data.title, x + width / 2, y + HEADER_PADDING_Y + TITLE_FONT_SIZE / 2, width - HEADER_PADDING_X * 2);
-
-    // Group type
-    if (showGroupTypes) {
-        ctx.fillStyle = '#64748b';
-        ctx.font = `bold ${GROUP_TYPE_FONT_SIZE}px Lato, sans-serif`;
-        ctx.letterSpacing = '2px';
-        ctx.fillText(
-            data.groupTypeName.toUpperCase(),
-            x + width / 2,
-            y + HEADER_PADDING_Y + TITLE_FONT_SIZE + 4 + GROUP_TYPE_FONT_SIZE / 2,
-            width - HEADER_PADDING_X * 2
-        );
-        ctx.letterSpacing = '0px';
-    }
-
-    ctx.restore();
-}
 
 export function drawNodeCard(
     ctx: CanvasRenderingContext2D,
@@ -248,7 +85,7 @@ export function drawNodeCard(
 
     // Title
     ctx.fillStyle = '#0f172a'; // slate-900
-    ctx.font = `bold ${TITLE_FONT_SIZE}px Lato, sans-serif`;
+    ctx.font = `bold ${String(TITLE_FONT_SIZE)}px Lato, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(data.title, x + width / 2, y + HEADER_PADDING_Y + TITLE_FONT_SIZE / 2, width - HEADER_PADDING_X * 2);
@@ -256,7 +93,7 @@ export function drawNodeCard(
     // Group type
     if (showGroupTypes) {
         ctx.fillStyle = '#64748b'; // slate-500
-        ctx.font = `bold ${GROUP_TYPE_FONT_SIZE}px Lato, sans-serif`;
+        ctx.font = `bold ${String(GROUP_TYPE_FONT_SIZE)}px Lato, sans-serif`;
         ctx.letterSpacing = '2px';
         ctx.fillText(
             data.groupTypeName.toUpperCase(),
@@ -270,15 +107,14 @@ export function drawNodeCard(
     // Body with roles and members
     if (hasMembers) {
         let cursorY = y + headerHeight + NODE_PADDING;
-        const innerWidth = width - NODE_PADDING * 2;
 
         for (const role of rolesWithMembers) {
-            const names = data.memberNamesByRoleId.get(role.id)!;
+            const names = data.memberNamesByRoleId.get(role.id) ?? [];
             if (names.length === 0) continue;
 
             // Role label
             ctx.fillStyle = '#64748b'; // slate-500
-            ctx.font = `bold ${ROLE_FONT_SIZE}px Lato, sans-serif`;
+            ctx.font = `bold ${String(ROLE_FONT_SIZE)}px Lato, sans-serif`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.letterSpacing = '1px';
@@ -287,7 +123,7 @@ export function drawNodeCard(
             cursorY += ROLE_FONT_SIZE + 6;
 
             // Member badges
-            ctx.font = `${MEMBER_FONT_SIZE}px Lato, sans-serif`;
+            ctx.font = `${String(MEMBER_FONT_SIZE)}px Lato, sans-serif`;
             let badgeX = x + NODE_PADDING;
 
             for (const name of names) {
@@ -319,4 +155,168 @@ export function drawNodeCard(
     }
 
     ctx.restore();
+}
+
+export function drawNodeCardHeaderOnly(
+    ctx: CanvasRenderingContext2D,
+    data: PreviewGraphNodeData,
+    showGroupTypes: boolean,
+    x: number,
+    y: number,
+    width: number,
+    totalHeight: number,
+    headerHeight: number,
+): void {
+    const borderColor = oklchToHex(data.color.shades[300]);
+    const headerBg = oklchToHex(data.color.shades[100]);
+
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
+
+    // Card background (white body)
+    roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
+
+    // Border
+    roundRect(ctx, x, y, width, totalHeight, BORDER_RADIUS);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = BORDER_WIDTH;
+    ctx.stroke();
+
+    // Clip to card bounds
+    ctx.save();
+    roundRect(ctx, x + 1, y + 1, width - 2, totalHeight - 2, BORDER_RADIUS - 1);
+    ctx.clip();
+
+    // Header background
+    ctx.fillStyle = headerBg;
+    ctx.fillRect(x, y, width, headerHeight);
+
+    // Header bottom border
+    if (totalHeight > headerHeight) {
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = BORDER_WIDTH;
+        ctx.beginPath();
+        ctx.moveTo(x, y + headerHeight);
+        ctx.lineTo(x + width, y + headerHeight);
+        ctx.stroke();
+    }
+
+    // Title
+    ctx.fillStyle = '#0f172a';
+    ctx.font = `bold ${String(TITLE_FONT_SIZE)}px Lato, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.title, x + width / 2, y + HEADER_PADDING_Y + TITLE_FONT_SIZE / 2, width - HEADER_PADDING_X * 2);
+
+    // Group type
+    if (showGroupTypes) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = `bold ${String(GROUP_TYPE_FONT_SIZE)}px Lato, sans-serif`;
+        ctx.letterSpacing = '2px';
+        ctx.fillText(
+            data.groupTypeName.toUpperCase(),
+            x + width / 2,
+            y + HEADER_PADDING_Y + TITLE_FONT_SIZE + 4 + GROUP_TYPE_FONT_SIZE / 2,
+            width - HEADER_PADDING_X * 2
+        );
+        ctx.letterSpacing = '0px';
+    }
+
+    ctx.restore();
+}
+
+
+export function measureNodeCard(
+    ctx: CanvasRenderingContext2D,
+    data: PreviewGraphNodeData,
+    showGroupTypes: boolean,
+): NodeCardMetrics {
+    const titleFont = `bold ${String(TITLE_FONT_SIZE)}px Lato, sans-serif`;
+    const groupTypeFont = `bold ${String(GROUP_TYPE_FONT_SIZE)}px Lato, sans-serif`;
+    const memberFont = `${String(MEMBER_FONT_SIZE)}px Lato, sans-serif`;
+
+    // Measure title width
+    let contentWidth = measureText(ctx, data.title, titleFont) + HEADER_PADDING_X * 2;
+    
+    // Check group type width
+    if (showGroupTypes) {
+        const gtWidth = measureText(ctx, data.groupTypeName.toUpperCase(), groupTypeFont) + HEADER_PADDING_X * 2;
+        contentWidth = Math.max(contentWidth, gtWidth);
+    }
+
+    const rolesWithMembers = data.roles.filter(role => data.memberNamesByRoleId.has(role.id));
+
+    for (const role of rolesWithMembers) {
+        const names = data.memberNamesByRoleId.get(role.id) ?? [];
+        let rowWidth = 0;
+        for (const name of names) {
+            const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
+            rowWidth += badgeWidth + BADGE_GAP;
+        }
+        contentWidth = Math.max(contentWidth, rowWidth + NODE_PADDING * 2);
+    }
+
+    const width = Math.min(NODE_MAX_WIDTH, Math.max(NODE_MIN_WIDTH, contentWidth));
+
+    // Calculate height
+    let headerHeight = HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE;
+    if (showGroupTypes) {
+        headerHeight += GROUP_TYPE_FONT_SIZE + 4;
+    }
+
+    let bodyHeight = 0;
+    if (rolesWithMembers.length > 0) {
+        bodyHeight = NODE_PADDING;
+        for (const role of rolesWithMembers) {
+            const names = data.memberNamesByRoleId.get(role.id) ?? [];
+            
+            bodyHeight += ROLE_FONT_SIZE + 4; // role label
+            
+            // Calculate badge rows
+            const innerWidth = width - NODE_PADDING * 2;
+            let currentRowWidth = 0;
+            let rows = 1;
+            for (const name of names) {
+                const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
+                if (currentRowWidth + badgeWidth + BADGE_GAP > innerWidth && currentRowWidth > 0) {
+                    rows++;
+                    currentRowWidth = 0;
+                }
+                currentRowWidth += badgeWidth + BADGE_GAP;
+            }
+            bodyHeight += rows * (BADGE_HEIGHT + BADGE_GAP) + ROLE_GAP;
+        }
+        bodyHeight += NODE_PADDING / 2;
+    }
+
+    return { headerHeight, height: headerHeight + bodyHeight, width };
+}
+
+function measureText(ctx: CanvasRenderingContext2D, text: string, font: string): number {
+    ctx.font = font;
+    return ctx.measureText(text).width;
+}
+
+function roundRect(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, w: number, h: number, r: number
+) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
 }

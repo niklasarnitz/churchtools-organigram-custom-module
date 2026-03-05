@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import type { PreviewGraphNodeData } from '../types/GraphNode';
+
+import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { getColorForGroupType } from '../globals/Colors';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutElk } from '../helpers/layoutAlgorithms/elk';
 import { useAppStore } from '../state/useAppStore';
-import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
-import type { PreviewGraphNodeData } from '../types/GraphNode';
 import { type Edge, type Node, Position } from '../types/GraphTypes';
-import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
+import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import { useCreateRelatedData } from './useCreateRelatedData';
 import { useGroupTypesById } from './useGroupTypesById';
 import { usePersonsById } from './usePersonsById';
@@ -26,7 +27,7 @@ export const useGenerateReflowData = () => {
 	});
 
 	const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
-	if (!measureCanvasRef.current) {
+	if (measureCanvasRef.current == null) {
 		const c = document.createElement('canvas');
 		c.width = 1;
 		c.height = 1;
@@ -76,8 +77,8 @@ export const useGenerateReflowData = () => {
 					group: node.group,
 					groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
 					id: node.group.id,
-					members: node.members,
 					memberNamesByRoleId,
+					members: node.members,
 					metadata: getGroupMetadataString(node.groupRoles, node.members, personsById),
 					roles: node.groupRoles,
 					title: getGroupTitle(node.group, showGroupTypes, groupTypesById, true),
@@ -100,11 +101,14 @@ export const useGenerateReflowData = () => {
 		let active = true;
 
 		const performLayout = async () => {
-			const measureCtx = measureCanvasRef.current!.getContext('2d')!;
-			const nodeSizes = new Map<string, { width: number; height: number }>();
+			const measureCanvas = measureCanvasRef.current;
+			if (!measureCanvas) return;
+			const measureCtx = measureCanvas.getContext('2d');
+			if (!measureCtx) return;
+			const nodeSizes = new Map<string, { height: number; width: number; }>();
 			for (const node of reflowNodes) {
 				const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
-				nodeSizes.set(node.id, { width: metrics.width, height: metrics.height });
+				nodeSizes.set(node.id, { height: metrics.height, width: metrics.width });
 			}
 
 			const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm, nodeSizes);

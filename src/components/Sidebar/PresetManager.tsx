@@ -1,8 +1,7 @@
+import { Save, Trash2 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 
-import { Save, Trash2 } from 'lucide-react';
-
-import { usePresets, type Preset, type UserSettings } from '../../hooks/useUserSettings';
+import { type Preset, usePresets, type UserSettings } from '../../hooks/useUserSettings';
 import { useAppStore } from '../../state/useAppStore';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -27,8 +26,8 @@ export const PresetManager = React.memo(() => {
 			filteredGroupCategoryIds: s.filteredGroupCategoryIds,
 			groupIdToStartWith: s.groupIdToStartWith,
 			hideIndirectSubgroups: s.hideIndirectSubgroups,
-			includedGroupStatuses: s.includedGroupStatuses,
 			includedGroups: s.includedGroups,
+			includedGroupStatuses: s.includedGroupStatuses,
 			layoutAlgorithm: s.layoutAlgorithm,
 			maxDepth: s.maxDepth,
 			showGroupTypes: s.showGroupTypes,
@@ -105,7 +104,7 @@ export const PresetManager = React.memo(() => {
 						<div className="flex flex-col gap-3">
 							<input
 								className="h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm focus:ring-1 focus:ring-slate-950 focus:outline-none dark:border-slate-700"
-								onChange={(e) => setNewPresetName(e.target.value)}
+								onChange={(e) => { setNewPresetName(e.target.value); }}
 								placeholder="Preset-Name"
 								value={newPresetName}
 							/>

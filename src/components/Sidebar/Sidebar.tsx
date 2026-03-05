@@ -9,7 +9,6 @@ import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
 import { useGroupsById } from '../../selectors/useGroupsById';
 import { useAppStore } from '../../state/useAppStore';
-
 import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';

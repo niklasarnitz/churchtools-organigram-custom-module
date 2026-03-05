@@ -1,6 +1,6 @@
 export interface GroupCategory {
 	color: string;
-	description: string | null;
+	description: null | string;
 	id: number;
 	name: string;
 	nameTranslated: string;

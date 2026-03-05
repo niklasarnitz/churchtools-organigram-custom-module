@@ -1,20 +1,19 @@
 import type { ELK, ElkNode } from 'elkjs/lib/elk.bundled';
 
-import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
-import type { Edge, Node } from '../../types/GraphTypes';
-import { Position } from '../../types/GraphTypes';
-
 import ElkApi from 'elkjs/lib/elk-api';
 import ElkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
+
+import type { Edge, Node } from '../../types/GraphTypes';
+
+import { Position } from '../../types/GraphTypes';
+import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
 
 let elkInstance: ELK | null = null;
 
 function getElk(): ELK {
-	if (!elkInstance) {
-		elkInstance = new ElkApi({
-			workerUrl: ElkWorkerUrl as string,
-		}) as unknown as ELK;
-	}
+	elkInstance ??= new ElkApi({
+		workerUrl: ElkWorkerUrl,
+	}) as unknown as ELK;
 	return elkInstance;
 }
 
@@ -22,13 +21,13 @@ export const layoutElk = async (
 	nodes: Node[],
 	edges: Edge[],
 	algorithm: LayoutAlgorithm,
-	nodeSizes: Map<string, { width: number; height: number }>,
+	nodeSizes: Map<string, { height: number; width: number; }>,
 ): Promise<{ edges: Edge[]; nodes: Node[] }> => {
 	const elk = getElk();
 
 	const elkAlgorithmMap: Record<LayoutAlgorithm, string> = {
-		[LayoutAlgorithm.elkLayeredTB]: 'layered',
 		[LayoutAlgorithm.elkLayeredLR]: 'layered',
+		[LayoutAlgorithm.elkLayeredTB]: 'layered',
 		[LayoutAlgorithm.elkMrTree]: 'mrtree',
 		[LayoutAlgorithm.elkRadial]: 'radial',
 	};
@@ -48,10 +47,10 @@ export const layoutElk = async (
 		'elk.edgeRouting': 'ORTHOGONAL',
 		'elk.padding': '[top=50,left=50,bottom=50,right=50]',
 		'elk.spacing.componentsCmpHierarchy': '80',
-		'elk.spacing.nodeNode': '60',
-		'elk.spacing.nodeNodeBetweenLayers': '80',
 		'elk.spacing.edgeEdge': '20',
 		'elk.spacing.edgeNode': '30',
+		'elk.spacing.nodeNode': '60',
+		'elk.spacing.nodeNodeBetweenLayers': '80',
 	};
 
 	if (isLayered) {

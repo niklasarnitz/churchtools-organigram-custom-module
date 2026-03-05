@@ -16,15 +16,14 @@ import { useGroupMembers } from './useGroupMembers';
 export const usePersons = () => {
 	const { data: members, isFetched: isMembersFetched } = useGroupMembers();
 	const committedFilters = useAppStore((s) => s.committedFilters);
-	const excludedRoles = committedFilters?.excludedRoles ?? [];
-
 	const personIds = useMemo(() => {
 		if (!members) return [];
+		const excludedRoles = committedFilters?.excludedRoles ?? [];
 		const filteredMembers = excludedRoles.length > 0
 			? members.filter((m) => !excludedRoles.includes(m.groupTypeRoleId))
 			: members;
 		return Array.from(new Set(filteredMembers.map((m) => m.personId)));
-	}, [members, excludedRoles]);
+	}, [members, committedFilters?.excludedRoles]);
 
 	const personIdHash = useMemo(() => {
 		if (personIds.length === 0) return '';
@@ -33,10 +32,11 @@ export const usePersons = () => {
 		for (const id of sorted) {
 			hash = ((hash << 5) + hash + id) | 0;
 		}
-		return `${sorted.length}:${hash}`;
+		return `${String(sorted.length)}:${String(hash)}`;
 	}, [personIds]);
 
 	return useQuery({
+		enabled: isMembersFetched && personIds.length > 0,
 		queryFn: async () => {
 			if (personIds.length === 0) return [];
 			Logger.log(`API: Fetching ${String(personIds.length)} persons in chunks`);
@@ -67,6 +67,5 @@ export const usePersons = () => {
 			return result;
 		},
 		queryKey: ['persons', personIdHash],
-		enabled: isMembersFetched && personIds.length > 0,
 	});
 };

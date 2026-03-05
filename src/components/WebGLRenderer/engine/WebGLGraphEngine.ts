@@ -1,7 +1,7 @@
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
-import { type Edge, type Node, Position } from '../../../types/GraphTypes';
 
 import { oklchToHex } from '../../../globals/Colors';
+import { type Edge, type Node, Position } from '../../../types/GraphTypes';
 import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
 
 export interface Camera {
@@ -11,34 +11,34 @@ export interface Camera {
 }
 
 export interface NodeHit {
+    height: number;
     node: Node<PreviewGraphNodeData>;
     width: number;
-    height: number;
 }
 
 export class WebGLGraphEngine {
+    private animationId: null | number = null;
+    private animationTime = 0;
+    private camera: Camera = { x: 0, y: 0, zoom: 1 };
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private camera: Camera = { x: 0, y: 0, zoom: 1 };
-    private nodes: Node<PreviewGraphNodeData>[] = [];
-    private edges: Edge[] = [];
-    private nodeMetrics: Map<string, NodeCardMetrics> = new Map();
-    private showGroupTypes = true;
-    private animationId: number | null = null;
-    private animationTime = 0;
-    private lastFrameTime = 0;
     private dpr = 1;
-    private needsRender = true;
-    private nodeMap: Map<string, Node<PreviewGraphNodeData>> = new Map();
-    private spatialGrid: Map<string, Node<PreviewGraphNodeData>[]> = new Map();
-    private spatialCellSize = 200;
-
-    // Offscreen canvas for node texture caching
-    private nodeCanvasCache: Map<string, { canvas: HTMLCanvasElement; width: number; height: number }> = new Map();
-    
+    private edges: Edge[] = [];
+    private lastFrameTime = 0;
     // Measuring canvas (offscreen)
     private measureCanvas: HTMLCanvasElement;
     private measureCtx: CanvasRenderingContext2D;
+    private needsRender = true;
+    // Offscreen canvas for node texture caching
+    private nodeCanvasCache = new Map<string, { canvas: HTMLCanvasElement; height: number; width: number; }>();
+    private nodeMap = new Map<string, Node<PreviewGraphNodeData>>();
+    private nodeMetrics = new Map<string, NodeCardMetrics>();
+    private nodes: Node<PreviewGraphNodeData>[] = [];
+
+    private showGroupTypes = true;
+    
+    private spatialCellSize = 200;
+    private spatialGrid = new Map<string, Node<PreviewGraphNodeData>[]>();
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -50,64 +50,9 @@ export class WebGLGraphEngine {
         this.measureCanvas = document.createElement('canvas');
         this.measureCanvas.width = 1;
         this.measureCanvas.height = 1;
-        this.measureCtx = this.measureCanvas.getContext('2d')!;
-    }
-
-    setData(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean) {
-        this.nodes = nodes;
-        this.edges = edges;
-        this.showGroupTypes = showGroupTypes;
-        
-        this.nodeMap.clear();
-        for (const node of nodes) {
-            this.nodeMap.set(node.id, node);
-        }
-        
-        // Recalculate metrics and invalidate caches
-        this.nodeMetrics.clear();
-        this.nodeCanvasCache.clear();
-        
-        for (const node of nodes) {
-            const metrics = measureNodeCard(this.measureCtx, node.data, showGroupTypes);
-            this.nodeMetrics.set(node.id, metrics);
-        }
-
-        this.buildSpatialGrid();
-        
-        this.needsRender = true;
-    }
-
-    getCamera(): Camera {
-        return { ...this.camera };
-    }
-
-    setCamera(camera: Camera) {
-        this.camera = { ...camera };
-        this.needsRender = true;
-    }
-
-    resize() {
-        this.dpr = window.devicePixelRatio || 1;
-        const rect = this.canvas.getBoundingClientRect();
-        this.canvas.width = rect.width * this.dpr;
-        this.canvas.height = rect.height * this.dpr;
-        this.needsRender = true;
-    }
-
-    getBounds(): { minX: number; minY: number; maxX: number; maxY: number } | null {
-        if (this.nodes.length === 0) return null;
-        
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const node of this.nodes) {
-            const metrics = this.nodeMetrics.get(node.id);
-            const w = metrics?.width ?? 250;
-            const h = metrics?.height ?? 80;
-            minX = Math.min(minX, node.position.x);
-            minY = Math.min(minY, node.position.y);
-            maxX = Math.max(maxX, node.position.x + w);
-            maxY = Math.max(maxY, node.position.y + h);
-        }
-        return { minX, minY, maxX, maxY };
+        const measureCtx = this.measureCanvas.getContext('2d');
+        if (!measureCtx) throw new Error('Failed to get measure 2D context');
+        this.measureCtx = measureCtx;
     }
 
     fitView(padding = 0.05) {
@@ -155,18 +100,40 @@ export class WebGLGraphEngine {
         this.needsRender = true;
     }
 
-    worldToScreen(wx: number, wy: number): { x: number; y: number } {
-        return {
-            x: (wx - this.camera.x) * this.camera.zoom,
-            y: (wy - this.camera.y) * this.camera.zoom,
-        };
+    getAllNodeMetrics(): Map<string, NodeCardMetrics> {
+        return this.nodeMetrics;
     }
 
-    screenToWorld(sx: number, sy: number): { x: number; y: number } {
-        return {
-            x: sx / this.camera.zoom + this.camera.x,
-            y: sy / this.camera.zoom + this.camera.y,
-        };
+    getBounds(): null | { maxX: number; maxY: number; minX: number; minY: number; } {
+        if (this.nodes.length === 0) return null;
+        
+        let maxX = -Infinity, maxY = -Infinity, minX = Infinity, minY = Infinity;
+        for (const node of this.nodes) {
+            const metrics = this.nodeMetrics.get(node.id);
+            const w = metrics?.width ?? 250;
+            const h = metrics?.height ?? 80;
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+            maxX = Math.max(maxX, node.position.x + w);
+            maxY = Math.max(maxY, node.position.y + h);
+        }
+        return { maxX, maxY, minX, minY };
+    }
+
+    getCamera(): Camera {
+        return { ...this.camera };
+    }
+
+    getCanvas(): HTMLCanvasElement {
+        return this.canvas;
+    }
+
+    getNodeMetrics(nodeId: string): NodeCardMetrics | undefined {
+        return this.nodeMetrics.get(nodeId);
+    }
+
+    getNodes(): Node<PreviewGraphNodeData>[] {
+        return this.nodes;
     }
 
     hitTest(screenX: number, screenY: number): NodeHit | null {
@@ -185,26 +152,58 @@ export class WebGLGraphEngine {
                 world.y >= node.position.y &&
                 world.y <= node.position.y + h
             ) {
-                return { node, width: w, height: h };
+                return { height: h, node, width: w };
             }
         }
         return null;
     }
 
-    getNodeMetrics(nodeId: string): NodeCardMetrics | undefined {
-        return this.nodeMetrics.get(nodeId);
+    markDirty() {
+        this.needsRender = true;
     }
 
-    getNodes(): Node<PreviewGraphNodeData>[] {
-        return this.nodes;
+    resize() {
+        this.dpr = window.devicePixelRatio || 1;
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width * this.dpr;
+        this.canvas.height = rect.height * this.dpr;
+        this.needsRender = true;
     }
 
-    getAllNodeMetrics(): Map<string, NodeCardMetrics> {
-        return this.nodeMetrics;
+    screenToWorld(sx: number, sy: number): { x: number; y: number } {
+        return {
+            x: sx / this.camera.zoom + this.camera.x,
+            y: sy / this.camera.zoom + this.camera.y,
+        };
     }
 
-    getCanvas(): HTMLCanvasElement {
-        return this.canvas;
+    setCamera(camera: Camera) {
+        this.camera = { ...camera };
+        this.needsRender = true;
+    }
+
+    setData(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean) {
+        this.nodes = nodes;
+        this.edges = edges;
+        this.showGroupTypes = showGroupTypes;
+        
+        this.nodeMap.clear();
+        for (const node of nodes) {
+            this.nodeMap.set(node.id, node);
+        }
+        
+        // Recalculate metrics and invalidate caches
+        this.nodeMetrics.clear();
+        this.nodeCanvasCache.clear();
+        
+        for (const node of nodes) {
+            const metrics = measureNodeCard(this.measureCtx, node.data, showGroupTypes);
+            this.nodeMetrics.set(node.id, metrics);
+        }
+
+        this.buildSpatialGrid();
+        
+        this.needsRender = true;
     }
 
     start() {
@@ -219,165 +218,11 @@ export class WebGLGraphEngine {
         }
     }
 
-    markDirty() {
-        this.needsRender = true;
-    }
-
-    private loop = (time: number) => {
-        const dt = (time - this.lastFrameTime) / 1000;
-        this.lastFrameTime = time;
-        this.animationTime += dt;
-
-        // Re-render for edge dash animation every ~100ms, or immediately if dirty
-        if (this.needsRender || dt > 0.1) {
-            this.render();
-            this.needsRender = false;
-        }
-        this.animationId = requestAnimationFrame(this.loop);
-    };
-
-    private getOrCreateNodeCanvas(node: Node<PreviewGraphNodeData>): { canvas: HTMLCanvasElement; width: number; height: number } {
-        const cached = this.nodeCanvasCache.get(node.id);
-        if (cached) return cached;
-
-        const metrics = this.nodeMetrics.get(node.id);
-        const w = metrics?.width ?? 250;
-        const h = metrics?.height ?? 80;
-        
-        const scale = 2; // high-res textures
-        const offscreen = document.createElement('canvas');
-        offscreen.width = w * scale;
-        offscreen.height = h * scale;
-        const offCtx = offscreen.getContext('2d')!;
-        offCtx.scale(scale, scale);
-
-        drawNodeCard(offCtx, node.data, this.showGroupTypes, 0, 0, w, h);
-
-        const entry = { canvas: offscreen, width: w, height: h };
-        this.nodeCanvasCache.set(node.id, entry);
-        return entry;
-    }
-
-    private render() {
-        const ctx = this.ctx;
-        const rect = this.canvas.getBoundingClientRect();
-        const viewW = rect.width;
-        const viewH = rect.height;
-
-        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-        
-        // Clear
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, viewW, viewH);
-
-        // Apply camera transform
-        ctx.save();
-        ctx.translate(-this.camera.x * this.camera.zoom, -this.camera.y * this.camera.zoom);
-        ctx.scale(this.camera.zoom, this.camera.zoom);
-
-        // Draw edges
-        this.drawEdges(ctx);
-
-        // Draw nodes
-        this.drawNodes(ctx, viewW, viewH);
-
-        ctx.restore();
-    }
-
-    private drawGrid(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
-        const zoom = this.camera.zoom;
-        
-        // Only draw grid when zoomed in enough
-        if (zoom < 0.3) return;
-
-        const baseGridSize = 20;
-        const worldW = viewW / zoom;
-        const worldH = viewH / zoom;
-        const maxDots = 2500;
-        const gridSize = Math.max(baseGridSize, Math.ceil(Math.sqrt(worldW * worldH / maxDots)));
-
-        const opacity = Math.min(1, (zoom - 0.3) / 0.7) * 0.3;
-        ctx.fillStyle = `rgba(148, 163, 184, ${opacity})`;
-
-        const startX = Math.floor(this.camera.x / gridSize) * gridSize;
-        const startY = Math.floor(this.camera.y / gridSize) * gridSize;
-        const endX = this.camera.x + worldW;
-        const endY = this.camera.y + worldH;
-
-        const dotSize = Math.max(1, 1.5 / zoom);
-
-        for (let x = startX; x < endX; x += gridSize) {
-            for (let y = startY; y < endY; y += gridSize) {
-                const sx = (x - this.camera.x) * zoom;
-                const sy = (y - this.camera.y) * zoom;
-                ctx.fillRect(sx - dotSize / 2, sy - dotSize / 2, dotSize, dotSize);
-            }
-        }
-    }
-
-    private getPortPosition(
-        node: Node<PreviewGraphNodeData>,
-        position: Position,
-        metrics: NodeCardMetrics,
-    ): { x: number; y: number } {
-        const w = metrics.width;
-        const h = metrics.height;
-        switch (position) {
-            case Position.Top:
-                return { x: node.position.x + w / 2, y: node.position.y };
-            case Position.Bottom:
-                return { x: node.position.x + w / 2, y: node.position.y + h };
-            case Position.Left:
-                return { x: node.position.x, y: node.position.y + h / 2 };
-            case Position.Right:
-                return { x: node.position.x + w, y: node.position.y + h / 2 };
-        }
-    }
-
-    private findSafeRailY(idealY: number, railMinX: number, railMaxX: number, srcY: number, tgtY: number, edgePadding: number): number {
-        const minY = Math.min(srcY, tgtY) + edgePadding;
-        const maxY = Math.max(srcY, tgtY) - edgePadding;
-        if (minY >= maxY) return idealY;
-
-        // Check if idealY intersects any node
-        if (!this.railIntersectsNode(idealY, railMinX, railMaxX, edgePadding)) {
-            return idealY;
-        }
-
-        // Search outward from idealY for a safe position
-        for (let offset = edgePadding; offset < (maxY - minY); offset += edgePadding) {
-            const above = idealY - offset;
-            if (above >= minY && !this.railIntersectsNode(above, railMinX, railMaxX, edgePadding)) {
-                return above;
-            }
-            const below = idealY + offset;
-            if (below <= maxY && !this.railIntersectsNode(below, railMinX, railMaxX, edgePadding)) {
-                return below;
-            }
-        }
-        return idealY;
-    }
-
-    private findSafeRailX(idealX: number, railMinY: number, railMaxY: number, srcX: number, tgtX: number, edgePadding: number): number {
-        const minX = Math.min(srcX, tgtX) + edgePadding;
-        const maxX = Math.max(srcX, tgtX) - edgePadding;
-        if (minX >= maxX) return idealX;
-
-        if (!this.railIntersectsNodeH(idealX, railMinY, railMaxY, edgePadding)) {
-            return idealX;
-        }
-
-        for (let offset = edgePadding; offset < (maxX - minX); offset += edgePadding) {
-            const left = idealX - offset;
-            if (left >= minX && !this.railIntersectsNodeH(left, railMinY, railMaxY, edgePadding)) {
-                return left;
-            }
-            const right = idealX + offset;
-            if (right <= maxX && !this.railIntersectsNodeH(right, railMinY, railMaxY, edgePadding)) {
-                return right;
-            }
-        }
-        return idealX;
+    worldToScreen(wx: number, wy: number): { x: number; y: number } {
+        return {
+            x: (wx - this.camera.x) * this.camera.zoom,
+            y: (wy - this.camera.y) * this.camera.zoom,
+        };
     }
 
     private buildSpatialGrid() {
@@ -392,7 +237,7 @@ export class WebGLGraphEngine {
             const maxCellY = Math.floor((node.position.y + h) / this.spatialCellSize);
             for (let cx = minCellX; cx <= maxCellX; cx++) {
                 for (let cy = minCellY; cy <= maxCellY; cy++) {
-                    const key = `${cx},${cy}`;
+                    const key = `${String(cx)},${String(cy)}`;
                     let cell = this.spatialGrid.get(key);
                     if (!cell) {
                         cell = [];
@@ -404,55 +249,25 @@ export class WebGLGraphEngine {
         }
     }
 
-    private getSpatialCandidates(minX: number, minY: number, maxX: number, maxY: number): Set<Node<PreviewGraphNodeData>> {
-        const result = new Set<Node<PreviewGraphNodeData>>();
-        const minCellX = Math.floor(minX / this.spatialCellSize);
-        const maxCellX = Math.floor(maxX / this.spatialCellSize);
-        const minCellY = Math.floor(minY / this.spatialCellSize);
-        const maxCellY = Math.floor(maxY / this.spatialCellSize);
-        for (let cx = minCellX; cx <= maxCellX; cx++) {
-            for (let cy = minCellY; cy <= maxCellY; cy++) {
-                const cell = this.spatialGrid.get(`${cx},${cy}`);
-                if (cell) {
-                    for (const node of cell) {
-                        result.add(node);
-                    }
-                }
-            }
+    private drawArrowHead(
+        ctx: CanvasRenderingContext2D,
+        tx: number, ty: number,
+        isVertical: boolean,
+        dir: number,
+        size: number,
+    ) {
+        ctx.beginPath();
+        if (isVertical) {
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx - size, ty - size * dir);
+            ctx.lineTo(tx + size, ty - size * dir);
+        } else {
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx - size * dir, ty - size);
+            ctx.lineTo(tx - size * dir, ty + size);
         }
-        return result;
-    }
-
-    private railIntersectsNode(railY: number, railMinX: number, railMaxX: number, padding: number): boolean {
-        const candidates = this.getSpatialCandidates(railMinX - padding, railY - padding, railMaxX + padding, railY + padding);
-        for (const node of candidates) {
-            const m = this.nodeMetrics.get(node.id);
-            const w = m?.width ?? 250;
-            const h = m?.height ?? 80;
-            const nx = node.position.x;
-            const ny = node.position.y;
-            if (railY >= ny - padding && railY <= ny + h + padding &&
-                railMaxX >= nx - padding && railMinX <= nx + w + padding) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private railIntersectsNodeH(railX: number, railMinY: number, railMaxY: number, padding: number): boolean {
-        const candidates = this.getSpatialCandidates(railX - padding, railMinY - padding, railX + padding, railMaxY + padding);
-        for (const node of candidates) {
-            const m = this.nodeMetrics.get(node.id);
-            const w = m?.width ?? 250;
-            const h = m?.height ?? 80;
-            const nx = node.position.x;
-            const ny = node.position.y;
-            if (railX >= nx - padding && railX <= nx + w + padding &&
-                railMaxY >= ny - padding && railMinY <= ny + h + padding) {
-                return true;
-            }
-        }
-        return false;
+        ctx.closePath();
+        ctx.fill();
     }
 
     private drawEdges(ctx: CanvasRenderingContext2D) {
@@ -460,7 +275,7 @@ export class WebGLGraphEngine {
         const rect = this.canvas.getBoundingClientRect();
         const viewW = rect.width;
         const viewH = rect.height;
-        const defaultMetrics = { width: 250, height: 80, headerHeight: 38 };
+        const defaultMetrics = { headerHeight: 38, height: 80, width: 250 };
         const arrowSize = 8;
         const edgePadding = 10;
 
@@ -469,7 +284,7 @@ export class WebGLGraphEngine {
         if (this.edges.length > 0) {
             const firstSource = this.nodeMap.get(this.edges[0].source);
             if (firstSource) {
-                const pos = (firstSource.sourcePosition as Position) ?? Position.Bottom;
+                const pos = firstSource.sourcePosition ?? Position.Bottom;
                 isVertical = pos === Position.Bottom || pos === Position.Top;
             }
         }
@@ -485,8 +300,8 @@ export class WebGLGraphEngine {
             const sourceMetrics = this.nodeMetrics.get(sourceNode.id) ?? defaultMetrics;
             const targetMetrics = this.nodeMetrics.get(targetNode.id) ?? defaultMetrics;
 
-            const sourcePos = (sourceNode.sourcePosition as Position) ?? Position.Bottom;
-            const targetPos = (targetNode.targetPosition as Position) ?? Position.Top;
+            const sourcePos = sourceNode.sourcePosition ?? Position.Bottom;
+            const targetPos = targetNode.targetPosition ?? Position.Top;
 
             const src = this.getPortPosition(sourceNode, sourcePos, sourceMetrics);
             const tgt = this.getPortPosition(targetNode, targetPos, targetMetrics);
@@ -510,7 +325,7 @@ export class WebGLGraphEngine {
 
             if (isVertical) {
                 // Frustum culling: compute bounding box of the entire group
-                let bMinX = src.x, bMaxX = src.x, bMinY = src.y, bMaxY = src.y;
+                let bMaxX = src.x, bMaxY = src.y, bMinX = src.x, bMinY = src.y;
                 for (const tgt of targets) {
                     bMinX = Math.min(bMinX, tgt.x);
                     bMaxX = Math.max(bMaxX, tgt.x);
@@ -574,7 +389,7 @@ export class WebGLGraphEngine {
                 }
             } else {
                 // Horizontal layout: same logic but rotated
-                let bMinX = src.x, bMaxX = src.x, bMinY = src.y, bMaxY = src.y;
+                let bMaxX = src.x, bMaxY = src.y, bMinX = src.x, bMinY = src.y;
                 for (const tgt of targets) {
                     bMinX = Math.min(bMinX, tgt.x);
                     bMaxX = Math.max(bMaxX, tgt.x);
@@ -636,35 +451,35 @@ export class WebGLGraphEngine {
         }
     }
 
-    private drawArrowHead(
-        ctx: CanvasRenderingContext2D,
-        tx: number, ty: number,
-        isVertical: boolean,
-        dir: number,
-        size: number,
-    ) {
-        ctx.beginPath();
-        if (isVertical) {
-            ctx.moveTo(tx, ty);
-            ctx.lineTo(tx - size, ty - size * dir);
-            ctx.lineTo(tx + size, ty - size * dir);
-        } else {
-            ctx.moveTo(tx, ty);
-            ctx.lineTo(tx - size * dir, ty - size);
-            ctx.lineTo(tx - size * dir, ty + size);
-        }
-        ctx.closePath();
-        ctx.fill();
-    }
+    private drawGrid(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
+        const zoom = this.camera.zoom;
+        
+        // Only draw grid when zoomed in enough
+        if (zoom < 0.3) return;
 
-    private drawPort(ctx: CanvasRenderingContext2D, px: number, py: number) {
-        ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#94a3b8';
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        const baseGridSize = 20;
+        const worldW = viewW / zoom;
+        const worldH = viewH / zoom;
+        const maxDots = 2500;
+        const gridSize = Math.max(baseGridSize, Math.ceil(Math.sqrt(worldW * worldH / maxDots)));
+
+        const opacity = Math.min(1, (zoom - 0.3) / 0.7) * 0.3;
+        ctx.fillStyle = `rgba(148, 163, 184, ${String(opacity)})`;
+
+        const startX = Math.floor(this.camera.x / gridSize) * gridSize;
+        const startY = Math.floor(this.camera.y / gridSize) * gridSize;
+        const endX = this.camera.x + worldW;
+        const endY = this.camera.y + worldH;
+
+        const dotSize = Math.max(1, 1.5 / zoom);
+
+        for (let x = startX; x < endX; x += gridSize) {
+            for (let y = startY; y < endY; y += gridSize) {
+                const sx = (x - this.camera.x) * zoom;
+                const sy = (y - this.camera.y) * zoom;
+                ctx.fillRect(sx - dotSize / 2, sy - dotSize / 2, dotSize, dotSize);
+            }
+        }
     }
 
     private drawNodePorts(
@@ -673,8 +488,8 @@ export class WebGLGraphEngine {
         w: number,
         h: number,
     ) {
-        const sourcePos = (node.sourcePosition as Position) ?? Position.Bottom;
-        const targetPos = (node.targetPosition as Position) ?? Position.Top;
+        const sourcePos = node.sourcePosition ?? Position.Bottom;
+        const targetPos = node.targetPosition ?? Position.Top;
         const x = node.position.x;
         const y = node.position.y;
 
@@ -683,22 +498,19 @@ export class WebGLGraphEngine {
             case Position.Bottom:
                 this.drawPort(ctx, x + w / 2, y + h);
                 break;
-            case Position.Top:
-                this.drawPort(ctx, x + w / 2, y);
+            case Position.Left:
+                this.drawPort(ctx, x, y + h / 2);
                 break;
             case Position.Right:
                 this.drawPort(ctx, x + w, y + h / 2);
                 break;
-            case Position.Left:
-                this.drawPort(ctx, x, y + h / 2);
+            case Position.Top:
+                this.drawPort(ctx, x + w / 2, y);
                 break;
         }
 
         // Target port
         switch (targetPos) {
-            case Position.Top:
-                this.drawPort(ctx, x + w / 2, y);
-                break;
             case Position.Bottom:
                 this.drawPort(ctx, x + w / 2, y + h);
                 break;
@@ -707,6 +519,9 @@ export class WebGLGraphEngine {
                 break;
             case Position.Right:
                 this.drawPort(ctx, x + w, y + h / 2);
+                break;
+            case Position.Top:
+                this.drawPort(ctx, x + w / 2, y);
                 break;
         }
     }
@@ -720,7 +535,7 @@ export class WebGLGraphEngine {
         // zoom < 0.15  → simple colored rectangle, no text
 
         for (const node of this.nodes) {
-            const metrics = this.nodeMetrics.get(node.id) ?? { width: 250, height: 80, headerHeight: 38 };
+            const metrics = this.nodeMetrics.get(node.id) ?? { headerHeight: 38, height: 80, width: 250 };
             const w = metrics.width;
             const h = metrics.height;
 
@@ -769,6 +584,194 @@ export class WebGLGraphEngine {
                 ctx.stroke();
             }
         }
+    }
+
+    private drawPort(ctx: CanvasRenderingContext2D, px: number, py: number) {
+        ctx.beginPath();
+        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    private findSafeRailX(idealX: number, railMinY: number, railMaxY: number, srcX: number, tgtX: number, edgePadding: number): number {
+        const minX = Math.min(srcX, tgtX) + edgePadding;
+        const maxX = Math.max(srcX, tgtX) - edgePadding;
+        if (minX >= maxX) return idealX;
+
+        if (!this.railIntersectsNodeH(idealX, railMinY, railMaxY, edgePadding)) {
+            return idealX;
+        }
+
+        for (let offset = edgePadding; offset < (maxX - minX); offset += edgePadding) {
+            const left = idealX - offset;
+            if (left >= minX && !this.railIntersectsNodeH(left, railMinY, railMaxY, edgePadding)) {
+                return left;
+            }
+            const right = idealX + offset;
+            if (right <= maxX && !this.railIntersectsNodeH(right, railMinY, railMaxY, edgePadding)) {
+                return right;
+            }
+        }
+        return idealX;
+    }
+
+    private findSafeRailY(idealY: number, railMinX: number, railMaxX: number, srcY: number, tgtY: number, edgePadding: number): number {
+        const minY = Math.min(srcY, tgtY) + edgePadding;
+        const maxY = Math.max(srcY, tgtY) - edgePadding;
+        if (minY >= maxY) return idealY;
+
+        // Check if idealY intersects any node
+        if (!this.railIntersectsNode(idealY, railMinX, railMaxX, edgePadding)) {
+            return idealY;
+        }
+
+        // Search outward from idealY for a safe position
+        for (let offset = edgePadding; offset < (maxY - minY); offset += edgePadding) {
+            const above = idealY - offset;
+            if (above >= minY && !this.railIntersectsNode(above, railMinX, railMaxX, edgePadding)) {
+                return above;
+            }
+            const below = idealY + offset;
+            if (below <= maxY && !this.railIntersectsNode(below, railMinX, railMaxX, edgePadding)) {
+                return below;
+            }
+        }
+        return idealY;
+    }
+
+    private getOrCreateNodeCanvas(node: Node<PreviewGraphNodeData>): { canvas: HTMLCanvasElement; height: number; width: number; } {
+        const cached = this.nodeCanvasCache.get(node.id);
+        if (cached) return cached;
+
+        const metrics = this.nodeMetrics.get(node.id);
+        const w = metrics?.width ?? 250;
+        const h = metrics?.height ?? 80;
+        
+        const scale = 2; // high-res textures
+        const offscreen = document.createElement('canvas');
+        offscreen.width = w * scale;
+        offscreen.height = h * scale;
+        const offCtx = offscreen.getContext('2d');
+        if (!offCtx) throw new Error('Failed to get offscreen 2D context');
+        offCtx.scale(scale, scale);
+
+        drawNodeCard(offCtx, node.data, this.showGroupTypes, 0, 0, w, h);
+
+        const entry = { canvas: offscreen, height: h, width: w };
+        this.nodeCanvasCache.set(node.id, entry);
+        return entry;
+    }
+
+    private getPortPosition(
+        node: Node<PreviewGraphNodeData>,
+        position: Position,
+        metrics: NodeCardMetrics,
+    ): { x: number; y: number } {
+        const w = metrics.width;
+        const h = metrics.height;
+        switch (position) {
+            case Position.Bottom:
+                return { x: node.position.x + w / 2, y: node.position.y + h };
+            case Position.Left:
+                return { x: node.position.x, y: node.position.y + h / 2 };
+            case Position.Right:
+                return { x: node.position.x + w, y: node.position.y + h / 2 };
+            case Position.Top:
+                return { x: node.position.x + w / 2, y: node.position.y };
+        }
+    }
+
+    private getSpatialCandidates(minX: number, minY: number, maxX: number, maxY: number): Set<Node<PreviewGraphNodeData>> {
+        const result = new Set<Node<PreviewGraphNodeData>>();
+        const minCellX = Math.floor(minX / this.spatialCellSize);
+        const maxCellX = Math.floor(maxX / this.spatialCellSize);
+        const minCellY = Math.floor(minY / this.spatialCellSize);
+        const maxCellY = Math.floor(maxY / this.spatialCellSize);
+        for (let cx = minCellX; cx <= maxCellX; cx++) {
+            for (let cy = minCellY; cy <= maxCellY; cy++) {
+                const cell = this.spatialGrid.get(`${String(cx)},${String(cy)}`);
+                if (cell) {
+                    for (const node of cell) {
+                        result.add(node);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private loop = (time: number) => {
+        const dt = (time - this.lastFrameTime) / 1000;
+        this.lastFrameTime = time;
+        this.animationTime += dt;
+
+        // Re-render for edge dash animation every ~100ms, or immediately if dirty
+        if (this.needsRender || dt > 0.1) {
+            this.render();
+            this.needsRender = false;
+        }
+        this.animationId = requestAnimationFrame(this.loop);
+    };
+
+    private railIntersectsNode(railY: number, railMinX: number, railMaxX: number, padding: number): boolean {
+        const candidates = this.getSpatialCandidates(railMinX - padding, railY - padding, railMaxX + padding, railY + padding);
+        for (const node of candidates) {
+            const m = this.nodeMetrics.get(node.id);
+            const w = m?.width ?? 250;
+            const h = m?.height ?? 80;
+            const nx = node.position.x;
+            const ny = node.position.y;
+            if (railY >= ny - padding && railY <= ny + h + padding &&
+                railMaxX >= nx - padding && railMinX <= nx + w + padding) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private railIntersectsNodeH(railX: number, railMinY: number, railMaxY: number, padding: number): boolean {
+        const candidates = this.getSpatialCandidates(railX - padding, railMinY - padding, railX + padding, railMaxY + padding);
+        for (const node of candidates) {
+            const m = this.nodeMetrics.get(node.id);
+            const w = m?.width ?? 250;
+            const h = m?.height ?? 80;
+            const nx = node.position.x;
+            const ny = node.position.y;
+            if (railX >= nx - padding && railX <= nx + w + padding &&
+                railMaxY >= ny - padding && railMinY <= ny + h + padding) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private render() {
+        const ctx = this.ctx;
+        const rect = this.canvas.getBoundingClientRect();
+        const viewW = rect.width;
+        const viewH = rect.height;
+
+        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        
+        // Clear
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, viewW, viewH);
+
+        // Apply camera transform
+        ctx.save();
+        ctx.translate(-this.camera.x * this.camera.zoom, -this.camera.y * this.camera.zoom);
+        ctx.scale(this.camera.zoom, this.camera.zoom);
+
+        // Draw edges
+        this.drawEdges(ctx);
+
+        // Draw nodes
+        this.drawNodes(ctx, viewW, viewH);
+
+        ctx.restore();
     }
 }
 

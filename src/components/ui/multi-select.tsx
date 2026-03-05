@@ -1,8 +1,7 @@
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '../../lib/utils';
-import { Badge } from './badge';
 import { Button } from './button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './command';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -22,13 +21,6 @@ export interface MultiSelectProps {
 
 export function MultiSelect({ className, onChange, options, placeholder, value }: MultiSelectProps) {
 	const [open, setOpen] = React.useState(false);
-
-	const handleUnselect = React.useCallback(
-		(val: string) => {
-			onChange(value.filter((s) => s !== val));
-		},
-		[onChange, value],
-	);
 
 	const handleSelect = React.useCallback(
 		(val: string) => {

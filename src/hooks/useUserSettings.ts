@@ -5,6 +5,11 @@ import type { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 
 import { getUserSettings, saveUserSettings } from '../helpers/kvStore';
 
+export interface Preset {
+	name: string;
+	settings: UserSettings;
+}
+
 export interface UserSettings {
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
@@ -14,17 +19,12 @@ export interface UserSettings {
 	filteredGroupCategoryIds: number[];
 	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
-	includedGroupStatuses: GroupStatus[];
 	includedGroups: number[];
+	includedGroupStatuses: GroupStatus[];
 	layoutAlgorithm: LayoutAlgorithm;
 	maxDepth: number | undefined;
 	showGroupTypes: boolean;
 	showOnlyDirectChildren: boolean;
-}
-
-export interface Preset {
-	name: string;
-	settings: UserSettings;
 }
 
 interface PresetStorage {

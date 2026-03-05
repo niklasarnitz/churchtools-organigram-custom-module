@@ -1,6 +1,7 @@
 import { Command } from 'cmdk';
 import { Search } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { useAppStore } from '../state/useAppStore';
 import { type PreviewGraphNodeData } from '../types/GraphNode';
 import { type Node } from '../types/GraphTypes';

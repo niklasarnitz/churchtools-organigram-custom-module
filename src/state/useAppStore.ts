@@ -7,11 +7,6 @@ import { GroupStatus } from '../types/GroupStatus';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import { type RendererType } from '../types/RendererType';
 
-export interface PendingExport {
-	fileName: string;
-	type: 'graphml' | 'svg';
-}
-
 export interface CommittedFilters {
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
@@ -21,8 +16,8 @@ export interface CommittedFilters {
 	filteredGroupCategoryIds: number[];
 	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
-	includedGroupStatuses: GroupStatus[];
 	includedGroups: number[];
+	includedGroupStatuses: GroupStatus[];
 	layoutAlgorithm: LayoutAlgorithm;
 	maxDepth: number | undefined;
 	renderer: RendererType;
@@ -30,44 +25,49 @@ export interface CommittedFilters {
 	showOnlyDirectChildren: boolean;
 }
 
+export interface PendingExport {
+	fileName: string;
+	type: 'graphml' | 'svg';
+}
+
 interface GroupState {
 	baseUrl: string | undefined;
+	commitFilters: () => void;
 	committedFilters: CommittedFilters | undefined;
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
+	excludedRoles: number[];
 	filteredAgeGroupIds: number[];
 	filteredCampusIds: number[];
 	filteredGroupCategoryIds: number[];
-	includedGroupStatuses: GroupStatus[];
-	excludedRoles: number[];
 
+	focusNodeId: string | undefined;
 	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
 	includedGroups: number[];
+	includedGroupStatuses: GroupStatus[];
 	isExporting: boolean;
+
 	layoutAlgorithm: LayoutAlgorithm;
 	maxDepth: number | undefined;
-
-	focusNodeId: string | undefined;
 	pendingExport: PendingExport | undefined;
-	renderer: RendererType;
 
-	commitFilters: () => void;
-	setFocusNodeId: (id: string | undefined) => void;
+	renderer: RendererType;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
 	setExcludedGroups: (groups: string | string[]) => void;
 	setExcludedGroupTypes: (groups: string | string[]) => void;
+	setExcludedRoles: (roles: string | string[]) => void;
 	setFilteredAgeGroupIds: (ids: number[]) => void;
 	setFilteredCampusIds: (ids: number[]) => void;
 	setFilteredGroupCategoryIds: (ids: number[]) => void;
-	setIncludedGroupStatuses: (statuses: GroupStatus[]) => void;
-
-	setExcludedRoles: (roles: string | string[]) => void;
+	setFocusNodeId: (id: string | undefined) => void;
 
 	setGroupIdToStartWith: (groupId?: number | string) => void;
+
 	setHideIndirectSubgroups: (hide: boolean) => void;
 	setIncludedGroups: (groups: string | string[]) => void;
+	setIncludedGroupStatuses: (statuses: GroupStatus[]) => void;
 	setIsExporting: (isExporting: boolean) => void;
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 	setMaxDepth: (depth: number | undefined) => void;
@@ -92,8 +92,8 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 		filteredGroupCategoryIds: state.filteredGroupCategoryIds,
 		groupIdToStartWith: state.groupIdToStartWith,
 		hideIndirectSubgroups: state.hideIndirectSubgroups,
-		includedGroupStatuses: state.includedGroupStatuses,
 		includedGroups: state.includedGroups,
+		includedGroupStatuses: state.includedGroupStatuses,
 		layoutAlgorithm: state.layoutAlgorithm,
 		maxDepth: state.maxDepth,
 		renderer: state.renderer,
@@ -112,36 +112,32 @@ export const useAppStore = create<GroupState>((set) => {
 
 	return {
 		baseUrl: undefined,
+		commitFilters: () => {
+			set((state) => ({ committedFilters: snapshotFilters(state) }));
+		},
 		committedFilters: undefined,
 		excludedGroups: [] as number[],
 		excludedGroupTypes: [] as number[],
+		excludedRoles: [] as number[],
 		filteredAgeGroupIds: [] as number[],
 		filteredCampusIds: [] as number[],
 		filteredGroupCategoryIds: [] as number[],
-		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
-		excludedRoles: [] as number[],
 
+		focusNodeId: undefined,
 		groupIdToStartWith: undefined,
 		hideIndirectSubgroups: false,
+
 		includedGroups: [] as number[],
 
+		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
 		isExporting: false,
 
 		layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
 		maxDepth: undefined,
 
-		focusNodeId: undefined,
 		pendingExport: undefined,
 
 		renderer: 'webgl' as RendererType,
-
-		commitFilters: () => {
-			set((state) => ({ committedFilters: snapshotFilters(state) }));
-		},
-
-		setFocusNodeId: (id: string | undefined) => {
-			set({ focusNodeId: id });
-		},
 
 		setAllSettings: (settings: Partial<UserSettings>) => {
 			setAndCommit(settings);
@@ -156,12 +152,12 @@ export const useAppStore = create<GroupState>((set) => {
 			setAndCommit({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
 		},
 
-		setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
-			setAndCommit({ includedGroupStatuses });
-		},
-
 		setExcludedGroupTypes: (groups: string | string[]) => {
 			setAndCommit({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
+
+		setExcludedRoles: (roles: string | string[]) => {
+			setAndCommit({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
 		},
 
 		setFilteredAgeGroupIds: (filteredAgeGroupIds: number[]) => {
@@ -176,8 +172,8 @@ export const useAppStore = create<GroupState>((set) => {
 			setAndCommit({ filteredGroupCategoryIds });
 		},
 
-		setExcludedRoles: (roles: string | string[]) => {
-			setAndCommit({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
+		setFocusNodeId: (id: string | undefined) => {
+			set({ focusNodeId: id });
 		},
 
 		setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
@@ -190,6 +186,10 @@ export const useAppStore = create<GroupState>((set) => {
 
 		setIncludedGroups: (groups: string | string[]) => {
 			setAndCommit({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
+
+		setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
+			setAndCommit({ includedGroupStatuses });
 		},
 
 		setIsExporting: (isExporting: boolean) => {

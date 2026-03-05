@@ -22,8 +22,8 @@ export const useFilteredGroupIds = (): number[] => {
 			excludedGroupTypes,
 			groupIdToStartWith,
 			hideIndirectSubgroups,
-			includedGroupStatuses,
 			includedGroups,
+			includedGroupStatuses,
 			maxDepth,
 			showOnlyDirectChildren,
 		} = committedFilters;

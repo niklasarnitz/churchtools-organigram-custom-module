@@ -6,7 +6,7 @@ import { oklchToHex } from '../../globals/Colors';
 
 interface WebGLMinimapProps {
     camera: Camera;
-    engine: WebGLGraphEngine | null;
+    engine: null | WebGLGraphEngine;
     onCameraChange: (camera: Camera) => void;
 }
 
@@ -57,37 +57,33 @@ export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebG
         const nodeData = engine.getNodes();
         const nodeMetrics = engine.getAllNodeMetrics();
         
-        if (nodeData) {
-            for (const node of nodeData) {
-                const metrics = nodeMetrics?.get(node.id);
-                const w = metrics?.width ?? 250;
-                const h = metrics?.height ?? 80;
-                
-                const mx = toMinimapX(node.position.x);
-                const my = toMinimapY(node.position.y);
-                const mw = w * scale;
-                const mh = h * scale;
+        for (const node of nodeData) {
+            const metrics = nodeMetrics.get(node.id);
+            const w = metrics?.width ?? 250;
+            const h = metrics?.height ?? 80;
+            
+            const mx = toMinimapX(node.position.x);
+            const my = toMinimapY(node.position.y);
+            const mw = w * scale;
+            const mh = h * scale;
 
-                ctx.fillStyle = oklchToHex(node.data.color.shades[300]);
-                ctx.fillRect(mx, my, Math.max(mw, 2), Math.max(mh, 2));
-            }
+            ctx.fillStyle = oklchToHex(node.data.color.shades[300]);
+            ctx.fillRect(mx, my, Math.max(mw, 2), Math.max(mh, 2));
         }
 
         // Draw viewport rectangle
         const mainCanvas = engine.getCanvas();
-        const rect = mainCanvas?.getBoundingClientRect();
-        if (rect) {
-            const vpX = toMinimapX(camera.x);
-            const vpY = toMinimapY(camera.y);
-            const vpW = (rect.width / camera.zoom) * scale;
-            const vpH = (rect.height / camera.zoom) * scale;
+        const rect = mainCanvas.getBoundingClientRect();
+        const vpX = toMinimapX(camera.x);
+        const vpY = toMinimapY(camera.y);
+        const vpW = (rect.width / camera.zoom) * scale;
+        const vpH = (rect.height / camera.zoom) * scale;
 
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-            ctx.fillRect(vpX, vpY, vpW, vpH);
-            ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(vpX, vpY, vpW, vpH);
-        }
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+        ctx.fillRect(vpX, vpY, vpW, vpH);
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(vpX, vpY, vpW, vpH);
     }, [camera, engine]);
 
     useEffect(() => {
@@ -121,8 +117,7 @@ export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebG
             const worldY = (clickY - offsetY) / scale + bounds.minY;
 
             const mainCanvas = engine.getCanvas();
-            const mainRect = mainCanvas?.getBoundingClientRect();
-            if (!mainRect) return;
+            const mainRect = mainCanvas.getBoundingClientRect();
 
             onCameraChange({
                 ...camera,
@@ -135,10 +130,10 @@ export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebG
 
     return (
         <canvas
-            ref={canvasRef}
             className="absolute right-2 bottom-12 cursor-pointer rounded border border-slate-200 shadow-sm dark:border-slate-700"
             onClick={handleMinimapClick}
-            style={{ width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }}
+            ref={canvasRef}
+            style={{ height: MINIMAP_HEIGHT, width: MINIMAP_WIDTH }}
         />
     );
 });

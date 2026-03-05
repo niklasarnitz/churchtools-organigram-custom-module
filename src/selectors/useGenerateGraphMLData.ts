@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 
+import type { PreviewGraphNodeData } from '../types/GraphNode';
+import type { Node } from '../types/GraphTypes';
+import type { GroupRole } from '../types/GroupRole';
+
 import { oklchToHex } from '../globals/Colors';
 import { useAppStore } from '../state/useAppStore';
-import type { PreviewGraphNodeData } from '../types/GraphNode';
-import type { GroupRole } from '../types/GroupRole';
-import type { Node } from '../types/GraphTypes';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
 export const useGenerateGraphMLData = () => {
@@ -113,16 +114,16 @@ function escapeHtml(unsafe: string) {
 function escapeXml(unsafe: string) {
 	return unsafe.replace(/[<>&"']/g, (c) => {
 		switch (c) {
+			case '"':
+				return '&quot;';
+			case '&':
+				return '&amp;';
+			case "'":
+				return '&apos;';
 			case '<':
 				return '&lt;';
 			case '>':
 				return '&gt;';
-			case '&':
-				return '&amp;';
-			case '"':
-				return '&quot;';
-			case "'":
-				return '&apos;';
 			default:
 				return c;
 		}

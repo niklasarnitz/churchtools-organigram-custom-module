@@ -1,28 +1,28 @@
 export enum Position {
-	Left = 'left',
-	Top = 'top',
-	Right = 'right',
 	Bottom = 'bottom',
-}
-
-export interface Node<T = any> {
-	id: string;
-	position: { x: number; y: number };
-	data: T;
-	width?: number;
-	height?: number;
-	sourcePosition?: Position;
-	targetPosition?: Position;
-	type?: string;
+	Left = 'left',
+	Right = 'right',
+	Top = 'top',
 }
 
 export interface Edge {
-	id: string;
-	source: string;
-	target: string;
 	animated?: boolean;
-	style?: React.CSSProperties;
-	markerEnd?: any;
 	className?: string;
+	id: string;
+	markerEnd?: { color: string; height: number; type: string; width: number };
+	source: string;
+	style?: React.CSSProperties;
+	target: string;
 	type?: string;
+}
+
+export interface Node<T = unknown> {
+	data: T;
+	height?: number;
+	id: string;
+	position: { x: number; y: number };
+	sourcePosition?: Position;
+	targetPosition?: Position;
+	type?: string;
+	width?: number;
 }

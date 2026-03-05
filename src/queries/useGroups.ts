@@ -16,7 +16,7 @@ export const useGroups = () => {
 			const params: string[] = [];
 
 			if (committedFilters) {
-				const { filteredCampusIds, filteredAgeGroupIds, filteredGroupCategoryIds, includedGroupStatuses } =
+				const { filteredAgeGroupIds, filteredCampusIds, filteredGroupCategoryIds, includedGroupStatuses } =
 					committedFilters;
 
 				for (const id of filteredCampusIds) {

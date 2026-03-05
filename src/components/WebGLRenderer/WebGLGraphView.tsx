@@ -1,8 +1,11 @@
 import type { ItemParams } from 'react-contexify';
 
+import { Maximize, Minus, Plus } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Item, Menu, useContextMenu } from 'react-contexify';
-import { Maximize, Minus, Plus } from 'lucide-react';
+
+import type { PreviewGraphNodeData } from '../../types/GraphNode';
+import type { Node } from '../../types/GraphTypes';
 
 import { Constants } from '../../globals/Constants';
 import { Logger } from '../../globals/Logger';
@@ -16,7 +19,7 @@ interface ContextMenuProps {
     groupId: number;
 }
 
-export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean }) => {
+export const WebGLGraphView = React.memo(() => {
     const data = useGenerateReflowData();
     const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
     const baseUrl = useAppStore((s) => s.baseUrl);
@@ -25,7 +28,7 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
     const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
     
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const engineRef = useRef<WebGLGraphEngine | null>(null);
+    const engineRef = useRef<null | WebGLGraphEngine>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     
     // Pan state
@@ -34,6 +37,7 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
     
     // Camera state for minimap reactivity
     const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
+    const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 
     const { show } = useContextMenu({
         id: Constants.contextMenuId,
@@ -44,19 +48,21 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const engine = new WebGLGraphEngine(canvas);
-        engineRef.current = engine;
-        engine.resize();
-        engine.start();
+        const eng = new WebGLGraphEngine(canvas);
+        engineRef.current = eng;
+        setEngine(eng);
+        eng.resize();
+        eng.start();
 
         const handleResize = () => {
-            engine.resize();
+            eng.resize();
         };
         window.addEventListener('resize', handleResize);
 
         return () => {
-            engine.stop();
+            eng.stop();
             engineRef.current = null;
+            setEngine(null);
             window.removeEventListener('resize', handleResize);
         };
     }, []);
@@ -66,7 +72,7 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
         const engine = engineRef.current;
         if (!engine || data.nodes.length === 0) return;
 
-        engine.setData(data.nodes as any, data.edges, showGroupTypes);
+        engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes);
         
         // Fit view after a short delay to ensure metrics are computed
         setTimeout(() => {
@@ -266,16 +272,16 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
     );
 
     return (
-        <div ref={containerRef} className="relative size-full">
+        <div className="relative size-full" ref={containerRef}>
             <FloatingHeader nodes={data.nodes} />
             <canvas
-                ref={canvasRef}
                 className="size-full cursor-grab active:cursor-grabbing"
                 onClick={handleClick}
                 onContextMenu={handleContextMenu}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
+                ref={canvasRef}
                 style={{ display: 'block' }}
             />
 
@@ -313,7 +319,7 @@ export const WebGLGraphView = React.memo(({ isLoading }: { isLoading: boolean })
             {/* Minimap */}
             <WebGLMinimap
                 camera={cameraState}
-                engine={engineRef.current}
+                engine={engine}
                 onCameraChange={(cam) => {
                     engineRef.current?.setCamera(cam);
                     updateCameraState();
