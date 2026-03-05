@@ -1,12 +1,10 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Download, History, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, History, Loader2, Play } from 'lucide-react';
 import moment from 'moment';
 import React, { useCallback, useMemo, useState } from 'react';
-import { useReactFlow } from 'reactflow';
 
 import changelog from '../../changelog.json';
 import { Strings } from '../../globals/Strings';
 import { downloadTextFile } from '../../helpers/downloadTextFile';
-import { exportReactFlowToSVG } from '../../helpers/exportSvg';
 import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
@@ -19,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
 import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
+import { PresetManager } from './PresetManager';
 import { StartGroupSelect } from './StartGroupSelect';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
@@ -29,11 +28,14 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const generateGraphMLData = useGenerateGraphMLData();
     const { data: groups } = useGroups();
     const { data: hierarchies } = useHierarchies();
-    const { getNodes } = useReactFlow();
 
     const isExporting = useAppStore((s) => s.isExporting);
-    const setIsExporting = useAppStore((s) => s.setIsExporting);
-    const pendingExport = useAppStore((s) => s.pendingExport);
+    const committedFilters = useAppStore((s) => s.committedFilters);
+    const commitFilters = useAppStore((s) => s.commitFilters);
+
+    const handleRenderClick = useCallback(() => {
+        commitFilters();
+    }, [commitFilters]);
 
     const orphanedGroups = useMemo(() => {
         if (!groups || !hierarchies) return [];
@@ -69,29 +71,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
         downloadTextFile(generateGraphMLData(), getFileName('graphml'), document);
     }, [generateGraphMLData, getFileName]);
 
-    const didPressDownloadSVG = useCallback(async () => {
-        setIsExporting(true);
-        try {
-            const nodes = getNodes();
-            if (nodes.length === 0) return;
-
-            const minX = Math.min(...nodes.map((n) => n.position.x));
-            const minY = Math.min(...nodes.map((n) => n.position.y));
-            const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
-            const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
-
-            const width = maxX - minX + 100; // Add some padding
-            const height = maxY - minY + 100;
-
-            const translateX = -minX + 50;
-            const translateY = -minY + 50;
-
-            await exportReactFlowToSVG(width, height, getFileName('svg'), translateX, translateY);
-        } finally {
-            setIsExporting(false);
-        }
-    }, [getNodes, getFileName, setIsExporting]);
-
     if (isLoading) {
         return (
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -103,10 +82,19 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 
     return (
         <div className="h-full overflow-y-auto rounded-md border border-slate-100 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <PresetManager />
+            <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
             <StartGroupSelect />
             <LayoutSelect />
             <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
             <ExclusionFilters />
+
+            <div className="mt-4">
+                <Button className="w-full" onClick={handleRenderClick}>
+                    <Play className="size-4" />
+                    {committedFilters ? 'Organigramm aktualisieren' : 'Organigramm erstellen'}
+                </Button>
+            </div>
 
             <div className="mt-6 flex flex-col gap-4">
                 {orphanedGroups.length > 0 && (
@@ -138,21 +126,8 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                 )}
 
                 <Button className="w-full" disabled={isExporting} onClick={didPressDownloadGraphML} variant="outline">
-                    {isExporting && pendingExport?.type === 'graphml' ? (
-                        <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                        <Download className="size-4" />
-                    )}
+                    <Download className="size-4" />
                     Export als GraphML Datei
-                </Button>
-
-                <Button className="w-full" disabled={isExporting} onClick={didPressDownloadSVG} variant="outline">
-                    {isExporting && (!pendingExport || pendingExport.type === 'svg') ? (
-                        <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                        <Download className="size-4" />
-                    )}
-                    Export als SVG Datei
                 </Button>
 
                 <Collapsible onOpenChange={setIsHelpOpen} open={isHelpOpen}>

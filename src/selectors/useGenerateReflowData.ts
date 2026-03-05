@@ -1,21 +1,22 @@
-import type { Edge, Node } from 'reactflow';
-
-import { useEffect, useMemo, useState } from 'react';
-import { MarkerType, Position } from 'reactflow';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getColorForGroupType } from '../globals/Colors';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutElk } from '../helpers/layoutAlgorithms/elk';
 import { useAppStore } from '../state/useAppStore';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
+import type { PreviewGraphNodeData } from '../types/GraphNode';
+import { type Edge, type Node, Position } from '../types/GraphTypes';
+import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { useCreateRelatedData } from './useCreateRelatedData';
 import { useGroupTypesById } from './useGroupTypesById';
 import { usePersonsById } from './usePersonsById';
 
 export const useGenerateReflowData = () => {
 	const { nodes, relations } = useCreateRelatedData();
-	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
-	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
+	const committedFilters = useAppStore((s) => s.committedFilters);
+	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
+	const layoutAlgorithm = committedFilters?.layoutAlgorithm ?? LayoutAlgorithm.elkLayeredTB;
 	const personsById = usePersonsById();
 	const groupTypesById = useGroupTypesById();
 
@@ -23,6 +24,14 @@ export const useGenerateReflowData = () => {
 		edges: [],
 		nodes: [],
 	});
+
+	const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+	if (!measureCanvasRef.current) {
+		const c = document.createElement('canvas');
+		c.width = 1;
+		c.height = 1;
+		measureCanvasRef.current = c;
+	}
 
 	const isVertical =
 		layoutAlgorithm === LayoutAlgorithm.elkLayeredTB ||
@@ -38,7 +47,7 @@ export const useGenerateReflowData = () => {
 				markerEnd: {
 					color: '#64748b',
 					height: 20,
-					type: MarkerType.Arrow,
+					type: 'arrow',
 					width: 20,
 				},
 				source: relation.source.id.toString(),
@@ -69,7 +78,7 @@ export const useGenerateReflowData = () => {
 				sourcePosition: isVertical ? Position.Bottom : Position.Right,
 				targetPosition: isVertical ? Position.Top : Position.Left,
 				type: 'previewGraphNode',
-			};
+			} as Node;
 		});
 
 		return { reflowEdges: edges, reflowNodes: nodesList };
@@ -79,7 +88,14 @@ export const useGenerateReflowData = () => {
 		let active = true;
 
 		const performLayout = async () => {
-			const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes);
+			const measureCtx = measureCanvasRef.current!.getContext('2d')!;
+			const nodeSizes = new Map<string, { width: number; height: number }>();
+			for (const node of reflowNodes) {
+				const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
+				nodeSizes.set(node.id, { width: metrics.width, height: metrics.height });
+			}
+
+			const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm, nodeSizes);
 
 			if (active) {
 				setLayoutedData(result);

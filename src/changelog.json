@@ -1,6 +1,16 @@
 {
 	"versions": [
 		{
+			"version": "1.2.0",
+			"date": "2026-03-05",
+			"changes": [
+				"Removed React Flow renderer to focus exclusively on high-performance WebGL rendering",
+				"Cleaned up codebase by removing all reactflow dependencies and types",
+				"Simplified renderer selection logic as only WebGL remains",
+				"Removed SVG export as it was specific to React Flow and needs reimplementation for WebGL"
+			]
+		},
+		{
 			"version": "1.1.0",
 			"date": "2026-03-04",
 			"changes": [

@@ -1,48 +1,75 @@
-import type { Edge, Node } from 'reactflow';
-
-import ELK, { type ElkNode } from 'elkjs';
-
-import type { PreviewGraphNodeData } from '../../components/PreviewGraph/PreviewGraphNode';
+import type { ELK, ElkNode } from 'elkjs/lib/elk.bundled';
 
 import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
-import { getGroupNodeWidth, getReflowGroupNodeHeight } from '../GraphHelper';
+import type { Edge, Node } from '../../types/GraphTypes';
+import { Position } from '../../types/GraphTypes';
 
-const elk = new ELK();
+import ElkApi from 'elkjs/lib/elk-api';
+import ElkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
+
+let elkInstance: ELK | null = null;
+
+function getElk(): ELK {
+	if (!elkInstance) {
+		elkInstance = new ElkApi({
+			workerUrl: ElkWorkerUrl as string,
+		}) as unknown as ELK;
+	}
+	return elkInstance;
+}
 
 export const layoutElk = async (
 	nodes: Node[],
 	edges: Edge[],
-	algorithm: LayoutAlgorithm = LayoutAlgorithm.elkLayeredTB,
-	showGroupTypes = false,
+	algorithm: LayoutAlgorithm,
+	nodeSizes: Map<string, { width: number; height: number }>,
 ): Promise<{ edges: Edge[]; nodes: Node[] }> => {
-	let elkAlgorithm = 'layered';
-	let direction = 'DOWN';
+	const elk = getElk();
 
-	if (algorithm === LayoutAlgorithm.elkLayeredLR) {
-		direction = 'RIGHT';
-	} else if (algorithm === LayoutAlgorithm.elkMrTree) {
-		elkAlgorithm = 'mrtree';
-	} else if (algorithm === LayoutAlgorithm.elkRadial) {
-		elkAlgorithm = 'radial';
+	const elkAlgorithmMap: Record<LayoutAlgorithm, string> = {
+		[LayoutAlgorithm.elkLayeredTB]: 'layered',
+		[LayoutAlgorithm.elkLayeredLR]: 'layered',
+		[LayoutAlgorithm.elkMrTree]: 'mrtree',
+		[LayoutAlgorithm.elkRadial]: 'radial',
+	};
+
+	const isVertical =
+		algorithm === LayoutAlgorithm.elkLayeredTB ||
+		algorithm === LayoutAlgorithm.elkMrTree ||
+		algorithm === LayoutAlgorithm.elkRadial;
+
+	const isLayered =
+		algorithm === LayoutAlgorithm.elkLayeredTB ||
+		algorithm === LayoutAlgorithm.elkLayeredLR;
+
+	const layoutOptions: Record<string, string> = {
+		'elk.algorithm': elkAlgorithmMap[algorithm],
+		'elk.direction': isVertical ? 'DOWN' : 'RIGHT',
+		'elk.edgeRouting': 'ORTHOGONAL',
+		'elk.padding': '[top=50,left=50,bottom=50,right=50]',
+		'elk.spacing.componentsCmpHierarchy': '80',
+		'elk.spacing.nodeNode': '60',
+		'elk.spacing.nodeNodeBetweenLayers': '80',
+		'elk.spacing.edgeEdge': '20',
+		'elk.spacing.edgeNode': '30',
+	};
+
+	if (isLayered) {
+		layoutOptions['elk.layered.nodePlacement.strategy'] = 'NETWORK_SIMPLEX';
+		layoutOptions['elk.layered.crossingMinimization.strategy'] = 'LAYER_SWEEP';
+		layoutOptions['elk.layered.crossingMinimization.greedySwitch.type'] = 'TWO_SIDED';
+		layoutOptions['elk.layered.thoroughness'] = '50';
+		layoutOptions['elk.alignment'] = 'CENTER';
+		layoutOptions['elk.layered.considerModelOrder.strategy'] = 'NODES_AND_EDGES';
 	}
 
-	const elkGraph: ElkNode = {
+	const graph: ElkNode = {
 		children: nodes.map((node) => {
-			const data = node.data as PreviewGraphNodeData;
-			const width = Math.max(getGroupNodeWidth(data.title, data.metadata), 250);
-
-			const hasMembers = data.roles.some((role) =>
-				data.members.some((member) => member.groupTypeRoleId === role.id),
-			);
-			const height = Math.max(
-				getReflowGroupNodeHeight(data.metadata, data.title, hasMembers, showGroupTypes),
-				hasMembers ? 150 : 80,
-			);
-
+			const size = nodeSizes.get(node.id);
 			return {
-				height,
+				height: size?.height ?? 80,
 				id: node.id,
-				width,
+				width: size?.width ?? 250,
 			};
 		}),
 		edges: edges.map((edge) => ({
@@ -51,30 +78,22 @@ export const layoutElk = async (
 			targets: [edge.target],
 		})),
 		id: 'root',
-		layoutOptions: {
-			'elk.algorithm': elkAlgorithm,
-			'elk.direction': direction,
-			'elk.edgeRouting': 'ORTHOGONAL',
-			'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
-			'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-			'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-			'elk.layered.spacing.nodeNodeBetweenLayers': '150',
-			'elk.padding': '[top=50,left=50,bottom=50,right=50]',
-			'elk.spacing.nodeNode': '100',
-		},
+		layoutOptions,
 	};
 
-	const layoutedGraph = await elk.layout(elkGraph);
+	const layoutedGraph = await elk.layout(graph);
+
+	const elkNodeMap = new Map(layoutedGraph.children?.map((n) => [n.id, n]));
 
 	const layoutedNodes = nodes.map((node) => {
-		const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
-
+		const elkNode = elkNodeMap.get(node.id);
 		return {
 			...node,
-			position: {
-				x: elkNode?.x ?? 0,
-				y: elkNode?.y ?? 0,
-			},
+			height: elkNode?.height,
+			position: { x: elkNode?.x ?? 0, y: elkNode?.y ?? 0 },
+			sourcePosition: isVertical ? Position.Bottom : Position.Right,
+			targetPosition: isVertical ? Position.Top : Position.Left,
+			width: elkNode?.width,
 		};
 	});
 

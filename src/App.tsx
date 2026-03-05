@@ -3,8 +3,6 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import 'react-contexify/dist/ReactContexify.css';
-import { ReactFlowProvider } from 'reactflow';
-import 'reactflow/dist/style.css';
 import { MainComponent } from './components/MainComponent';
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 import { useCustomModuleTitleBar } from './hooks/useCustomModuleTitleBar';
@@ -29,9 +27,7 @@ export const App = () => {
 
     return (
         <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-            <ReactFlowProvider>
-                <MainComponent />
-            </ReactFlowProvider>
+            <MainComponent />
         </PersistQueryClientProvider>
     );
 };

@@ -12,16 +12,10 @@ import { useGroupRolesByType } from './useGroupRolesByType';
 import { useGroupsById } from './useGroupsById';
 import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 
+const EMPTY_GRAPH: GraphData = { nodes: [], relations: [] };
+
 export const useCreateRelatedData = (): GraphData => {
-	const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
-	const excludedGroups = useAppStore((s) => s.excludedGroups);
-	const excludedGroupStatuses = useAppStore((s) => s.excludedGroupStatuses);
-	const includedGroups = useAppStore((s) => s.includedGroups);
-	const excludedRoles = useAppStore((s) => s.excludedRoles);
-	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
-	const maxDepth = useAppStore((s) => s.maxDepth);
-	const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
-	const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
+	const committedFilters = useAppStore((s) => s.committedFilters);
 
 	const { data: hierarchies } = useHierarchies();
 	const groupsById = useGroupsById();
@@ -30,31 +24,42 @@ export const useCreateRelatedData = (): GraphData => {
 	const groupMembersByGroupId = useGroupMembersByGroupId();
 
 	const shouldIncludeGroup = useMemo(
-		() => (group: Group) => {
-			// Always include the start group
-			if (groupIdToStartWith && group.id === Number(groupIdToStartWith)) {
-				return true;
-			}
+		() => {
+			if (!committedFilters) return () => false;
 
-			// Whitelist check
-			if (includedGroups.length > 0 && !includedGroups.includes(group.id)) {
-				return false;
-			}
+			const {
+				excludedGroups,
+				excludedGroupTypes,
+				groupIdToStartWith,
+				includedGroupStatuses,
+				includedGroups,
+			} = committedFilters;
 
-			// Blacklist checks
-			return (
-				!!group.information.groupTypeId &&
-				!excludedGroups.includes(group.id) &&
-				!excludedGroupTypes.includes(group.information.groupTypeId) &&
-				!excludedGroupStatuses.includes(group.information.groupStatusId)
-			);
+			return (group: Group) => {
+				if (groupIdToStartWith && group.id === Number(groupIdToStartWith)) {
+					return true;
+				}
+				if (includedGroups.length > 0 && !includedGroups.includes(group.id)) {
+					return false;
+				}
+				return (
+					!!group.information.groupTypeId &&
+					!excludedGroups.includes(group.id) &&
+					!excludedGroupTypes.includes(group.information.groupTypeId) &&
+					(includedGroupStatuses.length === 0 || includedGroupStatuses.includes(group.information.groupStatusId))
+				);
+			};
 		},
-		[excludedGroups, excludedGroupTypes, excludedGroupStatuses, includedGroups, groupIdToStartWith],
+		[committedFilters],
 	);
 
 	const getGraphNodeFromGroup = useMemo(
-		() =>
-			(group: Group): GraphNode => {
+		() => {
+			if (!committedFilters) return () => ({ group: {} as Group, groupRoles: [], members: [] }) as GraphNode;
+
+			const { excludedRoles } = committedFilters;
+
+			return (group: Group): GraphNode => {
 				const members = groupMembersByGroupId[group.id] ?? [];
 				const rolesForType = groupRolesByType[group.information.groupTypeId] ?? [];
 
@@ -69,12 +74,22 @@ export const useCreateRelatedData = (): GraphData => {
 					groupRoles,
 					members,
 				};
-			},
-		[groupMembersByGroupId, groupRolesByType, excludedRoles],
+			};
+		},
+		[groupMembersByGroupId, groupRolesByType, committedFilters],
 	);
 
 	const getHierarchicalData = useMemo(
 		() => () => {
+			if (!committedFilters) return { nodes: [] as GraphNode[], relations: [] as Relation[] };
+
+			const {
+				groupIdToStartWith,
+				hideIndirectSubgroups,
+				maxDepth,
+				showOnlyDirectChildren,
+			} = committedFilters;
+
 			const startGroupId = groupIdToStartWith ? Number(groupIdToStartWith) : undefined;
 			const rootNodes = startGroupId ? [startGroupId] : (hierarchies ?? []).map((h) => h.groupId);
 
@@ -85,10 +100,10 @@ export const useCreateRelatedData = (): GraphData => {
 
 			const queue: { depth: number; groupId: number }[] = rootNodes.map((id) => ({ depth: 0, groupId: id }));
 			const visited = new Set<number>();
+			let queueIdx = 0;
 
-			while (queue.length > 0) {
-				const currentItem = queue.shift();
-				if (!currentItem) continue;
+			while (queueIdx < queue.length) {
+				const currentItem = queue[queueIdx++];
 
 				const { depth, groupId } = currentItem;
 
@@ -149,23 +164,18 @@ export const useCreateRelatedData = (): GraphData => {
 			return { nodes, relations };
 		},
 		[
-			groupIdToStartWith,
+			committedFilters,
 			hierarchies,
 			hierarchiesByGroupId,
 			groupsById,
 			shouldIncludeGroup,
 			getGraphNodeFromGroup,
-			maxDepth,
-			showOnlyDirectChildren,
-			hideIndirectSubgroups,
 		],
 	);
 
 	return useMemo(() => {
+		if (!committedFilters) return EMPTY_GRAPH;
 		const { nodes, relations } = getHierarchicalData();
-		return {
-			nodes,
-			relations,
-		} as GraphData;
-	}, [getHierarchicalData]);
+		return { nodes, relations } as GraphData;
+	}, [committedFilters, getHierarchicalData]);
 };

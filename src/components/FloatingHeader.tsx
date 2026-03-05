@@ -1,14 +1,17 @@
 import { Command } from 'cmdk';
 import { Search } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { type Node, useReactFlow } from 'reactflow';
-import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
-import { type PreviewGraphNodeData } from './PreviewGraph/PreviewGraphNode';
+import { useAppStore } from '../state/useAppStore';
+import { type PreviewGraphNodeData } from '../types/GraphNode';
+import { type Node } from '../types/GraphTypes';
 
-export const FloatingHeader = React.memo(() => {
+interface FloatingHeaderProps {
+    nodes: Node[];
+}
+
+export const FloatingHeader = React.memo(({ nodes }: FloatingHeaderProps) => {
     const [open, setOpen] = useState(false);
-    const { nodes } = useGenerateReflowData();
-    const { fitView } = useReactFlow();
+    const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
 
     // Toggle the menu when ⌘K is pressed
     useEffect(() => {
@@ -28,15 +31,10 @@ export const FloatingHeader = React.memo(() => {
     const handleSelect = useCallback(
         (id: string) => {
             setOpen(false);
-            if (id) {
-                void fitView({
-                    duration: 800,
-                    nodes: [{ id }],
-                    padding: 2,
-                });
-            }
+            if (!id) return;
+            setFocusNodeId(id);
         },
-        [fitView],
+        [setFocusNodeId],
     );
 
     const sortedNodes = useMemo(() => {

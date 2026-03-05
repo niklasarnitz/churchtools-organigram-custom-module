@@ -4,6 +4,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useGroupRoles } from '../../queries/useGroupRoles';
 import { useGroups } from '../../queries/useGroups';
 import { useGroupTypes } from '../../queries/useGroupTypes';
+import { usePersonMasterData } from '../../queries/usePersonMasterData';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
 import { GroupStatus } from '../../types/GroupStatus';
@@ -15,18 +16,23 @@ export const ExclusionFilters = React.memo(() => {
 	const { data: groups } = useGroups();
 	const { data: groupTypes } = useGroupTypes();
 	const { data: groupRoles } = useGroupRoles();
+	const { data: masterData } = usePersonMasterData();
 	const groupTypesById = useGroupTypesById();
 
 	const excludedGroups = useAppStore((s) => s.excludedGroups);
 	const setExcludedGroups = useAppStore((s) => s.setExcludedGroups);
-	const includedGroups = useAppStore((s) => s.includedGroups);
-	const setIncludedGroups = useAppStore((s) => s.setIncludedGroups);
 	const excludedGroupTypes = useAppStore((s) => s.excludedGroupTypes);
 	const setExcludedGroupTypes = useAppStore((s) => s.setExcludedGroupTypes);
 	const excludedRoles = useAppStore((s) => s.excludedRoles);
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
-	const excludedGroupStatuses = useAppStore((s) => s.excludedGroupStatuses);
-	const setExcludedGroupStatuses = useAppStore((s) => s.setExcludedGroupStatuses);
+	const includedGroupStatuses = useAppStore((s) => s.includedGroupStatuses);
+	const setIncludedGroupStatuses = useAppStore((s) => s.setIncludedGroupStatuses);
+	const filteredCampusIds = useAppStore((s) => s.filteredCampusIds);
+	const setFilteredCampusIds = useAppStore((s) => s.setFilteredCampusIds);
+	const filteredAgeGroupIds = useAppStore((s) => s.filteredAgeGroupIds);
+	const setFilteredAgeGroupIds = useAppStore((s) => s.setFilteredAgeGroupIds);
+	const filteredGroupCategoryIds = useAppStore((s) => s.filteredGroupCategoryIds);
+	const setFilteredGroupCategoryIds = useAppStore((s) => s.setFilteredGroupCategoryIds);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
 	const maxDepth = useAppStore((s) => s.maxDepth);
@@ -85,15 +91,6 @@ export const ExclusionFilters = React.memo(() => {
 		[groupTypes],
 	);
 
-	const allGroupOptions = useMemo(
-		() =>
-			_.sortBy(groups ?? [], (g) => g.name).map((group) => ({
-				label: group.name,
-				value: String(group.id),
-			})),
-		[groups],
-	);
-
 	const filteredGroupOptions = useMemo(
 		() =>
 			_.sortBy(
@@ -132,13 +129,6 @@ export const ExclusionFilters = React.memo(() => {
 		[setExcludedGroups],
 	);
 
-	const handleIncludedGroupsChange = useCallback(
-		(values: string[]) => {
-			setIncludedGroups(values.length > 0 ? values : []);
-		},
-		[setIncludedGroups],
-	);
-
 	const handleRolesChange = useCallback(
 		(values: string[]) => {
 			setExcludedRoles(values.length > 0 ? values : []);
@@ -158,25 +148,61 @@ export const ExclusionFilters = React.memo(() => {
 
 	const handleGroupStatusChange = useCallback(
 		(values: string[]) => {
-			setExcludedGroupStatuses(values.length > 0 ? values.map(Number) as GroupStatus[] : []);
+			setIncludedGroupStatuses(values.length > 0 ? values.map(Number) as GroupStatus[] : []);
 		},
-		[setExcludedGroupStatuses],
+		[setIncludedGroupStatuses],
+	);
+
+	const campusOptions = useMemo(
+		() =>
+			_.sortBy(masterData?.campuses ?? [], (c) => c.sortKey).map((campus) => ({
+				label: campus.name,
+				value: String(campus.id),
+			})),
+		[masterData?.campuses],
+	);
+
+	const ageGroupOptions = useMemo(
+		() =>
+			_.sortBy(masterData?.ageGroups ?? [], (a) => a.sortKey).map((ageGroup) => ({
+				label: ageGroup.name,
+				value: String(ageGroup.id),
+			})),
+		[masterData?.ageGroups],
+	);
+
+	const groupCategoryOptions = useMemo(
+		() =>
+			_.sortBy(masterData?.groupCategories ?? [], (c) => c.sortKey).map((category) => ({
+				label: category.name,
+				value: String(category.id),
+			})),
+		[masterData?.groupCategories],
+	);
+
+	const handleCampusChange = useCallback(
+		(values: string[]) => {
+			setFilteredCampusIds(values.map(Number));
+		},
+		[setFilteredCampusIds],
+	);
+
+	const handleAgeGroupChange = useCallback(
+		(values: string[]) => {
+			setFilteredAgeGroupIds(values.map(Number));
+		},
+		[setFilteredAgeGroupIds],
+	);
+
+	const handleGroupCategoryChange = useCallback(
+		(values: string[]) => {
+			setFilteredGroupCategoryIds(values.map(Number));
+		},
+		[setFilteredGroupCategoryIds],
 	);
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Nur diese Gruppen zeigen (Whitelist)
-				</h5>
-				<MultiSelect
-					onChange={handleIncludedGroupsChange}
-					options={allGroupOptions}
-					placeholder="Alle Gruppen zeigen"
-					value={includedGroups.map(String)}
-				/>
-			</div>
-
 			<div className="flex flex-col">
 				<h5 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">Gruppentypen ausschließen</h5>
 				<MultiSelect
@@ -210,14 +236,50 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">
-					Gruppenstatus ausschließen
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
+					Gruppenstatus auswählen
 				</h5>
 				<MultiSelect
 					onChange={handleGroupStatusChange}
 					options={groupStatusOptions}
-					placeholder="Keine Status ausgeschlossen"
-					value={excludedGroupStatuses.map(String)}
+					placeholder="Alle Status anzeigen"
+					value={includedGroupStatuses.map(String)}
+				/>
+			</div>
+
+			<div className="flex flex-col">
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
+					Standort filtern
+				</h5>
+				<MultiSelect
+					onChange={handleCampusChange}
+					options={campusOptions}
+					placeholder="Alle Standorte"
+					value={filteredCampusIds.map(String)}
+				/>
+			</div>
+
+			<div className="flex flex-col">
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
+					Altersgruppe filtern
+				</h5>
+				<MultiSelect
+					onChange={handleAgeGroupChange}
+					options={ageGroupOptions}
+					placeholder="Alle Altersgruppen"
+					value={filteredAgeGroupIds.map(String)}
+				/>
+			</div>
+
+			<div className="flex flex-col">
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
+					Kategorie filtern
+				</h5>
+				<MultiSelect
+					onChange={handleGroupCategoryChange}
+					options={groupCategoryOptions}
+					placeholder="Alle Kategorien"
+					value={filteredGroupCategoryIds.map(String)}
 				/>
 			</div>
 
