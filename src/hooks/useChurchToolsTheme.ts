@@ -44,6 +44,7 @@ export function useChurchToolsTheme() {
 function applyTheme(theme: ChurchToolsTheme) {
 	const isDark = getEffectiveDark(theme);
 	document.documentElement.classList.toggle('dark', isDark);
+	document.body.classList.toggle('dark', isDark);
 }
 
 function getEffectiveDark(theme: ChurchToolsTheme): boolean {
