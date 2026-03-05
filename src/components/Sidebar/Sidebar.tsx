@@ -74,15 +74,19 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     }
 
     return (
-        <div className="h-full overflow-y-auto rounded-md border border-slate-100 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <PresetManager />
-            <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
-            <StartGroupSelect />
-            <LayoutSelect />
-            <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
-            <ExclusionFilters />
+        <div className="flex h-full flex-col overflow-hidden rounded-md border border-slate-100 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-700">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Organigramm</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+                <PresetManager />
+                <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
+                <StartGroupSelect />
+                <LayoutSelect />
+                <div className="my-4 border-t border-slate-200 dark:border-slate-700" />
+                <ExclusionFilters />
 
-            <div className="mt-4 flex flex-col gap-4">
+                <div className="mt-4 flex flex-col gap-4">
                 {orphanedGroups.length > 0 && (
                     <div className="rounded-md bg-amber-50 p-4 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
                         <div className="flex items-center gap-2 font-semibold">
@@ -180,5 +184,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                 </div>
             </div>
         </div>
+    </div>
     );
 });

@@ -130,7 +130,7 @@ export const WebGLMinimap = React.memo(({ camera, engine, onCameraChange }: WebG
 
     return (
         <canvas
-            className="absolute right-2 bottom-12 cursor-pointer rounded border border-slate-200 shadow-sm dark:border-slate-700"
+            className="absolute right-2 bottom-20 hidden cursor-pointer rounded border border-slate-200 shadow-sm dark:border-slate-700 sm:block"
             onClick={handleMinimapClick}
             ref={canvasRef}
             style={{ height: MINIMAP_HEIGHT, width: MINIMAP_WIDTH }}

@@ -7,9 +7,15 @@
 				"Removed React Flow renderer to focus exclusively on high-performance WebGL rendering",
 				"Cleaned up codebase by removing all reactflow dependencies and types",
 				"Simplified renderer selection logic as only WebGL remains",
-				"Removed SVG export as it was specific to React Flow and needs reimplementation for WebGL"
+				"Removed SVG export as it was specific to React Flow and needs reimplementation for WebGL",
+				"Optimized sidebar for mobile devices by making it a floating hideable component with a toggle button",
+				"Implemented responsive UI that automatically hides floating headers and minimaps on mobile when the sidebar is active, while maintaining visibility on large screens",
+				"Refined layout by positioning the sidebar toggle button as a Floating Action Button in the bottom right corner",
+				"Relocated zoom and view controls to the bottom left for improved thumb-reachability on mobile",
+				"Implemented multi-touch support for canvas interaction, including pinch-to-zoom, improved mobile panning, and double-tap to zoom"
 			]
 		},
+
 		{
 			"version": "1.1.0",
 			"date": "2026-03-04",
