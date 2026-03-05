@@ -54,7 +54,7 @@ const getColorForId = (id: number, seed: number) => {
 };
 
 export function oklchToHex(input: string): string {
-	const match = input.trim().match(/^oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)$/i);
+	const match = /^oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)$/i.exec(input.trim());
 
 	if (!match) {
 		throw new Error('Invalid OKLCH format. Expected: oklch(L% C H)');
@@ -77,7 +77,7 @@ export function oklchToHex(input: string): string {
 	const m = m_ ** 3;
 	const s = s_ ** 3;
 
-	let r = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+	let r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
 	let g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
 	let b2 = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
 

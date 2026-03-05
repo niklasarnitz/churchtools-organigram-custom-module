@@ -45,15 +45,25 @@ export const getGroupMetadataString = (
 	groupMembers: GroupMember[],
 	personsById: URecord<number, Person>,
 ) => {
+	const membersByRoleId = new Map<number, GroupMember[]>();
+	for (const member of groupMembers) {
+		let list = membersByRoleId.get(member.groupTypeRoleId);
+		if (!list) {
+			list = [];
+			membersByRoleId.set(member.groupTypeRoleId, list);
+		}
+		list.push(member);
+	}
+
 	return groupRoles
 		.map((role) => {
-			const personsWithRole = groupMembers.filter((member) => member.groupTypeRoleId === role.id);
+			const personsWithRole = membersByRoleId.get(role.id) ?? [];
 			const personsWithRoleNames = personsWithRole.map((member) => {
 				const person = personsById[member.personId];
 				return person ? `${person.firstName} ${person.lastName}` : 'Unknown Person';
 			});
 
-			return `${String(groupRoles.find((r) => r.id === role.id)?.name)}:\n${personsWithRoleNames.join(',\n')}`;
+			return `${role.name}:\n${personsWithRoleNames.join(',\n')}`;
 		})
 		.join('\n');
 };

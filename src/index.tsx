@@ -1,5 +1,4 @@
 import { churchtoolsClient } from '@churchtools/churchtools-client';
-import moment from 'moment';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -10,8 +9,6 @@ import { fetchPermissions } from './queries/usePermissions';
 import { useAppStore } from './state/useAppStore';
 
 const start = async () => {
-	moment.locale('de');
-
 	await fetchPermissions();
 
 	const rootElement = document.querySelector('#root');

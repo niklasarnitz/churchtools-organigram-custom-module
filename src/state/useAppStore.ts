@@ -3,7 +3,27 @@ import { create } from 'zustand';
 
 import type { UserSettings } from '../hooks/useUserSettings';
 
+import { GroupStatus } from '../types/GroupStatus';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
+import { type RendererType } from '../types/RendererType';
+
+export interface CommittedFilters {
+	excludedGroups: number[];
+	excludedGroupTypes: number[];
+	excludedRoles: number[];
+	filteredAgeGroupIds: number[];
+	filteredCampusIds: number[];
+	filteredGroupCategoryIds: number[];
+	groupIdToStartWith: string | undefined;
+	hideIndirectSubgroups: boolean;
+	includedGroups: number[];
+	includedGroupStatuses: GroupStatus[];
+	layoutAlgorithm: LayoutAlgorithm;
+	maxDepth: number | undefined;
+	renderer: RendererType;
+	showGroupTypes: boolean;
+	showOnlyDirectChildren: boolean;
+}
 
 export interface PendingExport {
 	fileName: string;
@@ -12,34 +32,48 @@ export interface PendingExport {
 
 interface GroupState {
 	baseUrl: string | undefined;
+	commitFilters: () => void;
+	committedFilters: CommittedFilters | undefined;
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
 	excludedRoles: number[];
+	filteredAgeGroupIds: number[];
+	filteredCampusIds: number[];
+	filteredGroupCategoryIds: number[];
 
+	focusNodeId: string | undefined;
 	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
 	includedGroups: number[];
+	includedGroupStatuses: GroupStatus[];
 	isExporting: boolean;
+
 	layoutAlgorithm: LayoutAlgorithm;
 	maxDepth: number | undefined;
-
 	pendingExport: PendingExport | undefined;
 
+	renderer: RendererType;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
 	setExcludedGroups: (groups: string | string[]) => void;
 	setExcludedGroupTypes: (groups: string | string[]) => void;
-
 	setExcludedRoles: (roles: string | string[]) => void;
+	setFilteredAgeGroupIds: (ids: number[]) => void;
+	setFilteredCampusIds: (ids: number[]) => void;
+	setFilteredGroupCategoryIds: (ids: number[]) => void;
+	setFocusNodeId: (id: string | undefined) => void;
 
 	setGroupIdToStartWith: (groupId?: number | string) => void;
+
 	setHideIndirectSubgroups: (hide: boolean) => void;
 	setIncludedGroups: (groups: string | string[]) => void;
+	setIncludedGroupStatuses: (statuses: GroupStatus[]) => void;
 	setIsExporting: (isExporting: boolean) => void;
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 	setMaxDepth: (depth: number | undefined) => void;
 
 	setPendingExport: (pendingExport: PendingExport | undefined) => void;
+	setRenderer: (renderer: RendererType) => void;
 
 	setShowGroupTypes: (show: boolean) => void;
 	setShowOnlyDirectChildren: (show: boolean) => void;
@@ -48,80 +82,145 @@ interface GroupState {
 	showOnlyDirectChildren: boolean;
 }
 
-export const useAppStore = create<GroupState>((set) => ({
-	baseUrl: undefined,
-	excludedGroups: [] as number[],
-	excludedGroupTypes: [] as number[],
-	excludedRoles: [] as number[],
+function snapshotFilters(state: GroupState): CommittedFilters {
+	return {
+		excludedGroups: state.excludedGroups,
+		excludedGroupTypes: state.excludedGroupTypes,
+		excludedRoles: state.excludedRoles,
+		filteredAgeGroupIds: state.filteredAgeGroupIds,
+		filteredCampusIds: state.filteredCampusIds,
+		filteredGroupCategoryIds: state.filteredGroupCategoryIds,
+		groupIdToStartWith: state.groupIdToStartWith,
+		hideIndirectSubgroups: state.hideIndirectSubgroups,
+		includedGroups: state.includedGroups,
+		includedGroupStatuses: state.includedGroupStatuses,
+		layoutAlgorithm: state.layoutAlgorithm,
+		maxDepth: state.maxDepth,
+		renderer: state.renderer,
+		showGroupTypes: state.showGroupTypes,
+		showOnlyDirectChildren: state.showOnlyDirectChildren,
+	};
+}
 
-	groupIdToStartWith: undefined,
-	hideIndirectSubgroups: false,
-	includedGroups: [] as number[],
+export const useAppStore = create<GroupState>((set) => {
+	const setAndCommit = (updates: Partial<GroupState>) => {
+		set((state) => {
+			const newState = { ...state, ...updates };
+			return { ...updates, committedFilters: snapshotFilters(newState as GroupState) };
+		});
+	};
 
-	isExporting: false,
+	return {
+		baseUrl: undefined,
+		commitFilters: () => {
+			set((state) => ({ committedFilters: snapshotFilters(state) }));
+		},
+		committedFilters: undefined,
+		excludedGroups: [] as number[],
+		excludedGroupTypes: [] as number[],
+		excludedRoles: [] as number[],
+		filteredAgeGroupIds: [] as number[],
+		filteredCampusIds: [] as number[],
+		filteredGroupCategoryIds: [] as number[],
 
-	layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
-	maxDepth: undefined,
+		focusNodeId: undefined,
+		groupIdToStartWith: undefined,
+		hideIndirectSubgroups: false,
 
-	pendingExport: undefined,
+		includedGroups: [] as number[],
 
-	setAllSettings: (settings: Partial<UserSettings>) => {
-		set((state) => ({ ...state, ...settings }));
-	},
+		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
+		isExporting: false,
 
-	setBaseUrl: (url: string | undefined) => {
-		churchtoolsClient.setBaseUrl(url ?? '');
-		set({ baseUrl: url });
-	},
+		layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+		maxDepth: undefined,
 
-	setExcludedGroups: (groups: string | string[]) => {
-		set({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
-	},
+		pendingExport: undefined,
 
-	setExcludedGroupTypes: (groups: string | string[]) => {
-		set({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
-	},
+		renderer: 'webgl' as RendererType,
 
-	setExcludedRoles: (roles: string | string[]) => {
-		set({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
-	},
+		setAllSettings: (settings: Partial<UserSettings>) => {
+			setAndCommit(settings);
+		},
 
-	setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
-		set({ groupIdToStartWith: groupIdToStartWith?.toString() });
-	},
+		setBaseUrl: (url: string | undefined) => {
+			churchtoolsClient.setBaseUrl(url ?? '');
+			set({ baseUrl: url });
+		},
 
-	setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
-		set({ hideIndirectSubgroups });
-	},
+		setExcludedGroups: (groups: string | string[]) => {
+			setAndCommit({ excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
 
-	setIncludedGroups: (groups: string | string[]) => {
-		set({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
-	},
+		setExcludedGroupTypes: (groups: string | string[]) => {
+			setAndCommit({ excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
 
-	setIsExporting: (isExporting: boolean) => {
-		set({ isExporting });
-	},
+		setExcludedRoles: (roles: string | string[]) => {
+			setAndCommit({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
+		},
 
-	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
-		set({ layoutAlgorithm: algorithm });
-	},
+		setFilteredAgeGroupIds: (filteredAgeGroupIds: number[]) => {
+			setAndCommit({ filteredAgeGroupIds });
+		},
 
-	setMaxDepth: (maxDepth: number | undefined) => {
-		set({ maxDepth });
-	},
+		setFilteredCampusIds: (filteredCampusIds: number[]) => {
+			setAndCommit({ filteredCampusIds });
+		},
 
-	setPendingExport: (pendingExport: PendingExport | undefined) => {
-		set({ pendingExport });
-	},
+		setFilteredGroupCategoryIds: (filteredGroupCategoryIds: number[]) => {
+			setAndCommit({ filteredGroupCategoryIds });
+		},
 
-	setShowGroupTypes: (show: boolean) => {
-		set({ showGroupTypes: show });
-	},
+		setFocusNodeId: (id: string | undefined) => {
+			set({ focusNodeId: id });
+		},
 
-	setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
-		set({ showOnlyDirectChildren });
-	},
+		setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
+			setAndCommit({ groupIdToStartWith: groupIdToStartWith?.toString() });
+		},
 
-	showGroupTypes: true,
-	showOnlyDirectChildren: false,
-}));
+		setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
+			setAndCommit({ hideIndirectSubgroups });
+		},
+
+		setIncludedGroups: (groups: string | string[]) => {
+			setAndCommit({ includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number) });
+		},
+
+		setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
+			setAndCommit({ includedGroupStatuses });
+		},
+
+		setIsExporting: (isExporting: boolean) => {
+			set({ isExporting });
+		},
+
+		setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
+			setAndCommit({ layoutAlgorithm: algorithm });
+		},
+
+		setMaxDepth: (maxDepth: number | undefined) => {
+			setAndCommit({ maxDepth });
+		},
+
+		setPendingExport: (pendingExport: PendingExport | undefined) => {
+			set({ pendingExport });
+		},
+
+		setRenderer: (renderer: RendererType) => {
+			setAndCommit({ renderer });
+		},
+
+		setShowGroupTypes: (show: boolean) => {
+			setAndCommit({ showGroupTypes: show });
+		},
+
+		setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
+			setAndCommit({ showOnlyDirectChildren });
+		},
+
+		showGroupTypes: true,
+		showOnlyDirectChildren: false,
+	};
+});

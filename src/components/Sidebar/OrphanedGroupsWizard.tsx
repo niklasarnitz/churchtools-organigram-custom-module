@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useUpdateHierarchy } from '../../queries/useUpdateHierarchy';
-import { useGroupsById } from '../../selectors/useGroupsById';
 import { Button } from '../ui/button';
 import { Combobox } from '../ui/combobox';
 import {
@@ -21,7 +20,6 @@ import { MultiSelect } from '../ui/multi-select';
 export const OrphanedGroupsWizard = () => {
 	const { data: groups } = useGroups();
 	const { data: hierarchies } = useHierarchies();
-	const groupsById = useGroupsById();
 	const updateHierarchy = useUpdateHierarchy();
 
 	const [isOpen, setIsOpen] = useState(false);
@@ -65,8 +63,6 @@ export const OrphanedGroupsWizard = () => {
 	};
 
 	const handleSave = async () => {
-		if (!currentGroup) return;
-
 		await updateHierarchy.mutateAsync({
 			childrenIds: selectedChildrenIds.map(Number),
 			groupId: currentGroup.id,
@@ -91,7 +87,7 @@ export const OrphanedGroupsWizard = () => {
 	const groupOptions = useMemo(() => {
 		if (!groups) return [];
 		return groups
-			.filter((g) => g.id !== currentGroup?.id)
+			.filter((g) => g.id !== currentGroup.id)
 			.map((g) => ({
 				label: g.name,
 				value: String(g.id),
@@ -118,12 +114,11 @@ export const OrphanedGroupsWizard = () => {
 						</span>
 						<br />
 						Ordne die Gruppe{' '}
-						<strong className="text-slate-900 dark:text-slate-100">{currentGroup?.name}</strong> zu.
+						<strong className="text-slate-900 dark:text-slate-100">{currentGroup.name}</strong> zu.
 					</DialogDescription>
 				</DialogHeader>
 
-				{currentGroup && (
-					<div className="grid gap-6 py-4">
+				<div className="grid gap-6 py-4">
 						<div className="grid gap-2">
 							<label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
 								Übergeordnete Gruppe (Eltern)
@@ -154,7 +149,6 @@ export const OrphanedGroupsWizard = () => {
 							</p>
 						</div>
 					</div>
-				)}
 
 				<DialogFooter className="flex flex-row items-center justify-between border-t border-slate-100 pt-4 sm:justify-between dark:border-slate-800">
 					<div className="flex gap-2">
@@ -181,7 +175,7 @@ export const OrphanedGroupsWizard = () => {
 							<ChevronRight className="ml-1 size-4" />
 						</Button>
 					</div>
-					<Button disabled={updateHierarchy.isPending} onClick={handleSave} size="sm">
+					<Button disabled={updateHierarchy.isPending} onClick={() => { void handleSave(); }} size="sm">
 						{updateHierarchy.isPending ? (
 							<Loader2 className="mr-2 size-4 animate-spin" />
 						) : (

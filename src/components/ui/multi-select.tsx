@@ -1,8 +1,7 @@
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '../../lib/utils';
-import { Badge } from './badge';
 import { Button } from './button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './command';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -22,13 +21,6 @@ export interface MultiSelectProps {
 
 export function MultiSelect({ className, onChange, options, placeholder, value }: MultiSelectProps) {
 	const [open, setOpen] = React.useState(false);
-
-	const handleUnselect = React.useCallback(
-		(val: string) => {
-			onChange(value.filter((s) => s !== val));
-		},
-		[onChange, value],
-	);
 
 	const handleSelect = React.useCallback(
 		(val: string) => {
@@ -53,28 +45,12 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 					role="combobox"
 					variant="outline"
 				>
-					<div className="flex flex-wrap gap-1">
-						{value.length > 0 ? (
-							value.map((v) => {
-								const option = options.find((o) => o.value === v);
-								return (
-									<Badge
-										key={v}
-										onClick={(e) => {
-											e.stopPropagation();
-											handleUnselect(v);
-										}}
-										variant="secondary"
-									>
-										{option?.label ?? v}
-										<X className="hover:text-destructive ml-1 h-3 w-3" />
-									</Badge>
-								);
-							})
-						) : (
-							<span className="text-slate-500 dark:text-slate-400">{placeholder ?? 'Auswählen...'}</span>
-						)}
-					</div>
+					<span className="min-w-0 flex-1 truncate text-left">
+						{value.length > 0
+							? value.map((v) => options.find((o) => o.value === v)?.label ?? v).join(', ')
+							: <span className="text-slate-500 dark:text-slate-400">{placeholder ?? 'Auswählen...'}</span>
+						}
+					</span>
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>
