@@ -138,15 +138,15 @@ function drawEdgePDF(
 ): void {
 	if (!edge.sections) return;
 
+	doc.setDrawColor(100, 116, 139); // #64748b
+	doc.setLineWidth(0.1);
+
 	for (const section of edge.sections) {
 		const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint];
 		const pdfPoints = points.map((p) => [
 			offsetX + (p.x - minX) * scale,
 			offsetY + (p.y - minY) * scale,
 		]);
-
-		doc.setDrawColor(100, 116, 139); // #64748b
-		doc.setLineWidth(0.1);
 
 		if (pdfPoints.length > 1) {
 			const [startX, startY] = pdfPoints[0];
@@ -157,6 +157,31 @@ function drawEdgePDF(
 				doc.lineTo(x, y);
 			}
 			doc.stroke();
+
+			// Draw arrowhead at the end
+			const [endX, endY] = pdfPoints[pdfPoints.length - 1];
+			const [prevX, prevY] = pdfPoints[pdfPoints.length - 2];
+
+			const dx = endX - prevX;
+			const dy = endY - prevY;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+
+			if (dist > 0) {
+				const angle = Math.atan2(dy, dx);
+				const arrowSize = 0.8;
+
+				const arrowX1 = endX - arrowSize * Math.cos(angle - Math.PI / 6);
+				const arrowY1 = endY - arrowSize * Math.sin(angle - Math.PI / 6);
+				const arrowX2 = endX - arrowSize * Math.cos(angle + Math.PI / 6);
+				const arrowY2 = endY - arrowSize * Math.sin(angle + Math.PI / 6);
+
+				// Draw filled arrow triangle
+				doc.setFillColor(100, 116, 139);
+				doc.moveTo(endX, endY);
+				doc.lineTo(arrowX1, arrowY1);
+				doc.lineTo(arrowX2, arrowY2);
+				doc.fill();
+			}
 		}
 	}
 }
