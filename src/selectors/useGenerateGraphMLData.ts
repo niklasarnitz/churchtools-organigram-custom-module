@@ -2,19 +2,30 @@ import { useCallback } from 'react';
 
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 import type { Node } from '../types/GraphTypes';
-import type { GroupRole } from '../types/GroupRole';
 
 import { oklchToHex } from '../globals/Colors';
 import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
-export const useGenerateGraphMLData = () => {
-	const data = useGenerateReflowData();
-	const committedFilters = useAppStore((s) => s.committedFilters);
-	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
+// Approximate character widths for size estimation (Dialog font in yEd)
+const TITLE_FONT_SIZE = 12;
+const TITLE_CHAR_WIDTH = 7.5; // bold Dialog 12
+const BODY_FONT_SIZE = 10;
+const BODY_CHAR_WIDTH = 6; // plain Dialog 10
+const TITLE_LINE_HEIGHT = TITLE_FONT_SIZE + 2;
+const BODY_LINE_HEIGHT = BODY_FONT_SIZE + 2;
+const NODE_PADDING_X = 4;
+const NODE_PADDING_Y = 4;
+const LABEL_GAP = 4;
+const MIN_NODE_WIDTH = 120;
 
-	return useCallback(() => {
-		let graphml = `<?xml version="1.0" encoding="UTF-8"?>
+export const useGenerateGraphMLData = () => {
+    const data = useGenerateReflowData();
+    const committedFilters = useAppStore((s) => s.committedFilters);
+    const showGroupTypes = committedFilters?.showGroupTypes ?? true;
+
+    return useCallback(() => {
+        let graphml = `<?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns"
     xmlns:y="http://www.yworks.com/xml/graphml"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -28,35 +39,48 @@ export const useGenerateGraphMLData = () => {
   <graph id="G" edgedefault="directed">
 `;
 
-		for (const node of data.nodes as Node<PreviewGraphNodeData>[]) {
-			const d = node.data;
-			const shade500 = d.color.shades[500];
-			const colorHex = shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
+        for (const node of data.nodes as Node<PreviewGraphNodeData>[]) {
+            const d = node.data;
+            const shade500 = d.color.shades[500];
+            const headerBg = oklchToHex(d.color.shades[100]);
+            const borderColor = oklchToHex(d.color.shades[300]);
+            const colorHex = shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
 
-			const richLabel = buildRichLabel(d.title, showGroupTypes ? d.groupTypeName : '', d.roles, d.memberNamesByRoleId);
+            const plainLabel = buildPlainLabel(d.title, showGroupTypes ? d.groupTypeName : '', d.roles, d.memberNamesByRoleId);
+            const bodyLines = plainLabel.split('\n');
 
-			const nodeWidth = node.width ?? 250;
-			const nodeHeight = node.height ?? 80;
+            // Width: widest line across title (bold 12) and body (plain 10) + padding
+            const titleWidth = d.title.length * TITLE_CHAR_WIDTH;
+            const maxBodyLineWidth = bodyLines.reduce((max, line) => Math.max(max, line.length * BODY_CHAR_WIDTH), 0);
+            const nodeWidth = Math.max(MIN_NODE_WIDTH, Math.max(titleWidth, maxBodyLineWidth) + NODE_PADDING_X * 2);
 
-			graphml += `    <node id="${node.id}">
+            // Height: title line + gap + body lines + vertical padding
+            const titleHeight = TITLE_LINE_HEIGHT;
+            const bodyHeight = bodyLines.length > 0 && plainLabel.length > 0
+                ? LABEL_GAP + bodyLines.length * BODY_LINE_HEIGHT
+                : 0;
+            const nodeHeight = NODE_PADDING_Y * 2 + titleHeight + bodyHeight;
+
+            graphml += `    <node id="${node.id}">
       <data key="d0">${escapeXml(d.title)}</data>
       <data key="d1">${showGroupTypes ? escapeXml(d.groupTypeName) : ''}</data>
       <data key="d3">${escapeXml(colorHex)}</data>
       <data key="d4">
         <y:ShapeNode>
           <y:Geometry height="${String(nodeHeight)}" width="${String(nodeWidth)}" x="${String(node.position.x)}" y="${String(node.position.y)}"/>
-          <y:Fill color="${colorHex}" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="node_size" configuration="com.yworks.nodeLabel.richText" fontFamily="Dialog" fontSize="12" textColor="#FFFFFF" visible="true">${richLabel}</y:NodeLabel>
+          <y:Fill color="${headerBg}" color2="${headerBg}" transparent="false"/>
+          <y:BorderStyle color="${borderColor}" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="${String(TITLE_FONT_SIZE)}" fontStyle="bold" textColor="#0f172a" visible="true" modelName="internal" modelPosition="t">${escapeXml(d.title)}</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="${String(BODY_FONT_SIZE)}" fontStyle="plain" textColor="#64748b" visible="true" modelName="internal" modelPosition="b">${escapeXml(plainLabel)}</y:NodeLabel>
           <y:Shape type="roundrectangle"/>
         </y:ShapeNode>
       </data>
     </node>
 `;
-		}
+        }
 
-		for (const edge of data.edges) {
-			graphml += `    <edge id="${edge.id}" source="${edge.source}" target="${edge.target}">
+        for (const edge of data.edges) {
+            graphml += `    <edge id="${edge.id}" source="${edge.source}" target="${edge.target}">
       <data key="d5">
         <y:PolyLineEdge>
           <y:LineStyle color="#64748B" type="line" width="2.0"/>
@@ -65,67 +89,57 @@ export const useGenerateGraphMLData = () => {
       </data>
     </edge>
 `;
-		}
+        }
 
-		graphml += `  </graph>
+        graphml += `  </graph>
 </graphml>`;
 
-		return graphml;
-	}, [data, showGroupTypes]);
+        return graphml;
+    }, [data, showGroupTypes]);
 };
 
-function buildRichLabel(
-	title: string,
-	groupTypeName: string,
-	roles: GroupRole[],
-	memberNamesByRoleId: Map<number, string[]>,
+function buildPlainLabel(
+    title: string,
+    groupTypeName: string,
+    roles: { id: number; name: string }[],
+    memberNamesByRoleId: Map<number, string[]>,
 ): string {
-	const e = escapeHtml;
+    const lines: string[] = [];
 
-	let html = `<html><body style="word-wrap: break-word;">`;
-	html += `<p align="center"><b><font size="5">${e(title)}</font></b></p>`;
+    if (groupTypeName) {
+        lines.push(groupTypeName.toUpperCase());
+    }
 
-	if (groupTypeName) {
-		html += `<p align="center"><font size="3">${e(groupTypeName)}</font></p>`;
-	}
+    const rolesWithMembers = roles.filter((role) => memberNamesByRoleId.has(role.id));
+    if (rolesWithMembers.length > 0) {
+        lines.push('');
+        for (const role of rolesWithMembers) {
+            const names = memberNamesByRoleId.get(role.id) ?? [];
+            lines.push(`\n${role.name}:`);
+            for (const name of names) {
+                lines.push(`  ${name}`);
+            }
+        }
+    }
 
-	if (roles.length > 0) {
-		html += `<br/>`;
-		for (const role of roles) {
-			const names = memberNamesByRoleId.get(role.id) ?? [];
-
-			html += `<p align="center"><b>${e(role.name)}:</b><br/>`;
-			html += `${names.map((n) => e(n)).join('<br/>')}</p>`;
-		}
-	}
-
-	html += `</body></html>`;
-	return escapeXml(html);
-}
-
-function escapeHtml(unsafe: string) {
-	return unsafe
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;');
+    return lines.join('\n');
 }
 
 function escapeXml(unsafe: string) {
-	return unsafe.replace(/[<>&"']/g, (c) => {
-		switch (c) {
-			case '"':
-				return '&quot;';
-			case '&':
-				return '&amp;';
-			case "'":
-				return '&apos;';
-			case '<':
-				return '&lt;';
-			case '>':
-				return '&gt;';
-			default:
-				return c;
-		}
-	});
+    return unsafe.replace(/[<>&"']/g, (c) => {
+        switch (c) {
+            case '"':
+                return '&quot;';
+            case '&':
+                return '&amp;';
+            case "'":
+                return '&apos;';
+            case '<':
+                return '&lt;';
+            case '>':
+                return '&gt;';
+            default:
+                return c;
+        }
+    });
 }
