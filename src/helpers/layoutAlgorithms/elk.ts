@@ -1,4 +1,4 @@
-import type { ELK, ElkNode } from 'elkjs/lib/elk.bundled';
+import type { ELK, ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk.bundled';
 
 import ElkApi from 'elkjs/lib/elk-api';
 import ElkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
@@ -47,8 +47,10 @@ export const layoutElk = async (
 		'elk.edgeRouting': 'ORTHOGONAL',
 		'elk.padding': '[top=50,left=50,bottom=50,right=50]',
 		'elk.spacing.componentsCmpHierarchy': '80',
-		'elk.spacing.edgeEdge': '20',
-		'elk.spacing.edgeNode': '30',
+		'elk.spacing.edgeEdge': '8',
+		'elk.spacing.edgeEdgeBetweenLayers': '15',
+		'elk.spacing.edgeNode': '25',
+		'elk.spacing.edgeNodeBetweenLayers': '25',
 		'elk.spacing.nodeNode': '60',
 		'elk.spacing.nodeNodeBetweenLayers': '80',
 	};
@@ -60,6 +62,8 @@ export const layoutElk = async (
 		layoutOptions['elk.layered.thoroughness'] = '50';
 		layoutOptions['elk.alignment'] = 'CENTER';
 		layoutOptions['elk.layered.considerModelOrder.strategy'] = 'NODES_AND_EDGES';
+		layoutOptions['elk.layered.spacing.edgeEdgeBetweenLayers'] = '15';
+		layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = '25';
 	}
 
 	const graph: ElkNode = {
@@ -84,6 +88,11 @@ export const layoutElk = async (
 
 	const elkNodeMap = new Map(layoutedGraph.children?.map((n) => [n.id, n]));
 
+	const elkEdgeMap = new Map<string, ElkExtendedEdge>();
+	for (const e of (layoutedGraph.edges ?? []) as ElkExtendedEdge[]) {
+		elkEdgeMap.set(e.id, e);
+	}
+
 	const layoutedNodes = nodes.map((node) => {
 		const elkNode = elkNodeMap.get(node.id);
 		return {
@@ -96,5 +105,15 @@ export const layoutElk = async (
 		};
 	});
 
-	return { edges, nodes: layoutedNodes };
+	const layoutedEdges = edges.map((edge) => {
+		const elkEdge = elkEdgeMap.get(edge.id);
+		const sections = (elkEdge?.sections ?? []).map((s) => ({
+			bendPoints: s.bendPoints?.map((bp) => ({ x: bp.x, y: bp.y })),
+			endPoint: { x: s.endPoint.x, y: s.endPoint.y },
+			startPoint: { x: s.startPoint.x, y: s.startPoint.y },
+		}));
+		return { ...edge, sections };
+	});
+
+	return { edges: layoutedEdges, nodes: layoutedNodes };
 };

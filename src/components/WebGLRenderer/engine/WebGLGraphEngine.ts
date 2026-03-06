@@ -1,7 +1,7 @@
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
 
 import { oklchToHex } from '../../../globals/Colors';
-import { type Edge, type Node, Position } from '../../../types/GraphTypes';
+import type { Edge, Node } from '../../../types/GraphTypes';
 import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
 
 export interface Camera {
@@ -24,6 +24,7 @@ export class WebGLGraphEngine {
     private ctx: CanvasRenderingContext2D;
     private dpr = 1;
     private edges: Edge[] = [];
+    private highlightedEdgeId: null | string = null;
     private isDarkMode = false;
     private lastFrameTime = 0;
     private frameCount = 0;
@@ -138,6 +139,33 @@ export class WebGLGraphEngine {
         return this.nodes;
     }
 
+    edgeHitTest(screenX: number, screenY: number): Edge | null {
+        const world = this.screenToWorld(screenX, screenY);
+        const threshold = 6 / this.camera.zoom;
+
+        for (const edge of this.edges) {
+            if (!edge.sections) continue;
+            for (const section of edge.sections) {
+                const points: { x: number; y: number }[] = [section.startPoint];
+                if (section.bendPoints) {
+                    for (const bp of section.bendPoints) points.push(bp);
+                }
+                points.push(section.endPoint);
+
+                for (let i = 0; i < points.length - 1; i++) {
+                    if (pointToSegmentDist(world.x, world.y, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y) < threshold) {
+                        return edge;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    getHighlightedEdgeId(): null | string {
+        return this.highlightedEdgeId;
+    }
+
     hitTest(screenX: number, screenY: number): NodeHit | null {
         const world = this.screenToWorld(screenX, screenY);
         
@@ -158,6 +186,13 @@ export class WebGLGraphEngine {
             }
         }
         return null;
+    }
+
+    setHighlightedEdge(edgeId: null | string) {
+        if (this.highlightedEdgeId !== edgeId) {
+            this.highlightedEdgeId = edgeId;
+            this.needsRender = true;
+        }
     }
 
     markDirty() {
@@ -253,21 +288,20 @@ export class WebGLGraphEngine {
 
     private drawArrowHead(
         ctx: CanvasRenderingContext2D,
-        tx: number, ty: number,
-        isVertical: boolean,
-        dir: number,
+        toX: number, toY: number,
+        fromX: number, fromY: number,
         size: number,
     ) {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) return;
+        const ux = dx / len;
+        const uy = dy / len;
         ctx.beginPath();
-        if (isVertical) {
-            ctx.moveTo(tx, ty);
-            ctx.lineTo(tx - size, ty - size * dir);
-            ctx.lineTo(tx + size, ty - size * dir);
-        } else {
-            ctx.moveTo(tx, ty);
-            ctx.lineTo(tx - size * dir, ty - size);
-            ctx.lineTo(tx - size * dir, ty + size);
-        }
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - ux * size + uy * size * 0.5, toY - uy * size - ux * size * 0.5);
+        ctx.lineTo(toX - ux * size - uy * size * 0.5, toY - uy * size + ux * size * 0.5);
         ctx.closePath();
         ctx.fill();
     }
@@ -277,186 +311,73 @@ export class WebGLGraphEngine {
         const rect = this.canvas.getBoundingClientRect();
         const viewW = rect.width;
         const viewH = rect.height;
-        const defaultMetrics = { headerHeight: 38, height: 80, width: 250 };
         const arrowSize = 8;
-        const edgePadding = 10;
 
-        // Determine orientation from first edge
-        let isVertical = true;
-        if (this.edges.length > 0) {
-            const firstSource = this.nodeMap.get(this.edges[0].source);
-            if (firstSource) {
-                const pos = firstSource.sourcePosition ?? Position.Bottom;
-                isVertical = pos === Position.Bottom || pos === Position.Top;
-            }
-        }
-
-        // Group edges by source node for bundled drawing
-        const edgesBySource = new Map<string, { src: { x: number; y: number }; targets: { x: number; y: number }[] }>();
+        const edgeColor = this.isDarkMode ? '#94a3b8' : '#64748b';
+        const highlightColor = this.isDarkMode ? '#60a5fa' : '#3b82f6';
+        ctx.lineJoin = 'round';
 
         for (const edge of this.edges) {
-            const sourceNode = this.nodeMap.get(edge.source);
-            const targetNode = this.nodeMap.get(edge.target);
-            if (!sourceNode || !targetNode) continue;
+            const sections = edge.sections;
+            if (!sections || sections.length === 0) continue;
+            const isHighlighted = edge.id === this.highlightedEdgeId;
 
-            const sourceMetrics = this.nodeMetrics.get(sourceNode.id) ?? defaultMetrics;
-            const targetMetrics = this.nodeMetrics.get(targetNode.id) ?? defaultMetrics;
-
-            const sourcePos = sourceNode.sourcePosition ?? Position.Bottom;
-            const targetPos = targetNode.targetPosition ?? Position.Top;
-
-            const src = this.getPortPosition(sourceNode, sourcePos, sourceMetrics);
-            const tgt = this.getPortPosition(targetNode, targetPos, targetMetrics);
-
-            let group = edgesBySource.get(edge.source);
-            if (!group) {
-                group = { src, targets: [] };
-                edgesBySource.set(edge.source, group);
-            }
-            group.targets.push(tgt);
-        }
-
-        ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-        ctx.lineWidth = 2;
-        ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-
-        for (const group of edgesBySource.values()) {
-            const { src, targets } = group;
-
-            if (targets.length === 0) continue;
-
-            if (isVertical) {
-                // Frustum culling: compute bounding box of the entire group
-                let bMaxX = src.x, bMaxY = src.y, bMinX = src.x, bMinY = src.y;
-                for (const tgt of targets) {
-                    bMinX = Math.min(bMinX, tgt.x);
-                    bMaxX = Math.max(bMaxX, tgt.x);
-                    bMinY = Math.min(bMinY, tgt.y);
-                    bMaxY = Math.max(bMaxY, tgt.y);
-                }
-                const sMinX = (bMinX - this.camera.x) * zoom;
-                const sMaxX = (bMaxX - this.camera.x) * zoom;
-                const sMinY = (bMinY - this.camera.y) * zoom;
-                const sMaxY = (bMaxY - this.camera.y) * zoom;
-                if (sMaxX < 0 || sMaxY < 0 || sMinX > viewW || sMinY > viewH) continue;
-
-                // midY is exactly halfway between the source port and the closest target port
-                let closestTargetY = targets[0].y;
-                for (const tgt of targets) {
-                    if (Math.abs(tgt.y - src.y) < Math.abs(closestTargetY - src.y)) {
-                        closestTargetY = tgt.y;
+            for (const section of sections) {
+                const points: { x: number; y: number }[] = [];
+                points.push(section.startPoint);
+                if (section.bendPoints) {
+                    for (const bp of section.bendPoints) {
+                        points.push(bp);
                     }
                 }
-                const idealMidY = (src.y + closestTargetY) / 2;
+                points.push(section.endPoint);
 
-                // Compute rail extents for node-avoidance check
-                const sortedTargets = [...targets].sort((a, b) => a.x - b.x);
-                const leftX = Math.min(src.x, sortedTargets[0].x);
-                const rightX = Math.max(src.x, sortedTargets[sortedTargets.length - 1].x);
-
-                const midY = this.findSafeRailY(idealMidY, leftX, rightX, src.y, closestTargetY, edgePadding);
-
-                if (targets.length === 1 && Math.abs(targets[0].x - src.x) < 1) {
-                    // Single child directly below: straight line
-                    ctx.beginPath();
-                    ctx.moveTo(src.x, src.y);
-                    ctx.lineTo(targets[0].x, targets[0].y);
-                    ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-                    ctx.stroke();
-                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-                    this.drawArrowHead(ctx, targets[0].x, targets[0].y, isVertical, targets[0].y > src.y ? 1 : -1, arrowSize);
-                    continue;
+                // Frustum culling
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                for (const p of points) {
+                    minX = Math.min(minX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxX = Math.max(maxX, p.x);
+                    maxY = Math.max(maxY, p.y);
                 }
-
-                // Draw trunk: source port down to midY
-                ctx.beginPath();
-                ctx.moveTo(src.x, src.y);
-                ctx.lineTo(src.x, midY);
-                ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-                ctx.stroke();
-
-                // Draw horizontal rail at midY
-                ctx.beginPath();
-                ctx.moveTo(leftX, midY);
-                ctx.lineTo(rightX, midY);
-                ctx.stroke();
-
-                // Draw branches from rail down to each target
-                for (const tgt of targets) {
-                    const dirY = tgt.y > src.y ? 1 : -1;
-
-                    ctx.beginPath();
-                    ctx.moveTo(tgt.x, midY);
-                    ctx.lineTo(tgt.x, tgt.y);
-                    ctx.stroke();
-
-                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-                    this.drawArrowHead(ctx, tgt.x, tgt.y, isVertical, dirY, arrowSize);
-                }
-            } else {
-                // Horizontal layout: same logic but rotated
-                let bMaxX = src.x, bMaxY = src.y, bMinX = src.x, bMinY = src.y;
-                for (const tgt of targets) {
-                    bMinX = Math.min(bMinX, tgt.x);
-                    bMaxX = Math.max(bMaxX, tgt.x);
-                    bMinY = Math.min(bMinY, tgt.y);
-                    bMaxY = Math.max(bMaxY, tgt.y);
-                }
-                const sMinX = (bMinX - this.camera.x) * zoom;
-                const sMaxX = (bMaxX - this.camera.x) * zoom;
-                const sMinY = (bMinY - this.camera.y) * zoom;
-                const sMaxY = (bMaxY - this.camera.y) * zoom;
+                const sMinX = (minX - this.camera.x) * zoom;
+                const sMaxX = (maxX - this.camera.x) * zoom;
+                const sMinY = (minY - this.camera.y) * zoom;
+                const sMaxY = (maxY - this.camera.y) * zoom;
                 if (sMaxX < 0 || sMaxY < 0 || sMinX > viewW || sMinY > viewH) continue;
 
-                let closestTargetX = targets[0].x;
-                for (const tgt of targets) {
-                    if (Math.abs(tgt.x - src.x) < Math.abs(closestTargetX - src.x)) {
-                        closestTargetX = tgt.x;
+                // Build path once
+                const buildPath = () => {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    for (let i = 1; i < points.length; i++) {
+                        ctx.lineTo(points[i].x, points[i].y);
                     }
-                }
-                const idealMidX = (src.x + closestTargetX) / 2;
+                };
 
-                const sortedTargets = [...targets].sort((a, b) => a.y - b.y);
-                const topY = Math.min(src.y, sortedTargets[0].y);
-                const bottomY = Math.max(src.y, sortedTargets[sortedTargets.length - 1].y);
-
-                const midX = this.findSafeRailX(idealMidX, topY, bottomY, src.x, closestTargetX, edgePadding);
-
-                if (targets.length === 1 && Math.abs(targets[0].y - src.y) < 1) {
-                    ctx.beginPath();
-                    ctx.moveTo(src.x, src.y);
-                    ctx.lineTo(targets[0].x, targets[0].y);
-                    ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
+                if (isHighlighted) {
+                    // Glow pass
+                    ctx.save();
+                    ctx.shadowColor = highlightColor;
+                    ctx.shadowBlur = 12 / zoom;
+                    ctx.strokeStyle = highlightColor;
+                    ctx.lineWidth = 4;
+                    buildPath();
                     ctx.stroke();
-                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-                    this.drawArrowHead(ctx, targets[0].x, targets[0].y, isVertical, targets[0].x > src.x ? 1 : -1, arrowSize);
-                    continue;
+                    ctx.restore();
                 }
 
-                // Trunk: source port right to midX
-                ctx.beginPath();
-                ctx.moveTo(src.x, src.y);
-                ctx.lineTo(midX, src.y);
-                ctx.strokeStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
+                // Normal pass
+                ctx.strokeStyle = isHighlighted ? highlightColor : edgeColor;
+                ctx.lineWidth = isHighlighted ? 3 : 2;
+                buildPath();
                 ctx.stroke();
 
-                // Vertical rail at midX
-                ctx.beginPath();
-                ctx.moveTo(midX, topY);
-                ctx.lineTo(midX, bottomY);
-                ctx.stroke();
-
-                for (const tgt of targets) {
-                    const dirX = tgt.x > src.x ? 1 : -1;
-
-                    ctx.beginPath();
-                    ctx.moveTo(midX, tgt.y);
-                    ctx.lineTo(tgt.x, tgt.y);
-                    ctx.stroke();
-
-                    ctx.fillStyle = this.isDarkMode ? '#94a3b8' : '#64748b';
-                    this.drawArrowHead(ctx, tgt.x, tgt.y, isVertical, dirX, arrowSize);
-                }
+                // Arrow head
+                const last = points[points.length - 1];
+                const prev = points[points.length - 2];
+                ctx.fillStyle = isHighlighted ? highlightColor : edgeColor;
+                this.drawArrowHead(ctx, last.x, last.y, prev.x, prev.y, arrowSize);
             }
         }
     }
@@ -491,50 +412,6 @@ export class WebGLGraphEngine {
                 const sy = (y - this.camera.y) * zoom;
                 ctx.fillRect(sx - dotSize / 2, sy - dotSize / 2, dotSize, dotSize);
             }
-        }
-    }
-
-    private drawNodePorts(
-        ctx: CanvasRenderingContext2D,
-        node: Node<PreviewGraphNodeData>,
-        w: number,
-        h: number,
-    ) {
-        const sourcePos = node.sourcePosition ?? Position.Bottom;
-        const targetPos = node.targetPosition ?? Position.Top;
-        const x = node.position.x;
-        const y = node.position.y;
-
-        // Source port
-        switch (sourcePos) {
-            case Position.Bottom:
-                this.drawPort(ctx, x + w / 2, y + h);
-                break;
-            case Position.Left:
-                this.drawPort(ctx, x, y + h / 2);
-                break;
-            case Position.Right:
-                this.drawPort(ctx, x + w, y + h / 2);
-                break;
-            case Position.Top:
-                this.drawPort(ctx, x + w / 2, y);
-                break;
-        }
-
-        // Target port
-        switch (targetPos) {
-            case Position.Bottom:
-                this.drawPort(ctx, x + w / 2, y + h);
-                break;
-            case Position.Left:
-                this.drawPort(ctx, x, y + h / 2);
-                break;
-            case Position.Right:
-                this.drawPort(ctx, x + w, y + h / 2);
-                break;
-            case Position.Top:
-                this.drawPort(ctx, x + w / 2, y);
-                break;
         }
     }
 
@@ -573,8 +450,6 @@ export class WebGLGraphEngine {
             if (zoom >= 0.4) {
                 // Full node card drawn directly (vectorized)
                 drawNodeCard(ctx, node.data, this.showGroupTypes, node.position.x, node.position.y, w, h, this.isDarkMode);
-                // Ports drawn on world canvas so they aren't clipped
-                this.drawNodePorts(ctx, node, w, h);
             } else if (zoom >= 0.15) {
                 // Header-only
                 drawNodeCardHeaderOnly(
@@ -588,7 +463,6 @@ export class WebGLGraphEngine {
                     metrics.headerHeight,
                     this.isDarkMode
                 );
-                this.drawNodePorts(ctx, node, w, h);
             } else {
                 // Minimal LOD
                 const borderColor = oklchToHex(node.data.color.shades[this.isDarkMode ? 700 : 300]);
@@ -601,81 +475,6 @@ export class WebGLGraphEngine {
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
-        }
-    }
-
-    private drawPort(ctx: CanvasRenderingContext2D, px: number, py: number) {
-        ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
-        ctx.fillStyle = this.isDarkMode ? '#64748b' : '#94a3b8';
-        ctx.fill();
-        ctx.strokeStyle = this.isDarkMode ? '#0f172a' : '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
-
-    private findSafeRailX(idealX: number, railMinY: number, railMaxY: number, srcX: number, tgtX: number, edgePadding: number): number {
-        const minX = Math.min(srcX, tgtX) + edgePadding;
-        const maxX = Math.max(srcX, tgtX) - edgePadding;
-        if (minX >= maxX) return idealX;
-
-        if (!this.railIntersectsNodeH(idealX, railMinY, railMaxY, edgePadding)) {
-            return idealX;
-        }
-
-        for (let offset = edgePadding; offset < (maxX - minX); offset += edgePadding) {
-            const left = idealX - offset;
-            if (left >= minX && !this.railIntersectsNodeH(left, railMinY, railMaxY, edgePadding)) {
-                return left;
-            }
-            const right = idealX + offset;
-            if (right <= maxX && !this.railIntersectsNodeH(right, railMinY, railMaxY, edgePadding)) {
-                return right;
-            }
-        }
-        return idealX;
-    }
-
-    private findSafeRailY(idealY: number, railMinX: number, railMaxX: number, srcY: number, tgtY: number, edgePadding: number): number {
-        const minY = Math.min(srcY, tgtY) + edgePadding;
-        const maxY = Math.max(srcY, tgtY) - edgePadding;
-        if (minY >= maxY) return idealY;
-
-        // Check if idealY intersects any node
-        if (!this.railIntersectsNode(idealY, railMinX, railMaxX, edgePadding)) {
-            return idealY;
-        }
-
-        // Search outward from idealY for a safe position
-        for (let offset = edgePadding; offset < (maxY - minY); offset += edgePadding) {
-            const above = idealY - offset;
-            if (above >= minY && !this.railIntersectsNode(above, railMinX, railMaxX, edgePadding)) {
-                return above;
-            }
-            const below = idealY + offset;
-            if (below <= maxY && !this.railIntersectsNode(below, railMinX, railMaxX, edgePadding)) {
-                return below;
-            }
-        }
-        return idealY;
-    }
-
-    private getPortPosition(
-        node: Node<PreviewGraphNodeData>,
-        position: Position,
-        metrics: NodeCardMetrics,
-    ): { x: number; y: number } {
-        const w = metrics.width;
-        const h = metrics.height;
-        switch (position) {
-            case Position.Bottom:
-                return { x: node.position.x + w / 2, y: node.position.y + h };
-            case Position.Left:
-                return { x: node.position.x, y: node.position.y + h / 2 };
-            case Position.Right:
-                return { x: node.position.x + w, y: node.position.y + h / 2 };
-            case Position.Top:
-                return { x: node.position.x + w / 2, y: node.position.y };
         }
     }
 
@@ -710,38 +509,6 @@ export class WebGLGraphEngine {
         }
         this.animationId = requestAnimationFrame(this.loop);
     };
-
-    private railIntersectsNode(railY: number, railMinX: number, railMaxX: number, padding: number): boolean {
-        const candidates = this.getSpatialCandidates(railMinX - padding, railY - padding, railMaxX + padding, railY + padding);
-        for (const node of candidates) {
-            const m = this.nodeMetrics.get(node.id);
-            const w = m?.width ?? 250;
-            const h = m?.height ?? 80;
-            const nx = node.position.x;
-            const ny = node.position.y;
-            if (railY >= ny - padding && railY <= ny + h + padding &&
-                railMaxX >= nx - padding && railMinX <= nx + w + padding) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private railIntersectsNodeH(railX: number, railMinY: number, railMaxY: number, padding: number): boolean {
-        const candidates = this.getSpatialCandidates(railX - padding, railMinY - padding, railX + padding, railMaxY + padding);
-        for (const node of candidates) {
-            const m = this.nodeMetrics.get(node.id);
-            const w = m?.width ?? 250;
-            const h = m?.height ?? 80;
-            const nx = node.position.x;
-            const ny = node.position.y;
-            if (railX >= nx - padding && railX <= nx + w + padding &&
-                railMaxY >= ny - padding && railMinY <= ny + h + padding) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private render() {
         if (this.nodes.length === 0) return;
@@ -797,6 +564,19 @@ export class WebGLGraphEngine {
             ctx.fillText(`${this.fps} FPS`, viewW - 40, 23);
         }
     }
+}
+
+function pointToSegmentDist(
+    px: number, py: number,
+    ax: number, ay: number,
+    bx: number, by: number,
+): number {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
 function roundRect(

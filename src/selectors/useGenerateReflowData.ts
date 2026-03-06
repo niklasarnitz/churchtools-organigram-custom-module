@@ -101,6 +101,8 @@ export const useGenerateReflowData = () => {
 		let active = true;
 
 		const performLayout = async () => {
+			await document.fonts.ready;
+
 			const measureCanvas = measureCanvasRef.current;
 			if (!measureCanvas) return;
 			const measureCtx = measureCanvas.getContext('2d');
