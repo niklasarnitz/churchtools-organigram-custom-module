@@ -10,12 +10,13 @@ import { useGenerateReflowData } from './useGenerateReflowData';
 
 // === Card Layout ===
 const NODE_PADDING = 16; // Inner padding inside card
-const HEADER_PADDING_Y = 12; // Vertical padding in header
+const HEADER_PADDING_Y = -2; // Vertical padding in header (negative = tighter)
 const HEADER_PADDING_X = 16; // Horizontal padding in header
 
 // === Font Sizes ===
-const TITLE_FONT_SIZE = 28; // Card title (e.g. "Tobias und Kim Maier")
-const GROUP_TYPE_FONT_SIZE = 20; // Group type (e.g. "KG KLEINGRUPPE")
+// === Font Sizes ===
+const TITLE_FONT_SIZE = 40; // Card title (e.g. "Tobias und Kim Maier")
+const GROUP_TYPE_FONT_SIZE = 40; // Group type (e.g. "KG KLEINGRUPPE")
 const ROLE_FONT_SIZE = 20; // Role label (e.g. "LEITER")
 const MEMBER_FONT_SIZE = 20; // Member names (e.g. "Unknown Person")
 const TITLE_GROUP_TYPE_GAP = 0; // Spacing between title and group type
@@ -32,7 +33,7 @@ const BORDER_RADIUS = 12; // Rounded corner radius
 // const BORDER_WIDTH = 2; // Border line thickness (currently unused)
 
 // === PDF Layout ===
-const PDF_PADDING = 40; // Padding around entire diagram in PDF
+const PDF_PADDING = 0; // Padding around entire diagram in PDF
 const PDF_SCALE = 2.0; // Zoom factor (1.0 = normal, 2.0 = 2x larger)
 
 export const useGeneratePDFData = () => {
@@ -208,7 +209,7 @@ function drawNodePDF(
 	const borderColor = oklchToHex(d.color.shades[300]);
 	const headerBg = oklchToHex(d.color.shades[100]);
 
-	let headerHeight = (HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE) * scale;
+	let headerHeight = (HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE) * scale / 3;
 	if (showGroupTypes) {
 		headerHeight += (GROUP_TYPE_FONT_SIZE + TITLE_GROUP_TYPE_GAP) * scale;
 	}
@@ -226,6 +227,17 @@ function drawNodePDF(
 	doc.setFillColor(headerBg);
 	doc.roundedRect(x, y, w, headerHeight, BORDER_RADIUS * scale, BORDER_RADIUS * scale, 'F');
 
+	/**
+	// DEBUG: Draw debug rectangles to visualize areas
+	doc.setDrawColor(255, 0, 0); // Red for header
+	doc.setLineWidth(0.1);
+	doc.rect(x, y, w, headerHeight);
+
+	// Show padding area
+	doc.setDrawColor(0, 255, 0); // Green for padding
+	const paddingBox = NODE_PADDING * scale;
+	doc.rect(x + paddingBox, y + paddingBox, w - paddingBox * 2, headerHeight - paddingBox);
+**/
 	// Header border (very thin)
 	if (hasMembers) {
 		doc.setDrawColor(borderColor);
@@ -246,7 +258,7 @@ function drawNodePDF(
 		doc.text(
 			d.groupTypeName.toUpperCase(),
 			x + w / 2,
-			y + (HEADER_PADDING_Y + TITLE_FONT_SIZE + TITLE_GROUP_TYPE_GAP + GROUP_TYPE_FONT_SIZE / 2) * scale,
+			y + (HEADER_PADDING_Y + TITLE_FONT_SIZE / 2 + TITLE_GROUP_TYPE_GAP + GROUP_TYPE_FONT_SIZE / 2) * scale,
 			{ align: 'center' },
 		);
 	}
