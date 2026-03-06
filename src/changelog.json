@@ -1,6 +1,15 @@
 {
 	"versions": [
 		{
+			"version": "1.3.0",
+			"date": "2026-03-06",
+			"changes": [
+				"Added subgraph highlighting: clicking a node highlights it and all its descendants with a blue glow, dimming unrelated nodes and edges",
+				"Added subgraph collapsing: right-click a node to toggle visibility of its entire subtree",
+				"Added keyboard navigation: arrow keys to pan the canvas, +/- keys to zoom in and out"
+			]
+		},
+		{
 			"version": "1.2.1",
 			"date": "2026-03-05",
 			"changes": [
