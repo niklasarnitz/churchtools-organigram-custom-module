@@ -7,6 +7,7 @@ import { downloadTextFile } from '../../helpers/downloadTextFile';
 import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
+import { useGeneratePDFData } from '../../selectors/useGeneratePDFData';
 import { useGenerateSVGData } from '../../selectors/useGenerateSVGData';
 import { useGroupsById } from '../../selectors/useGroupsById';
 import { useAppStore } from '../../state/useAppStore';
@@ -25,6 +26,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
     const groupsById = useGroupsById();
     const generateGraphMLData = useGenerateGraphMLData();
+    const generatePDFData = useGeneratePDFData();
     const generateSVGData = useGenerateSVGData();
     const { data: groups } = useGroups();
     const { data: hierarchies } = useHierarchies();
@@ -69,6 +71,11 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
     const didPressDownloadSVG = useCallback(() => {
         downloadTextFile(generateSVGData(), getFileName('svg'), document);
     }, [generateSVGData, getFileName]);
+
+    const didPressDownloadPDF = useCallback(() => {
+        const doc = generatePDFData();
+        doc.save(getFileName('pdf'));
+    }, [generatePDFData, getFileName]);
 
     if (isLoading) {
         return (
@@ -121,6 +128,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
                     </div>
                 )}
 
+                <Button className="w-full" disabled={isExporting} onClick={didPressDownloadPDF} variant="outline">
+                    <Download className="size-4" />
+                    Export als PDF Datei
+                </Button>
                 <Button className="w-full" disabled={isExporting} onClick={didPressDownloadSVG} variant="outline">
                     <Download className="size-4" />
                     Export als SVG Datei
