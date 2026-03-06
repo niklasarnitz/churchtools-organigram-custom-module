@@ -226,26 +226,41 @@ export function measureNodeCard(
 ): NodeCardMetrics {
     const titleFont = `bold ${String(TITLE_FONT_SIZE)}px Lato, sans-serif`;
     const groupTypeFont = `bold ${String(GROUP_TYPE_FONT_SIZE)}px Lato, sans-serif`;
+    const roleFont = `bold ${String(ROLE_FONT_SIZE)}px Lato, sans-serif`;
     const memberFont = `${String(MEMBER_FONT_SIZE)}px Lato, sans-serif`;
 
     // Measure title width
     let contentWidth = measureText(ctx, data.title, titleFont) + HEADER_PADDING_X * 2;
     
-    // Check group type width
+    // Check group type width (account for 2px letter-spacing)
     if (showGroupTypes) {
-        const gtWidth = measureText(ctx, data.groupTypeName.toUpperCase(), groupTypeFont) + HEADER_PADDING_X * 2;
-        contentWidth = Math.max(contentWidth, gtWidth);
+        const gtText = data.groupTypeName.toUpperCase();
+        const gtBaseWidth = measureText(ctx, gtText, groupTypeFont);
+        const gtSpacingExtra = Math.max(0, gtText.length - 1) * 2;
+        contentWidth = Math.max(contentWidth, gtBaseWidth + gtSpacingExtra + HEADER_PADDING_X * 2);
     }
 
-    const rolesWithMembers = data.roles.filter(role => data.memberNamesByRoleId.has(role.id));
+    const rolesWithMembers = data.roles.filter(role => {
+        const names = data.memberNamesByRoleId.get(role.id) ?? [];
+        return names.length > 0;
+    });
 
     for (const role of rolesWithMembers) {
         const names = data.memberNamesByRoleId.get(role.id) ?? [];
+
+        // Measure role label width (account for 1px letter-spacing)
+        const roleLabelText = role.name.toUpperCase();
+        const roleLabelBaseWidth = measureText(ctx, roleLabelText, roleFont);
+        const roleLabelSpacingExtra = Math.max(0, roleLabelText.length - 1) * 1;
+        contentWidth = Math.max(contentWidth, roleLabelBaseWidth + roleLabelSpacingExtra + NODE_PADDING * 2);
+
+        // Measure badge row width (without trailing gap)
         let rowWidth = 0;
         for (const name of names) {
             const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
             rowWidth += badgeWidth + BADGE_GAP;
         }
+        if (names.length > 0) rowWidth -= BADGE_GAP;
         contentWidth = Math.max(contentWidth, rowWidth + NODE_PADDING * 2);
     }
 
@@ -263,23 +278,23 @@ export function measureNodeCard(
         for (const role of rolesWithMembers) {
             const names = data.memberNamesByRoleId.get(role.id) ?? [];
             
-            bodyHeight += ROLE_FONT_SIZE + 4; // role label
+            bodyHeight += ROLE_FONT_SIZE + 6; // role label (matches drawNodeCard)
             
-            // Calculate badge rows
+            // Calculate badge rows (wrap logic matches drawNodeCard)
             const innerWidth = width - NODE_PADDING * 2;
             let currentRowWidth = 0;
             let rows = 1;
             for (const name of names) {
                 const badgeWidth = measureText(ctx, name, memberFont) + BADGE_PADDING_X * 2;
-                if (currentRowWidth + badgeWidth + BADGE_GAP > innerWidth && currentRowWidth > 0) {
+                if (currentRowWidth + badgeWidth > innerWidth && currentRowWidth > 0) {
                     rows++;
-                    currentRowWidth = 0;
+                    currentRowWidth = badgeWidth + BADGE_GAP;
+                } else {
+                    currentRowWidth += badgeWidth + BADGE_GAP;
                 }
-                currentRowWidth += badgeWidth + BADGE_GAP;
             }
-            bodyHeight += rows * (BADGE_HEIGHT + BADGE_GAP) + ROLE_GAP;
+            bodyHeight += rows * BADGE_HEIGHT + Math.max(0, rows - 1) * BADGE_GAP + ROLE_GAP;
         }
-        bodyHeight += NODE_PADDING / 2;
     }
 
     return { headerHeight, height: headerHeight + bodyHeight, width };

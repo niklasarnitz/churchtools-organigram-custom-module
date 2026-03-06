@@ -244,7 +244,17 @@ export const WebGLGraphView = React.memo(() => {
         const hit = engine.hitTest(x, y);
         if (hit) {
             Logger.log(`onNodeClick::${hit.node.id}`);
+            engine.setHighlightedEdge(null);
             setGroupIdToStartWith(hit.node.id);
+            return;
+        }
+
+        const edgeHit = engine.edgeHitTest(x, y);
+        if (edgeHit) {
+            const current = engine.getHighlightedEdgeId();
+            engine.setHighlightedEdge(current === edgeHit.id ? null : edgeHit.id);
+        } else {
+            engine.setHighlightedEdge(null);
         }
     }, [setGroupIdToStartWith]);
 

@@ -5,11 +5,23 @@ export enum Position {
 	Top = 'top',
 }
 
+export interface EdgeRoutePoint {
+	x: number;
+	y: number;
+}
+
+export interface EdgeSection {
+	bendPoints?: EdgeRoutePoint[];
+	endPoint: EdgeRoutePoint;
+	startPoint: EdgeRoutePoint;
+}
+
 export interface Edge {
 	animated?: boolean;
 	className?: string;
 	id: string;
 	markerEnd?: { color: string; height: number; type: string; width: number };
+	sections?: EdgeSection[];
 	source: string;
 	style?: React.CSSProperties;
 	target: string;
