@@ -1,0 +1,18 @@
+tasks:
+    installDeps:
+        name: Install dependencies
+        description: Install Bun and project dependencies.
+        command: |
+            curl -fsSL https://bun.sh/install | bash
+            sudo ln -sf "$HOME/.bun/bin/bun" /usr/local/bin/bun
+            bun install
+        triggeredBy:
+            - postDevcontainerStart
+
+services:
+    dev-server:
+        name: Dev Server
+        description: Vite development server.
+        commands:
+            start: bun run dev --host
+            ready: curl -f http://localhost:5173
