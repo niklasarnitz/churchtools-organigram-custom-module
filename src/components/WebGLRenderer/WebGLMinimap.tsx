@@ -85,7 +85,7 @@ export const WebGLMinimap = React.memo(({ camera, engine, isDarkMode = false, on
 		ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
 		ctx.lineWidth = 1.5;
 		ctx.strokeRect(vpX, vpY, vpW, vpH);
-	}, [camera, engine]);
+	}, [camera, engine, isDarkMode]);
 
 	useEffect(() => {
 		draw();
