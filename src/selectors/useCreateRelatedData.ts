@@ -40,8 +40,7 @@ export const useCreateRelatedData = (): GraphData => {
 
 			const groupRoles = rolesForType.filter(
 				(role) =>
-					!excludedRolesSet.has(role.id) &&
-					members.some((member) => member.groupTypeRoleId === role.id),
+					!excludedRolesSet.has(role.id) && members.some((member) => member.groupTypeRoleId === role.id),
 			);
 
 			nodes.push({ group, groupRoles, members });
