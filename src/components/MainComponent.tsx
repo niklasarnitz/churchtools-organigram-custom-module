@@ -87,14 +87,18 @@ export const MainComponent = React.memo(() => {
 					className={`absolute inset-0 z-20 bg-slate-950/20 backdrop-blur-sm transition-opacity duration-300 sm:hidden ${
 						isSidebarOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
 					}`}
-					onClick={() => { setIsSidebarOpen(false); }}
+					onClick={() => {
+						setIsSidebarOpen(false);
+					}}
 				/>
 
 				{/* Sidebar Toggle Button */}
 				<div className="absolute right-4 bottom-6 z-60">
 					<Button
 						className="size-12 rounded-full bg-white/80 shadow-lg backdrop-blur-md sm:size-10 dark:bg-slate-900/80"
-						onClick={() => { setIsSidebarOpen(!isSidebarOpen); }}
+						onClick={() => {
+							setIsSidebarOpen(!isSidebarOpen);
+						}}
 						size="icon"
 						variant="outline"
 					>

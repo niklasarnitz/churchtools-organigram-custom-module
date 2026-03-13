@@ -87,7 +87,7 @@ export const layoutElk = async (
 	const elkNodeMap = new Map(layoutedGraph.children?.map((n) => [n.id, n]));
 
 	const elkEdgeMap = new Map<string, ElkExtendedEdge>();
-	for (const e of (layoutedGraph.edges ?? [])) {
+	for (const e of layoutedGraph.edges ?? []) {
 		elkEdgeMap.set(e.id, e);
 	}
 
