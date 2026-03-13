@@ -93,10 +93,5 @@ export const useFilteredGroupIds = (): number[] => {
 		}
 
 		return Array.from(addedNodeIds);
-	}, [
-		committedFilters,
-		hierarchies,
-		groupsById,
-		hierarchiesByGroupId,
-	]);
+	}, [committedFilters, hierarchies, groupsById, hierarchiesByGroupId]);
 };

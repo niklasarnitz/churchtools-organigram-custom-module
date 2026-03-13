@@ -9,7 +9,7 @@ export function useIsDarkMode() {
 
 	useEffect(() => {
 		const update = () => setIsDark(getEffectiveDark(readTheme()));
-		
+
 		const onStorage = (e: StorageEvent) => {
 			if (e.key === STORAGE_KEY) update();
 		};

@@ -148,7 +148,7 @@ export const ExclusionFilters = React.memo(() => {
 
 	const handleGroupStatusChange = useCallback(
 		(values: string[]) => {
-			setIncludedGroupStatuses(values.length > 0 ? values.map(Number) as GroupStatus[] : []);
+			setIncludedGroupStatuses(values.length > 0 ? (values.map(Number) as GroupStatus[]) : []);
 		},
 		[setIncludedGroupStatuses],
 	);
@@ -248,9 +248,7 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Standort filtern
-				</h5>
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">Standort filtern</h5>
 				<MultiSelect
 					onChange={handleCampusChange}
 					options={campusOptions}
@@ -260,9 +258,7 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Altersgruppe filtern
-				</h5>
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">Altersgruppe filtern</h5>
 				<MultiSelect
 					onChange={handleAgeGroupChange}
 					options={ageGroupOptions}
@@ -272,9 +268,7 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Kategorie filtern
-				</h5>
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">Kategorie filtern</h5>
 				<MultiSelect
 					onChange={handleGroupCategoryChange}
 					options={groupCategoryOptions}

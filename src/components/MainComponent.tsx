@@ -51,10 +51,7 @@ export const MainComponent = React.memo(() => {
 		masterDataQuery.isLoading;
 
 	// Full loading including members/persons (only relevant after render requested)
-	const isGraphLoading =
-		isBaseLoading ||
-		groupMembersQuery.isLoading ||
-		personsQuery.isLoading;
+	const isGraphLoading = isBaseLoading || groupMembersQuery.isLoading || personsQuery.isLoading;
 
 	// Always default excluded roles to non-leader roles on page load
 	useEffect(() => {
@@ -96,7 +93,7 @@ export const MainComponent = React.memo(() => {
 				{/* Sidebar Toggle Button */}
 				<div className="absolute right-4 bottom-6 z-60">
 					<Button
-						className="size-12 rounded-full bg-white/80 shadow-lg backdrop-blur-md dark:bg-slate-900/80 sm:size-10"
+						className="size-12 rounded-full bg-white/80 shadow-lg backdrop-blur-md sm:size-10 dark:bg-slate-900/80"
 						onClick={() => setIsSidebarOpen(!isSidebarOpen)}
 						size="icon"
 						variant="outline"
