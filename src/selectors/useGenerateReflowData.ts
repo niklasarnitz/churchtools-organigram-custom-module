@@ -4,6 +4,7 @@ import type { PreviewGraphNodeData } from '../types/GraphNode';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { getColorForGroupType } from '../globals/Colors';
+import { Logger } from '../globals/Logger';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutElk } from '../helpers/layoutAlgorithms/elk';
 import { useAppStore } from '../state/useAppStore';
@@ -20,7 +21,8 @@ export const useGenerateReflowData = () => {
 	const layoutAlgorithm = committedFilters?.layoutAlgorithm ?? LayoutAlgorithm.elkLayeredTB;
 	const personsById = usePersonsById();
 	const groupTypesById = useGroupTypesById();
-	const setIsLayoutCalculatingGlobal = useAppStore((s) => s.setIsLayoutCalculating);
+	const beginLayoutCalculation = useAppStore((s) => s.beginLayoutCalculation);
+	const endLayoutCalculation = useAppStore((s) => s.endLayoutCalculation);
 
 	const [layoutedData, setLayoutedData] = useState<{ edges: Edge[]; nodes: Node[] }>({
 		edges: [],
@@ -102,40 +104,51 @@ export const useGenerateReflowData = () => {
 
 	useEffect(() => {
 		let active = true;
+		let hasStartedLayout = false;
+
+		const finishLayout = () => {
+			if (!hasStartedLayout) return;
+			hasStartedLayout = false;
+			endLayoutCalculation();
+		};
 
 		const performLayout = async () => {
 			setIsCalculating(true);
-			setIsLayoutCalculatingGlobal(true);
-			await document.fonts.ready;
+			beginLayoutCalculation();
+			hasStartedLayout = true;
 
-			const measureCanvas = measureCanvasRef.current;
-			if (!measureCanvas) {
+			try {
+				await document.fonts.ready;
+
+				const measureCanvas = measureCanvasRef.current;
+				if (!measureCanvas) {
+					return;
+				}
+				const measureCtx = measureCanvas.getContext('2d');
+				if (!measureCtx) {
+					return;
+				}
+				const nodeSizes = new Map<string, { height: number; width: number }>();
+				for (const node of reflowNodes) {
+					const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
+					nodeSizes.set(node.id, { height: metrics.height, width: metrics.width });
+				}
+
+				const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm, nodeSizes);
+
+				if (active) {
+					setLayoutedData(result);
+				}
+			} catch (error) {
+				Logger.error('[useGenerateReflowData] Layout calculation failed', {
+					error,
+					layoutAlgorithm,
+				});
+			} finally {
 				if (active) {
 					setIsCalculating(false);
-					setIsLayoutCalculatingGlobal(false);
 				}
-				return;
-			}
-			const measureCtx = measureCanvas.getContext('2d');
-			if (!measureCtx) {
-				if (active) {
-					setIsCalculating(false);
-					setIsLayoutCalculatingGlobal(false);
-				}
-				return;
-			}
-			const nodeSizes = new Map<string, { height: number; width: number }>();
-			for (const node of reflowNodes) {
-				const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
-				nodeSizes.set(node.id, { height: metrics.height, width: metrics.width });
-			}
-
-			const result = await layoutElk(reflowNodes, reflowEdges, layoutAlgorithm, nodeSizes);
-
-			if (active) {
-				setLayoutedData(result);
-				setIsCalculating(false);
-				setIsLayoutCalculatingGlobal(false);
+				finishLayout();
 			}
 		};
 
@@ -143,10 +156,9 @@ export const useGenerateReflowData = () => {
 
 		return () => {
 			active = false;
-			setIsCalculating(false);
-			setIsLayoutCalculatingGlobal(false);
+			finishLayout();
 		};
-	}, [reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes, setIsLayoutCalculatingGlobal]);
+	}, [reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes, beginLayoutCalculation, endLayoutCalculation]);
 
 	return { ...layoutedData, isCalculating };
 };

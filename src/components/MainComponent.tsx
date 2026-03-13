@@ -9,19 +9,16 @@ import { useGroupTypes } from '../queries/useGroupTypes';
 import { useHierarchies } from '../queries/useHierarchies';
 import { usePersonMasterData } from '../queries/usePersonMasterData';
 import { usePersons } from '../queries/usePersons';
-import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useAppStore } from '../state/useAppStore';
 import { GraphView } from './GraphView';
 import { Sidebar } from './Sidebar/Sidebar';
 import { Button } from './ui/button';
 
 export const MainComponent = React.memo(() => {
-	// Get layout calculating state from hook
-	const { isCalculating: isLayoutCalculating } = useGenerateReflowData();
-
 	// Zustand
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const committedFilters = useAppStore((s) => s.committedFilters);
+	const isLayoutCalculating = useAppStore((s) => s.isLayoutCalculating);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const setIsSidebarOpen = useAppStore((s) => s.setIsSidebarOpen);
 
@@ -119,17 +116,25 @@ export const MainComponent = React.memo(() => {
 					<Sidebar isLoading={isBaseLoading} />
 				</div>
 
-				{isGraphLoading || isLayoutCalculating ? (
+				{isGraphLoading ? (
 					<div className="flex size-full items-center justify-center">
 						<div className="flex flex-col items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
 							<Loader2 className="size-8 animate-spin text-blue-600" />
-							<span>
-								{isLayoutCalculating ? 'Layout wird berechnet...' : 'Organigramm wird vorbereitet...'}
-							</span>
+							<span>Organigramm wird vorbereitet...</span>
 						</div>
 					</div>
 				) : showGraph ? (
-					<GraphView />
+					<>
+						<GraphView />
+						{isLayoutCalculating && (
+							<div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-950/40">
+								<div className="flex flex-col items-center gap-3 rounded-md border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
+									<Loader2 className="size-6 animate-spin text-blue-600" />
+									<span>Layout wird berechnet...</span>
+								</div>
+							</div>
+						)}
+					</>
 				) : null}
 			</div>
 		</div>

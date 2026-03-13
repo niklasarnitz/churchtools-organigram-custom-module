@@ -14,19 +14,11 @@ const NODE_PADDING = 16; // Inner padding inside card
 const HEADER_PADDING_Y = -2; // Vertical padding in header (negative = tighter)
 
 // === Font Sizes ===
-// === Font Sizes ===
 const TITLE_FONT_SIZE = 40; // Card title (e.g. "Tobias und Kim Maier")
 const GROUP_TYPE_FONT_SIZE = 40; // Group type (e.g. "KG KLEINGRUPPE")
 const ROLE_FONT_SIZE = 20; // Role label (e.g. "LEITER")
 const MEMBER_FONT_SIZE = 20; // Member names (e.g. "Unknown Person")
 const TITLE_GROUP_TYPE_GAP = 0; // Spacing between title and group type
-
-// === Badge Styling ===
-// const BADGE_PADDING_X = 8; // Horizontal padding around member name in badge (currently unused)
-// const BADGE_PADDING_Y = 4; // Vertical padding around member name in badge (currently unused)
-// const BADGE_HEIGHT = MEMBER_FONT_SIZE + BADGE_PADDING_Y * 2; // Calculated badge height (currently unused)
-// const BADGE_GAP = 4; // Spacing between badges (currently unused)
-// const ROLE_GAP = 8; // Spacing between role sections (currently unused)
 
 // === Card Styling ===
 const BORDER_RADIUS = 12; // Rounded corner radius
@@ -48,6 +40,26 @@ function calculatePDFOrientation(boundsWidth: number, boundsHeight: number): 'la
 	return aspectRatio > LANDSCAPE_THRESHOLD ? 'landscape' : 'portrait';
 }
 
+function createInfoPDF(message: string): jsPDF {
+	const doc = new jsPDF({
+		format: 'a4',
+		orientation: 'portrait',
+		unit: 'mm',
+	});
+
+	const pageWidth = doc.internal.pageSize.getWidth();
+	doc.setFont('helvetica');
+	doc.setFontSize(14);
+	doc.text('PDF Export', pageWidth / 2, 30, { align: 'center' });
+
+	doc.setFontSize(11);
+	const maxLineWidth = pageWidth - 40;
+	const wrappedMessage = doc.splitTextToSize(message, maxLineWidth);
+	doc.text(wrappedMessage, 20, 45);
+
+	return doc;
+}
+
 export const useGeneratePDFData = () => {
 	const data = useGenerateReflowData();
 	const committedFilters = useAppStore((s) => s.committedFilters);
@@ -56,6 +68,12 @@ export const useGeneratePDFData = () => {
 	return useCallback(() => {
 		const nodes = data.nodes as Node<PreviewGraphNodeData>[];
 		const edges = data.edges;
+
+		if (nodes.length === 0) {
+			return createInfoPDF(
+				'Es gibt keine sichtbaren Gruppen zum Export. Bitte passe die Filter an und versuche es erneut.',
+			);
+		}
 
 		// Measurement canvas
 		const measureCanvas = document.createElement('canvas');
@@ -104,6 +122,12 @@ export const useGeneratePDFData = () => {
 
 		const boundsWidth = maxX - minX;
 		const boundsHeight = maxY - minY;
+		if (!Number.isFinite(boundsWidth) || !Number.isFinite(boundsHeight) || boundsWidth <= 0 || boundsHeight <= 0) {
+			return createInfoPDF(
+				'Die Grafik konnte nicht korrekt skaliert werden, weil keine gueltigen Abmessungen ermittelt wurden.',
+			);
+		}
+
 		// PDF height calculated but kept for reference/future use
 		// const pdfHeight = boundsHeight * PDF_SCALE + PDF_PADDING * 2;
 
@@ -138,7 +162,7 @@ export const useGeneratePDFData = () => {
 		for (const node of nodes) {
 			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 			const metrics = metricsMap.get(node.id)!;
-			drawNodePDF(doc, node, metrics, showGroupTypes, measureCtx, minX, minY, finalScale, offsetX, offsetY);
+			drawNodePDF(doc, node, metrics, showGroupTypes, minX, minY, finalScale, offsetX, offsetY);
 		}
 
 		return doc;
@@ -208,7 +232,6 @@ function drawNodePDF(
 	node: Node<PreviewGraphNodeData>,
 	metrics: ReturnType<typeof measureNodeCard>,
 	showGroupTypes: boolean,
-	measureCtx: CanvasRenderingContext2D,
 	minX: number,
 	minY: number,
 	scale: number,
@@ -242,17 +265,6 @@ function drawNodePDF(
 	doc.setFillColor(headerBg);
 	doc.roundedRect(x, y, w, headerHeight, BORDER_RADIUS * scale, BORDER_RADIUS * scale, 'F');
 
-	/**
-	// DEBUG: Draw debug rectangles to visualize areas
-	doc.setDrawColor(255, 0, 0); // Red for header
-	doc.setLineWidth(0.1);
-	doc.rect(x, y, w, headerHeight);
-
-	// Show padding area
-	doc.setDrawColor(0, 255, 0); // Green for padding
-	const paddingBox = NODE_PADDING * scale;
-	doc.rect(x + paddingBox, y + paddingBox, w - paddingBox * 2, headerHeight - paddingBox);
-**/
 	// Header border (very thin)
 	if (hasMembers) {
 		doc.setDrawColor(borderColor);
