@@ -25,6 +25,7 @@ export const useCreateRelatedData = (): GraphData => {
 		if (!committedFilters || filteredGroupIds.length === 0) return EMPTY_GRAPH;
 
 		const { excludedRoles } = committedFilters;
+		const excludedRolesSet = new Set(excludedRoles);
 		const filteredSet = new Set(filteredGroupIds);
 
 		const nodes: GraphNode[] = [];
@@ -39,8 +40,7 @@ export const useCreateRelatedData = (): GraphData => {
 
 			const groupRoles = rolesForType.filter(
 				(role) =>
-					!excludedRoles.includes(role.id) &&
-					members.some((member) => member.groupTypeRoleId === role.id),
+					!excludedRolesSet.has(role.id) && members.some((member) => member.groupTypeRoleId === role.id),
 			);
 
 			nodes.push({ group, groupRoles, members });
