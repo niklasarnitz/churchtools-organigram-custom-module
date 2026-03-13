@@ -54,9 +54,7 @@ export const usePersons = () => {
 			const chunkResults = await Promise.all(
 				chunks.map((chunk) => {
 					const queryParams = chunk.map((id) => `ids[]=${String(id)}`).join('&');
-					return churchtoolsClient.get<Person[]>(
-						`/persons?${queryParams}&limit=${String(resultsPerCall)}`,
-					);
+					return churchtoolsClient.get<Person[]>(`/persons?${queryParams}&limit=${String(resultsPerCall)}`);
 				}),
 			);
 

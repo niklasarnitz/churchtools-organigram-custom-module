@@ -45,7 +45,9 @@ export function useIsDarkMode() {
 	const [isDark, setIsDark] = useState(() => getEffectiveDark(readTheme()));
 
 	useEffect(() => {
-		const update = () => { setIsDark(getEffectiveDark(readTheme())); };
+		const update = () => {
+			setIsDark(getEffectiveDark(readTheme()));
+		};
 
 		const onStorage = (e: StorageEvent) => {
 			if (e.key === STORAGE_KEY) update();

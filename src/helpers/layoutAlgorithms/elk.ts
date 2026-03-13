@@ -21,7 +21,7 @@ export const layoutElk = async (
 	nodes: Node[],
 	edges: Edge[],
 	algorithm: LayoutAlgorithm,
-	nodeSizes: Map<string, { height: number; width: number; }>,
+	nodeSizes: Map<string, { height: number; width: number }>,
 ): Promise<{ edges: Edge[]; nodes: Node[] }> => {
 	const elk = getElk();
 
@@ -37,9 +37,7 @@ export const layoutElk = async (
 		algorithm === LayoutAlgorithm.elkMrTree ||
 		algorithm === LayoutAlgorithm.elkRadial;
 
-	const isLayered =
-		algorithm === LayoutAlgorithm.elkLayeredTB ||
-		algorithm === LayoutAlgorithm.elkLayeredLR;
+	const isLayered = algorithm === LayoutAlgorithm.elkLayeredTB || algorithm === LayoutAlgorithm.elkLayeredLR;
 
 	const layoutOptions: Record<string, string> = {
 		'elk.algorithm': elkAlgorithmMap[algorithm],
@@ -89,7 +87,7 @@ export const layoutElk = async (
 	const elkNodeMap = new Map(layoutedGraph.children?.map((n) => [n.id, n]));
 
 	const elkEdgeMap = new Map<string, ElkExtendedEdge>();
-	for (const e of (layoutedGraph.edges ?? [])) {
+	for (const e of layoutedGraph.edges ?? []) {
 		elkEdgeMap.set(e.id, e);
 	}
 
