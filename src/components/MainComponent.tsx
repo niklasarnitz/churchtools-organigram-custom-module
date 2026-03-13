@@ -10,9 +10,9 @@ import { useHierarchies } from '../queries/useHierarchies';
 import { usePersonMasterData } from '../queries/usePersonMasterData';
 import { usePersons } from '../queries/usePersons';
 import { useAppStore } from '../state/useAppStore';
-import { Button } from './ui/button';
 import { GraphView } from './GraphView';
 import { Sidebar } from './Sidebar/Sidebar';
+import { Button } from './ui/button';
 
 export const MainComponent = React.memo(() => {
 	// Zustand
@@ -90,14 +90,14 @@ export const MainComponent = React.memo(() => {
 					className={`absolute inset-0 z-20 bg-slate-950/20 backdrop-blur-sm transition-opacity duration-300 sm:hidden ${
 						isSidebarOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
 					}`}
-					onClick={() => setIsSidebarOpen(false)}
+					onClick={() => { setIsSidebarOpen(false); }}
 				/>
 
 				{/* Sidebar Toggle Button */}
 				<div className="absolute right-4 bottom-6 z-60">
 					<Button
 						className="size-12 rounded-full bg-white/80 shadow-lg backdrop-blur-md dark:bg-slate-900/80 sm:size-10"
-						onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+						onClick={() => { setIsSidebarOpen(!isSidebarOpen); }}
 						size="icon"
 						variant="outline"
 					>

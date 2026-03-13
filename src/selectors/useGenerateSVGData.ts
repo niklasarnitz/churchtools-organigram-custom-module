@@ -46,10 +46,10 @@ export const useGenerateSVGData = () => {
 		}
 
 		// Compute SVG viewBox bounds
-		let minX = Infinity,
-			minY = Infinity,
-			maxX = -Infinity,
-			maxY = -Infinity;
+		let maxX = -Infinity,
+			maxY = -Infinity,
+			minX = Infinity,
+			minY = Infinity;
 		for (const node of nodes) {
 			const m = metricsMap.get(node.id)!;
 			minX = Math.min(minX, node.position.x);
@@ -103,6 +103,10 @@ export const useGenerateSVGData = () => {
 		return svg;
 	}, [data, showGroupTypes]);
 };
+
+function esc(s: string): string {
+	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
 
 function renderEdgeSVG(edge: Edge): string {
 	if (!edge.sections) return '';
@@ -201,8 +205,4 @@ function renderNodeSVG(
 
 	svg += `  </g>\n`;
 	return svg;
-}
-
-function esc(s: string): string {
-	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
