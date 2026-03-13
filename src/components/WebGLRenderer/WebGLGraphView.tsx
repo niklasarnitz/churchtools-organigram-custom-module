@@ -448,6 +448,16 @@ export const WebGLGraphView = React.memo(() => {
 		}
 	}, []);
 
+	const didClickShowParentGroups = useCallback(
+		(params: ItemParams<ContextMenuProps>) => {
+			const groupId = params.props?.groupId;
+			if (groupId) {
+				setGroupIdToStartWith(String(groupId));
+			}
+		},
+		[setGroupIdToStartWith],
+	);
+
 	return (
 		<div className="relative size-full" ref={containerRef}>
 			<div className={isSidebarOpen ? 'hidden lg:block' : 'block'}>
@@ -468,6 +478,7 @@ export const WebGLGraphView = React.memo(() => {
 			<Menu animation="scale" id={Constants.contextMenuId}>
 				<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
 				<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
+				<Item onClick={didClickShowParentGroups}>Obergruppen anzeigen</Item>
 				<Item onClick={didClickToggleCollapse}>Untergruppen ein-/ausklappen</Item>
 			</Menu>
 
