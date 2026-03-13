@@ -1,0 +1,53 @@
+$ eslint src/
+
+/app/src/components/MainComponent.tsx
+   14:1   error  Expected "./GraphView" to come before "./ui/button"                                                                 perfectionist/sort-imports
+   93:21  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function  @typescript-eslint/no-confusing-void-expression
+  100:22  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function  @typescript-eslint/no-confusing-void-expression
+
+/app/src/components/WebGLRenderer/WebGLMinimap.tsx
+  21:30  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `isDarkMode`, but the source dependencies were [camera, engine]. Inferred different dependency than source.
+
+/app/src/components/WebGLRenderer/WebGLMinimap.tsx:21:30
+  19 |     const canvasRef = useRef<HTMLCanvasElement>(null);
+  20 |
+> 21 |     const draw = useCallback(() => {
+     |                              ^^^^^^^
+> 22 |         const canvas = canvasRef.current;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 23 |         if (!canvas || !engine) return;
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 87 |         ctx.strokeRect(vpX, vpY, vpW, vpH);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 88 |     }, [camera, engine]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  89 |
+  90 |     useEffect(() => {
+  91 |         draw();  react-hooks/preserve-manual-memoization
+  88:8   warning  React Hook useCallback has a missing dependency: 'isDarkMode'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+
+/app/src/helpers/layoutAlgorithms/elk.ts
+  92:18  error  This assertion is unnecessary since it does not change the type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/app/src/hooks/useChurchToolsTheme.ts
+  11:24  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function  @typescript-eslint/no-confusing-void-expression
+  33:1   error  Expected "useChurchToolsTheme" to come before "useIsDarkMode"                                                       perfectionist/sort-modules
+
+/app/src/selectors/useGenerateSVGData.ts
+   13:7   error  'HEADER_PADDING_X' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   40:22  error  Forbidden non-null assertion                           @typescript-eslint/no-non-null-assertion
+   51:4   error  Expected "maxX" to come before "minY"                  perfectionist/sort-variable-declarations
+   54:14  error  Forbidden non-null assertion                           @typescript-eslint/no-non-null-assertion
+   98:14  error  Forbidden non-null assertion                           @typescript-eslint/no-non-null-assertion
+  206:1   error  Expected "esc" to come before "renderNodeSVG"          perfectionist/sort-modules
+
+/app/src/types/GraphTypes.ts
+  19:1  error  Expected "Edge" to come before "EdgeSection"  perfectionist/sort-modules
+
+✖ 15 problems (14 errors, 1 warning)
+  9 errors and 0 warnings potentially fixable with the `--fix` option.
+
+error: script "lint" exited with code 1
