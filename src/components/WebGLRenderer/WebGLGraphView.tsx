@@ -37,6 +37,7 @@ export const WebGLGraphView = React.memo(() => {
 	// Pointer state
 	const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
 	const lastPinchDistance = useRef<null | number>(null);
+	const lastPinchCenter = useRef<null | { x: number; y: number }>(null);
 	const lastTapTime = useRef<number>(0);
 	const isPanning = useRef(false);
 
@@ -149,6 +150,10 @@ export const WebGLGraphView = React.memo(() => {
 				isPanning.current = false; // Stop panning when starting pinch
 				const pointers = Array.from(activePointers.current.values());
 				lastPinchDistance.current = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
+				const rect = canvas.getBoundingClientRect();
+				const midX = (pointers[0].x + pointers[1].x) / 2 - rect.left;
+				const midY = (pointers[0].y + pointers[1].y) / 2 - rect.top;
+				lastPinchCenter.current = { x: midX, y: midY };
 			}
 		},
 		[updateCameraState],
@@ -185,27 +190,35 @@ export const WebGLGraphView = React.memo(() => {
 				const pointers = Array.from(activePointers.current.values());
 				const currentDistance = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
 
-				if (lastPinchDistance.current !== null && lastPinchDistance.current !== 0) {
+				if (
+					lastPinchDistance.current !== null &&
+					lastPinchDistance.current !== 0 &&
+					lastPinchCenter.current !== null
+				) {
 					const zoomFactor = currentDistance / lastPinchDistance.current;
 					const cam = engine.getCamera();
 					const newZoom = Math.min(4, Math.max(0.05, cam.zoom * zoomFactor));
 
-					// Zoom toward midpoint of pointers
+					// Zoom toward midpoint of pointers and pan to track the midpoint
 					const rect = canvas.getBoundingClientRect();
 					const midX = (pointers[0].x + pointers[1].x) / 2 - rect.left;
 					const midY = (pointers[0].y + pointers[1].y) / 2 - rect.top;
 
-					const worldBefore = engine.screenToWorld(midX, midY);
+					// Find what part of the world was under the previous midpoint
+					const worldBefore = engine.screenToWorld(lastPinchCenter.current.x, lastPinchCenter.current.y);
+
+					// Update camera so that same world part is now under the new midpoint
 					engine.setCamera({
 						x: worldBefore.x - midX / newZoom,
 						y: worldBefore.y - midY / newZoom,
 						zoom: newZoom,
 					});
 					updateCameraState();
+
+					// Update previous midpoint for next frame
+					lastPinchCenter.current = { x: midX, y: midY };
 				}
 				lastPinchDistance.current = currentDistance;
-
-				// TODO: also allow panning while pinching by tracking midpoint deltas
 			}
 		},
 		[updateCameraState],
@@ -220,6 +233,7 @@ export const WebGLGraphView = React.memo(() => {
 
 		if (activePointers.current.size < 2) {
 			lastPinchDistance.current = null;
+			lastPinchCenter.current = null;
 		}
 		if (activePointers.current.size === 0) {
 			isPanning.current = false;
