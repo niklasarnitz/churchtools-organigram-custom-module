@@ -28,18 +28,23 @@ export const useFilteredGroupIds = (): number[] => {
 			showOnlyDirectChildren,
 		} = committedFilters;
 
+		const excludedGroupsSet = new Set(excludedGroups);
+		const excludedGroupTypesSet = new Set(excludedGroupTypes);
+		const includedGroupsSet = new Set(includedGroups);
+		const includedGroupStatusesSet = new Set(includedGroupStatuses);
+
 		const shouldIncludeGroup = (group: Group) => {
 			if (groupIdToStartWith && group.id === Number(groupIdToStartWith)) {
 				return true;
 			}
-			if (includedGroups.length > 0 && !includedGroups.includes(group.id)) {
+			if (includedGroupsSet.size > 0 && !includedGroupsSet.has(group.id)) {
 				return false;
 			}
 			return (
 				!!group.information.groupTypeId &&
-				!excludedGroups.includes(group.id) &&
-				!excludedGroupTypes.includes(group.information.groupTypeId) &&
-				(includedGroupStatuses.length === 0 || includedGroupStatuses.includes(group.information.groupStatusId))
+				!excludedGroupsSet.has(group.id) &&
+				!excludedGroupTypesSet.has(group.information.groupTypeId) &&
+				(includedGroupStatusesSet.size === 0 || includedGroupStatusesSet.has(group.information.groupStatusId))
 			);
 		};
 
@@ -88,10 +93,5 @@ export const useFilteredGroupIds = (): number[] => {
 		}
 
 		return Array.from(addedNodeIds);
-	}, [
-		committedFilters,
-		hierarchies,
-		groupsById,
-		hierarchiesByGroupId,
-	]);
+	}, [committedFilters, hierarchies, groupsById, hierarchiesByGroupId]);
 };
