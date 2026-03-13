@@ -39,6 +39,8 @@ export const ExclusionFilters = React.memo(() => {
 	const setMaxDepth = useAppStore((s) => s.setMaxDepth);
 	const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
 	const setShowOnlyDirectChildren = useAppStore((s) => s.setShowOnlyDirectChildren);
+	const showParentGroups = useAppStore((s) => s.showParentGroups);
+	const setShowParentGroups = useAppStore((s) => s.setShowParentGroups);
 	const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
 	const setHideIndirectSubgroups = useAppStore((s) => s.setHideIndirectSubgroups);
 
@@ -54,6 +56,13 @@ export const ExclusionFilters = React.memo(() => {
 			setShowOnlyDirectChildren(checked);
 		},
 		[setShowOnlyDirectChildren],
+	);
+
+	const showParentGroupsDidChange = useCallback(
+		(checked: boolean) => {
+			setShowParentGroups(checked);
+		},
+		[setShowParentGroups],
 	);
 
 	const hideIndirectSubgroupsDidChange = useCallback(
@@ -290,6 +299,11 @@ export const ExclusionFilters = React.memo(() => {
 					<div className="flex flex-row items-center gap-x-2">
 						<Switch checked={showOnlyDirectChildren} onCheckedChange={showOnlyDirectChildrenDidChange} />
 						<span className="text-sm">Nur direkte Untergruppen</span>
+					</div>
+
+					<div className="flex flex-row items-center gap-x-2">
+						<Switch checked={showParentGroups} onCheckedChange={showParentGroupsDidChange} />
+						<span className="text-sm">Obergruppen anzeigen</span>
 					</div>
 
 					<div className="flex flex-row items-center gap-x-2">
