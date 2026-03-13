@@ -23,6 +23,7 @@ export interface CommittedFilters {
 	renderer: RendererType;
 	showGroupTypes: boolean;
 	showOnlyDirectChildren: boolean;
+	showParentGroups: boolean;
 }
 
 export interface PendingExport {
@@ -79,9 +80,11 @@ interface GroupState {
 
 	setShowGroupTypes: (show: boolean) => void;
 	setShowOnlyDirectChildren: (show: boolean) => void;
+	setShowParentGroups: (show: boolean) => void;
 	// Display Options
 	showGroupTypes: boolean;
 	showOnlyDirectChildren: boolean;
+	showParentGroups: boolean;
 }
 
 function snapshotFilters(state: GroupState): CommittedFilters {
@@ -101,6 +104,7 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 		renderer: state.renderer,
 		showGroupTypes: state.showGroupTypes,
 		showOnlyDirectChildren: state.showOnlyDirectChildren,
+		showParentGroups: state.showParentGroups,
 	};
 }
 
@@ -227,7 +231,12 @@ export const useAppStore = create<GroupState>((set) => {
 			setAndCommit({ showOnlyDirectChildren });
 		},
 
+		setShowParentGroups: (showParentGroups: boolean) => {
+			setAndCommit({ showParentGroups });
+		},
+
 		showGroupTypes: true,
 		showOnlyDirectChildren: false,
+		showParentGroups: false,
 	};
 });

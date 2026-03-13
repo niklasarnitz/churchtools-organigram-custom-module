@@ -420,6 +420,8 @@ export const WebGLGraphView = React.memo(() => {
 	}, [updateCameraState, handleZoomIn, handleZoomOut]);
 
 	// Context menu handlers
+	const setShowParentGroupsAction = useAppStore((s) => s.setShowParentGroups);
+
 	const didClickOpenGroup = useCallback(
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
@@ -434,10 +436,11 @@ export const WebGLGraphView = React.memo(() => {
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
+				setShowParentGroupsAction(false);
 				setGroupIdToStartWith(String(groupId));
 			}
 		},
-		[setGroupIdToStartWith],
+		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
 
 	const didClickToggleCollapse = useCallback((params: ItemParams<ContextMenuProps>) => {
@@ -452,10 +455,11 @@ export const WebGLGraphView = React.memo(() => {
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
+				setShowParentGroupsAction(true);
 				setGroupIdToStartWith(String(groupId));
 			}
 		},
-		[setGroupIdToStartWith],
+		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
 
 	return (
@@ -478,7 +482,7 @@ export const WebGLGraphView = React.memo(() => {
 			<Menu animation="scale" id={Constants.contextMenuId}>
 				<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
 				<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
-				<Item onClick={didClickShowParentGroups}>Obergruppen anzeigen</Item>
+				<Item onClick={didClickShowParentGroups}>Gruppe als Startgruppe mit Obergruppeng setzen</Item>
 				<Item onClick={didClickToggleCollapse}>Untergruppen ein-/ausklappen</Item>
 			</Menu>
 

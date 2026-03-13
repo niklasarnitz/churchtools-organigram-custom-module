@@ -57,8 +57,8 @@ Obergruppen (Parent IDs) sind bereits in der `parents: number[]` verfügbar!
 <Menu animation="scale" id={Constants.contextMenuId}>
     <Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
     <Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
+    <Item onClick={didClickShowParentGroups}>Gruppe als Startgruppe mit Obergruppen setzen</Item>  {/* NEU */}
     <Item onClick={didClickToggleCollapse}>Untergruppen ein-/ausklappen</Item>
-    <Item onClick={didClickShowParentGroups}>Obergruppen anzeigen</Item>  {/* NEU */}
 </Menu>
 ```
 

@@ -26,6 +26,7 @@ export const useFilteredGroupIds = (): number[] => {
 			includedGroupStatuses,
 			maxDepth,
 			showOnlyDirectChildren,
+			showParentGroups,
 		} = committedFilters;
 
 		const shouldIncludeGroup = (group: Group) => {
@@ -92,8 +93,8 @@ export const useFilteredGroupIds = (): number[] => {
 						}
 					}
 
-					// Add parents (upward traversal) only from start group
-					if (startGroupId && groupId === startGroupId && direction === 'down') {
+					// Add parents (upward traversal) only from start group if showParentGroups is enabled
+					if (startGroupId && groupId === startGroupId && direction === 'down' && showParentGroups) {
 						for (const parentId of hierarchy.parents) {
 							const parentGroup = groupsById[parentId];
 							if (!parentGroup || !shouldIncludeGroup(parentGroup)) continue;
