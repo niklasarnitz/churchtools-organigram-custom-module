@@ -23,6 +23,7 @@ export interface CommittedFilters {
 	renderer: RendererType;
 	showGroupTypes: boolean;
 	showOnlyDirectChildren: boolean;
+	showParentGroups: boolean;
 }
 
 export interface PendingExport {
@@ -32,27 +33,30 @@ export interface PendingExport {
 
 interface GroupState {
 	baseUrl: string | undefined;
+	beginLayoutCalculation: () => void;
 	commitFilters: () => void;
 	committedFilters: CommittedFilters | undefined;
+	endLayoutCalculation: () => void;
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
 	excludedRoles: number[];
 	filteredAgeGroupIds: number[];
+
 	filteredCampusIds: number[];
 	filteredGroupCategoryIds: number[];
-
 	focusNodeId: string | undefined;
 	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
 	includedGroups: number[];
 	includedGroupStatuses: GroupStatus[];
 	isExporting: boolean;
-	isSidebarOpen: boolean;
 
+	isLayoutCalculating: boolean;
+	isSidebarOpen: boolean;
 	layoutAlgorithm: LayoutAlgorithm;
+
 	maxDepth: number | undefined;
 	pendingExport: PendingExport | undefined;
-
 	renderer: RendererType;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
@@ -61,15 +65,16 @@ interface GroupState {
 	setExcludedRoles: (roles: string | string[]) => void;
 	setFilteredAgeGroupIds: (ids: number[]) => void;
 	setFilteredCampusIds: (ids: number[]) => void;
+
 	setFilteredGroupCategoryIds: (ids: number[]) => void;
+
 	setFocusNodeId: (id: string | undefined) => void;
-
 	setGroupIdToStartWith: (groupId?: number | string) => void;
-
 	setHideIndirectSubgroups: (hide: boolean) => void;
 	setIncludedGroups: (groups: string | string[]) => void;
 	setIncludedGroupStatuses: (statuses: GroupStatus[]) => void;
 	setIsExporting: (isExporting: boolean) => void;
+	setIsLayoutCalculating: (calculating: boolean) => void;
 	setIsSidebarOpen: (isOpen: boolean) => void;
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 	setMaxDepth: (depth: number | undefined) => void;
@@ -79,9 +84,11 @@ interface GroupState {
 
 	setShowGroupTypes: (show: boolean) => void;
 	setShowOnlyDirectChildren: (show: boolean) => void;
+	setShowParentGroups: (show: boolean) => void;
 	// Display Options
 	showGroupTypes: boolean;
 	showOnlyDirectChildren: boolean;
+	showParentGroups: boolean;
 }
 
 function snapshotFilters(state: GroupState): CommittedFilters {
@@ -101,10 +108,13 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 		renderer: state.renderer,
 		showGroupTypes: state.showGroupTypes,
 		showOnlyDirectChildren: state.showOnlyDirectChildren,
+		showParentGroups: state.showParentGroups,
 	};
 }
 
 export const useAppStore = create<GroupState>((set) => {
+	let activeLayoutCalculations = 0;
+
 	const setAndCommit = (updates: Partial<GroupState>) => {
 		set((state) => {
 			const newState = { ...state, ...updates };
@@ -114,28 +124,43 @@ export const useAppStore = create<GroupState>((set) => {
 
 	return {
 		baseUrl: undefined,
+		beginLayoutCalculation: () => {
+			activeLayoutCalculations += 1;
+			if (activeLayoutCalculations === 1) {
+				set({ isLayoutCalculating: true });
+			}
+		},
 		commitFilters: () => {
 			set((state) => ({ committedFilters: snapshotFilters(state) }));
 		},
 		committedFilters: undefined,
+		endLayoutCalculation: () => {
+			activeLayoutCalculations = Math.max(0, activeLayoutCalculations - 1);
+			if (activeLayoutCalculations === 0) {
+				set({ isLayoutCalculating: false });
+			}
+		},
 		excludedGroups: [] as number[],
 		excludedGroupTypes: [] as number[],
 		excludedRoles: [] as number[],
 		filteredAgeGroupIds: [] as number[],
+
 		filteredCampusIds: [] as number[],
 		filteredGroupCategoryIds: [] as number[],
-
 		focusNodeId: undefined,
+
 		groupIdToStartWith: undefined,
+
 		hideIndirectSubgroups: false,
-
 		includedGroups: [] as number[],
-
 		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
 		isExporting: false,
+
+		isLayoutCalculating: false,
 		isSidebarOpen: true,
 
 		layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+
 		maxDepth: undefined,
 
 		pendingExport: undefined,
@@ -199,6 +224,11 @@ export const useAppStore = create<GroupState>((set) => {
 			set({ isExporting });
 		},
 
+		setIsLayoutCalculating: (isLayoutCalculating: boolean) => {
+			activeLayoutCalculations = isLayoutCalculating ? Math.max(1, activeLayoutCalculations) : 0;
+			set({ isLayoutCalculating });
+		},
+
 		setIsSidebarOpen: (isSidebarOpen: boolean) => {
 			set({ isSidebarOpen });
 		},
@@ -227,7 +257,12 @@ export const useAppStore = create<GroupState>((set) => {
 			setAndCommit({ showOnlyDirectChildren });
 		},
 
+		setShowParentGroups: (showParentGroups: boolean) => {
+			setAndCommit({ showParentGroups });
+		},
+
 		showGroupTypes: true,
 		showOnlyDirectChildren: false,
+		showParentGroups: false,
 	};
 });

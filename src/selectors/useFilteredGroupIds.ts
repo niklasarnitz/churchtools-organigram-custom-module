@@ -26,6 +26,7 @@ export const useFilteredGroupIds = (): number[] => {
 			includedGroupStatuses,
 			maxDepth,
 			showOnlyDirectChildren,
+			showParentGroups,
 		} = committedFilters;
 
 		const shouldIncludeGroup = (group: Group) => {
@@ -47,14 +48,18 @@ export const useFilteredGroupIds = (): number[] => {
 		const rootNodes = startGroupId ? [startGroupId] : (hierarchies ?? []).map((h) => h.groupId);
 
 		const addedNodeIds = new Set<number>();
-		const queue: { depth: number; groupId: number }[] = rootNodes.map((id) => ({ depth: 0, groupId: id }));
+		const queue: { depth: number; direction: 'down' | 'up'; groupId: number }[] = rootNodes.map((id) => ({
+			depth: 0,
+			direction: 'down',
+			groupId: id,
+		}));
 		const visited = new Set<number>();
 		let queueIdx = 0;
 
 		while (queueIdx < queue.length) {
 			const currentItem = queue[queueIdx++];
 
-			const { depth, groupId } = currentItem;
+			const { depth, direction, groupId } = currentItem;
 
 			if (visited.has(groupId)) continue;
 			visited.add(groupId);
@@ -64,34 +69,44 @@ export const useFilteredGroupIds = (): number[] => {
 
 			addedNodeIds.add(groupId);
 
-			if (maxDepth !== undefined && depth >= maxDepth) continue;
+			// Only traverse downward if maxDepth not reached
+			if (maxDepth === undefined || depth < maxDepth) {
+				const hierarchy = hierarchiesByGroupId[groupId];
+				if (hierarchy) {
+					// Add children (downward traversal)
+					if (direction === 'down') {
+						for (const childId of hierarchy.children) {
+							const childGroup = groupsById[childId];
+							if (!childGroup || !shouldIncludeGroup(childGroup)) continue;
 
-			const hierarchy = hierarchiesByGroupId[groupId];
-			if (!hierarchy) continue;
+							if (showOnlyDirectChildren && depth > 0) continue;
 
-			for (const childId of hierarchy.children) {
-				const childGroup = groupsById[childId];
-				if (!childGroup || !shouldIncludeGroup(childGroup)) continue;
+							if (
+								hideIndirectSubgroups &&
+								group.information.groupTypeId !== childGroup.information.groupTypeId &&
+								depth > 0
+							)
+								continue;
 
-				if (showOnlyDirectChildren && depth > 0) continue;
+							addedNodeIds.add(childId);
+							queue.push({ depth: depth + 1, direction: 'down', groupId: childId });
+						}
+					}
 
-				if (
-					hideIndirectSubgroups &&
-					group.information.groupTypeId !== childGroup.information.groupTypeId &&
-					depth > 0
-				)
-					continue;
+					// Add parents (upward traversal) only from start group if showParentGroups is enabled
+					if (startGroupId && groupId === startGroupId && direction === 'down' && showParentGroups) {
+						for (const parentId of hierarchy.parents) {
+							const parentGroup = groupsById[parentId];
+							if (!parentGroup || !shouldIncludeGroup(parentGroup)) continue;
 
-				addedNodeIds.add(childId);
-				queue.push({ depth: depth + 1, groupId: childId });
+							addedNodeIds.add(parentId);
+							queue.push({ depth: depth + 1, direction: 'up', groupId: parentId });
+						}
+					}
+				}
 			}
 		}
 
 		return Array.from(addedNodeIds);
-	}, [
-		committedFilters,
-		hierarchies,
-		groupsById,
-		hierarchiesByGroupId,
-	]);
+	}, [committedFilters, hierarchies, groupsById, hierarchiesByGroupId]);
 };

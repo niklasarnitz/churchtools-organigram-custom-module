@@ -1,6 +1,6 @@
 {
 	"name": "churchtools-organigram-custom-module",
-	"version": "1.3.0",
+	"version": "1.3.1",
 	"private": true,
 	"dependencies": {
 		"@churchtools/churchtools-client": "^1.6.0",
@@ -24,6 +24,7 @@
 		"cmdk": "^1.1.1",
 		"dom-to-svg": "^0.12.2",
 		"elkjs": "^0.11.0",
+		"jspdf": "^4.2.0",
 		"lodash": "^4.17.23",
 		"lucide-react": "^0.576.0",
 		"moment": "^2.30.1",
@@ -46,7 +47,8 @@
 		"lint": "eslint src/",
 		"ci": "bun run lint && bun run typecheck",
 		"typecheck": "tsc --noEmit",
-		"prepare": "husky"
+		"prepare": "husky",
+		"format": "prettier --write ."
 	},
 	"lint-staged": {
 		"*.{js,ts,tsx}": [

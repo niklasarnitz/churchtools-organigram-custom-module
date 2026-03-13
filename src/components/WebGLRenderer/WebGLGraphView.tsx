@@ -20,6 +20,8 @@ interface ContextMenuProps {
 	groupId: number;
 }
 
+const DRAG_SUPPRESS_CLICK_THRESHOLD = 4;
+
 export const WebGLGraphView = React.memo(() => {
 	const data = useGenerateReflowData();
 	const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
@@ -36,6 +38,8 @@ export const WebGLGraphView = React.memo(() => {
 
 	// Pointer state
 	const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+	const pointerDownPositions = useRef<Map<number, { x: number; y: number }>>(new Map());
+	const suppressNextClick = useRef(false);
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
 	const isPanning = useRef(false);
@@ -141,6 +145,7 @@ export const WebGLGraphView = React.memo(() => {
 			lastTapTime.current = now;
 
 			activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+			pointerDownPositions.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 			canvas.setPointerCapture(e.pointerId);
 
 			if (activePointers.current.size === 1) {
@@ -167,6 +172,14 @@ export const WebGLGraphView = React.memo(() => {
 
 			// Update current pointer
 			activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+			const downPointer = pointerDownPositions.current.get(e.pointerId);
+			if (downPointer) {
+				const dragDistance = Math.hypot(e.clientX - downPointer.x, e.clientY - downPointer.y);
+				if (dragDistance > DRAG_SUPPRESS_CLICK_THRESHOLD) {
+					suppressNextClick.current = true;
+				}
+			}
 
 			if (activePointers.current.size === 1 && isPanning.current) {
 				// Single-finger panning
@@ -213,6 +226,7 @@ export const WebGLGraphView = React.memo(() => {
 
 	const handlePointerUp = useCallback((e: React.PointerEvent) => {
 		activePointers.current.delete(e.pointerId);
+		pointerDownPositions.current.delete(e.pointerId);
 		const canvas = canvasRef.current;
 		if (canvas) {
 			canvas.releasePointerCapture(e.pointerId);
@@ -234,6 +248,11 @@ export const WebGLGraphView = React.memo(() => {
 	}, []);
 
 	const handleClick = useCallback((e: React.MouseEvent) => {
+		if (suppressNextClick.current) {
+			suppressNextClick.current = false;
+			return;
+		}
+
 		const engine = engineRef.current;
 		const canvas = canvasRef.current;
 		if (!engine || !canvas) return;
@@ -420,6 +439,8 @@ export const WebGLGraphView = React.memo(() => {
 	}, [updateCameraState, handleZoomIn, handleZoomOut]);
 
 	// Context menu handlers
+	const setShowParentGroupsAction = useAppStore((s) => s.setShowParentGroups);
+
 	const didClickOpenGroup = useCallback(
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
@@ -434,10 +455,11 @@ export const WebGLGraphView = React.memo(() => {
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
+				setShowParentGroupsAction(false);
 				setGroupIdToStartWith(String(groupId));
 			}
 		},
-		[setGroupIdToStartWith],
+		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
 
 	const didClickToggleCollapse = useCallback((params: ItemParams<ContextMenuProps>) => {
@@ -448,6 +470,17 @@ export const WebGLGraphView = React.memo(() => {
 		}
 	}, []);
 
+	const didClickShowParentGroups = useCallback(
+		(params: ItemParams<ContextMenuProps>) => {
+			const groupId = params.props?.groupId;
+			if (groupId) {
+				setShowParentGroupsAction(true);
+				setGroupIdToStartWith(String(groupId));
+			}
+		},
+		[setGroupIdToStartWith, setShowParentGroupsAction],
+	);
+
 	return (
 		<div className="relative size-full" ref={containerRef}>
 			<div className={isSidebarOpen ? 'hidden lg:block' : 'block'}>
@@ -457,6 +490,7 @@ export const WebGLGraphView = React.memo(() => {
 				className="size-full cursor-grab active:cursor-grabbing"
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
+				onPointerCancel={handlePointerUp}
 				onPointerDown={handlePointerDown}
 				onPointerMove={handlePointerMove}
 				onPointerUp={handlePointerUp}
@@ -468,6 +502,7 @@ export const WebGLGraphView = React.memo(() => {
 			<Menu animation="scale" id={Constants.contextMenuId}>
 				<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
 				<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
+				<Item onClick={didClickShowParentGroups}>Gruppe als Startgruppe mit Obergruppe setzen</Item>
 				<Item onClick={didClickToggleCollapse}>Untergruppen ein-/ausklappen</Item>
 			</Menu>
 

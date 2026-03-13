@@ -12,6 +12,22 @@ import { Combobox } from '../ui/combobox';
 import { MultiSelect } from '../ui/multi-select';
 import { Switch } from '../ui/switch';
 
+const depthOptions = [
+	{ label: 'Alle Ebenen', value: 'none' },
+	{ label: '1 Ebene', value: '1' },
+	{ label: '2 Ebenen', value: '2' },
+	{ label: '3 Ebenen', value: '3' },
+	{ label: '4 Ebenen', value: '4' },
+	{ label: '5 Ebenen', value: '5' },
+];
+
+const groupStatusOptions = [
+	{ label: 'Aktiv', value: String(GroupStatus.ACTIVE) },
+	{ label: 'In Gründung', value: String(GroupStatus.PENDING) },
+	{ label: 'Archiviert', value: String(GroupStatus.ARCHIVED) },
+	{ label: 'Beendet', value: String(GroupStatus.FINISHED) },
+];
+
 export const ExclusionFilters = React.memo(() => {
 	const { data: groups } = useGroups();
 	const { data: groupTypes } = useGroupTypes();
@@ -39,47 +55,16 @@ export const ExclusionFilters = React.memo(() => {
 	const setMaxDepth = useAppStore((s) => s.setMaxDepth);
 	const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
 	const setShowOnlyDirectChildren = useAppStore((s) => s.setShowOnlyDirectChildren);
+	const showParentGroups = useAppStore((s) => s.showParentGroups);
+	const setShowParentGroups = useAppStore((s) => s.setShowParentGroups);
 	const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
 	const setHideIndirectSubgroups = useAppStore((s) => s.setHideIndirectSubgroups);
-
-	const showGroupTypesDidChange = useCallback(
-		(checked: boolean) => {
-			setShowGroupTypes(checked);
-		},
-		[setShowGroupTypes],
-	);
-
-	const showOnlyDirectChildrenDidChange = useCallback(
-		(checked: boolean) => {
-			setShowOnlyDirectChildren(checked);
-		},
-		[setShowOnlyDirectChildren],
-	);
-
-	const hideIndirectSubgroupsDidChange = useCallback(
-		(checked: boolean) => {
-			setHideIndirectSubgroups(checked);
-		},
-		[setHideIndirectSubgroups],
-	);
 
 	const handleMaxDepthChange = useCallback(
 		(value: string) => {
 			setMaxDepth(value === 'none' ? undefined : parseInt(value, 10));
 		},
 		[setMaxDepth],
-	);
-
-	const depthOptions = useMemo(
-		() => [
-			{ label: 'Alle Ebenen', value: 'none' },
-			{ label: '1 Ebene', value: '1' },
-			{ label: '2 Ebenen', value: '2' },
-			{ label: '3 Ebenen', value: '3' },
-			{ label: '4 Ebenen', value: '4' },
-			{ label: '5 Ebenen', value: '5' },
-		],
-		[],
 	);
 
 	const groupTypeOptions = useMemo(
@@ -136,19 +121,9 @@ export const ExclusionFilters = React.memo(() => {
 		[setExcludedRoles],
 	);
 
-	const groupStatusOptions = useMemo(
-		() => [
-			{ label: 'Aktiv', value: String(GroupStatus.ACTIVE) },
-			{ label: 'In Gründung', value: String(GroupStatus.PENDING) },
-			{ label: 'Archiviert', value: String(GroupStatus.ARCHIVED) },
-			{ label: 'Beendet', value: String(GroupStatus.FINISHED) },
-		],
-		[],
-	);
-
 	const handleGroupStatusChange = useCallback(
 		(values: string[]) => {
-			setIncludedGroupStatuses(values.length > 0 ? values.map(Number) as GroupStatus[] : []);
+			setIncludedGroupStatuses(values.length > 0 ? (values.map(Number) as GroupStatus[]) : []);
 		},
 		[setIncludedGroupStatuses],
 	);
@@ -248,9 +223,7 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Standort filtern
-				</h5>
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">Standort filtern</h5>
 				<MultiSelect
 					onChange={handleCampusChange}
 					options={campusOptions}
@@ -260,9 +233,7 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Altersgruppe filtern
-				</h5>
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">Altersgruppe filtern</h5>
 				<MultiSelect
 					onChange={handleAgeGroupChange}
 					options={ageGroupOptions}
@@ -272,9 +243,7 @@ export const ExclusionFilters = React.memo(() => {
 			</div>
 
 			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">
-					Kategorie filtern
-				</h5>
+				<h5 className="mb-1 text-sm font-semibold text-green-700 dark:text-green-400">Kategorie filtern</h5>
 				<MultiSelect
 					onChange={handleGroupCategoryChange}
 					options={groupCategoryOptions}
@@ -289,17 +258,22 @@ export const ExclusionFilters = React.memo(() => {
 				</h5>
 				<div className="flex flex-col gap-y-3 pt-1">
 					<div className="flex flex-row items-center gap-x-2">
-						<Switch checked={showGroupTypes} onCheckedChange={showGroupTypesDidChange} />
+						<Switch checked={showGroupTypes} onCheckedChange={setShowGroupTypes} />
 						<span className="text-sm">Gruppentypen anzeigen</span>
 					</div>
 
 					<div className="flex flex-row items-center gap-x-2">
-						<Switch checked={showOnlyDirectChildren} onCheckedChange={showOnlyDirectChildrenDidChange} />
+						<Switch checked={showOnlyDirectChildren} onCheckedChange={setShowOnlyDirectChildren} />
 						<span className="text-sm">Nur direkte Untergruppen</span>
 					</div>
 
 					<div className="flex flex-row items-center gap-x-2">
-						<Switch checked={hideIndirectSubgroups} onCheckedChange={hideIndirectSubgroupsDidChange} />
+						<Switch checked={showParentGroups} onCheckedChange={setShowParentGroups} />
+						<span className="text-sm">Obergruppen anzeigen</span>
+					</div>
+
+					<div className="flex flex-row items-center gap-x-2">
+						<Switch checked={hideIndirectSubgroups} onCheckedChange={setHideIndirectSubgroups} />
 						<span className="text-sm">Indirekte Gruppenzweige ausblenden</span>
 					</div>
 
