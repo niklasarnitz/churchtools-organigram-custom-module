@@ -54,7 +54,12 @@ function createInfoPDF(message: string): jsPDF {
 
 	doc.setFontSize(11);
 	const maxLineWidth = pageWidth - 40;
-	const wrappedMessage = doc.splitTextToSize(message, maxLineWidth);
+	const wrappedMessageRaw = doc.splitTextToSize(message, maxLineWidth) as unknown;
+	const wrappedMessage: string | string[] = Array.isArray(wrappedMessageRaw)
+		? wrappedMessageRaw.filter((line): line is string => typeof line === 'string')
+		: typeof wrappedMessageRaw === 'string'
+			? wrappedMessageRaw
+			: message;
 	doc.text(wrappedMessage, 20, 45);
 
 	return doc;
