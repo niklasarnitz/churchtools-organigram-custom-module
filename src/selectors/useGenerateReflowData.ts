@@ -20,13 +20,16 @@ export const useGenerateReflowData = () => {
 	const layoutAlgorithm = committedFilters?.layoutAlgorithm ?? LayoutAlgorithm.elkLayeredTB;
 	const personsById = usePersonsById();
 	const groupTypesById = useGroupTypesById();
+	const setIsLayoutCalculatingGlobal = useAppStore((s) => s.setIsLayoutCalculating);
 
 	const [layoutedData, setLayoutedData] = useState<{ edges: Edge[]; nodes: Node[] }>({
 		edges: [],
 		nodes: [],
 	});
+	const [isCalculating, setIsCalculating] = useState(false);
 
 	const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
 	if (measureCanvasRef.current == null) {
 		const c = document.createElement('canvas');
 		c.width = 1;
@@ -101,13 +104,27 @@ export const useGenerateReflowData = () => {
 		let active = true;
 
 		const performLayout = async () => {
+			setIsCalculating(true);
+			setIsLayoutCalculatingGlobal(true);
 			await document.fonts.ready;
 
 			const measureCanvas = measureCanvasRef.current;
-			if (!measureCanvas) return;
+			if (!measureCanvas) {
+				if (active) {
+					setIsCalculating(false);
+					setIsLayoutCalculatingGlobal(false);
+				}
+				return;
+			}
 			const measureCtx = measureCanvas.getContext('2d');
-			if (!measureCtx) return;
-			const nodeSizes = new Map<string, { height: number; width: number; }>();
+			if (!measureCtx) {
+				if (active) {
+					setIsCalculating(false);
+					setIsLayoutCalculatingGlobal(false);
+				}
+				return;
+			}
+			const nodeSizes = new Map<string, { height: number; width: number }>();
 			for (const node of reflowNodes) {
 				const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
 				nodeSizes.set(node.id, { height: metrics.height, width: metrics.width });
@@ -117,6 +134,8 @@ export const useGenerateReflowData = () => {
 
 			if (active) {
 				setLayoutedData(result);
+				setIsCalculating(false);
+				setIsLayoutCalculatingGlobal(false);
 			}
 		};
 
@@ -124,8 +143,10 @@ export const useGenerateReflowData = () => {
 
 		return () => {
 			active = false;
+			setIsCalculating(false);
+			setIsLayoutCalculatingGlobal(false);
 		};
-	}, [reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes]);
+	}, [reflowNodes, reflowEdges, layoutAlgorithm, showGroupTypes, setIsLayoutCalculatingGlobal]);
 
-	return layoutedData;
+	return { ...layoutedData, isCalculating };
 };

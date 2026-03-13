@@ -48,6 +48,7 @@ interface GroupState {
 	includedGroups: number[];
 	includedGroupStatuses: GroupStatus[];
 	isExporting: boolean;
+	isLayoutCalculating: boolean;
 	isSidebarOpen: boolean;
 
 	layoutAlgorithm: LayoutAlgorithm;
@@ -71,6 +72,7 @@ interface GroupState {
 	setIncludedGroups: (groups: string | string[]) => void;
 	setIncludedGroupStatuses: (statuses: GroupStatus[]) => void;
 	setIsExporting: (isExporting: boolean) => void;
+	setIsLayoutCalculating: (calculating: boolean) => void;
 	setIsSidebarOpen: (isOpen: boolean) => void;
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 	setMaxDepth: (depth: number | undefined) => void;
@@ -137,6 +139,7 @@ export const useAppStore = create<GroupState>((set) => {
 
 		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
 		isExporting: false,
+		isLayoutCalculating: false,
 		isSidebarOpen: true,
 
 		layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
@@ -201,6 +204,10 @@ export const useAppStore = create<GroupState>((set) => {
 
 		setIsExporting: (isExporting: boolean) => {
 			set({ isExporting });
+		},
+
+		setIsLayoutCalculating: (isLayoutCalculating: boolean) => {
+			set({ isLayoutCalculating });
 		},
 
 		setIsSidebarOpen: (isSidebarOpen: boolean) => {

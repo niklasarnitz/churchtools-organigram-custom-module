@@ -9,12 +9,16 @@ import { useGroupTypes } from '../queries/useGroupTypes';
 import { useHierarchies } from '../queries/useHierarchies';
 import { usePersonMasterData } from '../queries/usePersonMasterData';
 import { usePersons } from '../queries/usePersons';
+import { useGenerateReflowData } from '../selectors/useGenerateReflowData';
 import { useAppStore } from '../state/useAppStore';
 import { GraphView } from './GraphView';
 import { Sidebar } from './Sidebar/Sidebar';
 import { Button } from './ui/button';
 
 export const MainComponent = React.memo(() => {
+	// Get layout calculating state from hook
+	const { isCalculating: isLayoutCalculating } = useGenerateReflowData();
+
 	// Zustand
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const committedFilters = useAppStore((s) => s.committedFilters);
@@ -115,11 +119,13 @@ export const MainComponent = React.memo(() => {
 					<Sidebar isLoading={isBaseLoading} />
 				</div>
 
-				{isGraphLoading ? (
+				{isGraphLoading || isLayoutCalculating ? (
 					<div className="flex size-full items-center justify-center">
 						<div className="flex flex-col items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
 							<Loader2 className="size-8 animate-spin text-blue-600" />
-							<span>Organigramm wird vorbereitet...</span>
+							<span>
+								{isLayoutCalculating ? 'Layout wird berechnet...' : 'Organigramm wird vorbereitet...'}
+							</span>
 						</div>
 					</div>
 				) : showGraph ? (
