@@ -10,7 +10,6 @@ import { useGenerateReflowData } from './useGenerateReflowData';
 
 const NODE_PADDING = 16;
 const HEADER_PADDING_Y = 12;
-const HEADER_PADDING_X = 16;
 const TITLE_FONT_SIZE = 14;
 const GROUP_TYPE_FONT_SIZE = 10;
 const ROLE_FONT_SIZE = 10;
@@ -37,7 +36,8 @@ export const useGenerateSVGData = () => {
 		const measureCanvas = document.createElement('canvas');
 		measureCanvas.width = 1;
 		measureCanvas.height = 1;
-		const measureCtx = measureCanvas.getContext('2d')!;
+		const measureCtx = measureCanvas.getContext('2d');
+		if (!measureCtx) throw new Error('Failed to get canvas context');
 
 		// Compute metrics for each node
 		const metricsMap = new Map<string, ReturnType<typeof measureNodeCard>>();
@@ -46,12 +46,13 @@ export const useGenerateSVGData = () => {
 		}
 
 		// Compute SVG viewBox bounds
-		let minX = Infinity,
-			minY = Infinity,
-			maxX = -Infinity,
-			maxY = -Infinity;
+		let minX = Infinity;
+		let minY = Infinity;
+		let maxX = -Infinity;
+		let maxY = -Infinity;
 		for (const node of nodes) {
-			const m = metricsMap.get(node.id)!;
+			const m = metricsMap.get(node.id);
+			if (!m) continue;
 			minX = Math.min(minX, node.position.x);
 			minY = Math.min(minY, node.position.y);
 			maxX = Math.max(maxX, node.position.x + m.width);
@@ -95,7 +96,8 @@ export const useGenerateSVGData = () => {
 
 		// Draw nodes
 		for (const node of nodes) {
-			const m = metricsMap.get(node.id)!;
+			const m = metricsMap.get(node.id);
+			if (!m) continue;
 			svg += renderNodeSVG(node, m, showGroupTypes, measureCtx);
 		}
 
@@ -103,6 +105,15 @@ export const useGenerateSVGData = () => {
 		return svg;
 	}, [data, showGroupTypes]);
 };
+
+function esc(s: string): string {
+	return s
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;');
+}
 
 function renderEdgeSVG(edge: Edge): string {
 	if (!edge.sections) return '';
@@ -201,8 +212,4 @@ function renderNodeSVG(
 
 	svg += `  </g>\n`;
 	return svg;
-}
-
-function esc(s: string): string {
-	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }

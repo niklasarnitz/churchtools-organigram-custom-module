@@ -1,7 +1,8 @@
+import jsPDF from 'jspdf';
 import { useCallback } from 'react';
+
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 import type { Edge, Node } from '../types/GraphTypes';
-import jsPDF from 'jspdf';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { oklchToHex } from '../globals/Colors';
@@ -11,7 +12,6 @@ import { useGenerateReflowData } from './useGenerateReflowData';
 // === Card Layout ===
 const NODE_PADDING = 16; // Inner padding inside card
 const HEADER_PADDING_Y = -2; // Vertical padding in header (negative = tighter)
-const HEADER_PADDING_X = 16; // Horizontal padding in header
 
 // === Font Sizes ===
 // === Font Sizes ===
@@ -35,6 +35,18 @@ const BORDER_RADIUS = 12; // Rounded corner radius
 // === PDF Layout ===
 const PDF_PADDING = 0; // Padding around entire diagram in PDF
 const PDF_SCALE = 2.0; // Zoom factor (1.0 = normal, 2.0 = 2x larger)
+const LANDSCAPE_THRESHOLD = 1.15; // Aspect ratio threshold for landscape orientation
+
+/**
+ * Calculates optimal PDF orientation based on content aspect ratio
+ * @param boundsWidth Width of the diagram bounds
+ * @param boundsHeight Height of the diagram bounds
+ * @returns 'landscape' if width > 1.15 × height, otherwise 'portrait'
+ */
+function calculatePDFOrientation(boundsWidth: number, boundsHeight: number): 'landscape' | 'portrait' {
+	const aspectRatio = boundsWidth / boundsHeight;
+	return aspectRatio > LANDSCAPE_THRESHOLD ? 'landscape' : 'portrait';
+}
 
 export const useGeneratePDFData = () => {
 	const data = useGenerateReflowData();
@@ -49,13 +61,17 @@ export const useGeneratePDFData = () => {
 		const measureCanvas = document.createElement('canvas');
 		measureCanvas.width = 1;
 		measureCanvas.height = 1;
-		const measureCtx = measureCanvas.getContext('2d') as CanvasRenderingContext2D;
+		const measureCtx = measureCanvas.getContext('2d');
+		if (!measureCtx) throw new Error('Failed to get canvas context');
 
 		// Node metrics
 		const metricsMap = new Map<string, ReturnType<typeof measureNodeCard>>();
 		for (const node of nodes) {
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-			metricsMap.set(node.id, measureNodeCard(measureCtx, node.data, showGroupTypes)!);
+			const result = measureNodeCard(measureCtx, node.data, showGroupTypes);
+			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+			if (result) {
+				metricsMap.set(node.id, result);
+			}
 		}
 
 		// Bounds calculation
@@ -88,15 +104,17 @@ export const useGeneratePDFData = () => {
 
 		const boundsWidth = maxX - minX;
 		const boundsHeight = maxY - minY;
-		const pdfWidth = boundsWidth * PDF_SCALE + PDF_PADDING * 2;
 		// PDF height calculated but kept for reference/future use
 		// const pdfHeight = boundsHeight * PDF_SCALE + PDF_PADDING * 2;
 
+		// Calculate optimal orientation based on aspect ratio
+		const orientation = calculatePDFOrientation(boundsWidth, boundsHeight);
+
 		// jsPDF mit korrekter Konfiguration
 		const doc = new jsPDF({
-			unit: 'mm',
 			format: 'a4',
-			orientation: pdfWidth > 210 ? 'landscape' : 'portrait',
+			orientation: orientation,
+			unit: 'mm',
 		});
 
 		const pageWidth = doc.internal.pageSize.getWidth();
@@ -144,10 +162,7 @@ function drawEdgePDF(
 
 	for (const section of edge.sections) {
 		const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint];
-		const pdfPoints = points.map((p) => [
-			offsetX + (p.x - minX) * scale,
-			offsetY + (p.y - minY) * scale,
-		]);
+		const pdfPoints = points.map((p) => [offsetX + (p.x - minX) * scale, offsetY + (p.y - minY) * scale]);
 
 		if (pdfPoints.length > 1) {
 			const [startX, startY] = pdfPoints[0];
@@ -209,7 +224,7 @@ function drawNodePDF(
 	const borderColor = oklchToHex(d.color.shades[300]);
 	const headerBg = oklchToHex(d.color.shades[100]);
 
-	let headerHeight = (HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE) * scale / 3;
+	let headerHeight = ((HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE) * scale) / 3;
 	if (showGroupTypes) {
 		headerHeight += (GROUP_TYPE_FONT_SIZE + TITLE_GROUP_TYPE_GAP) * scale;
 	}

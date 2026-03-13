@@ -1,6 +1,6 @@
 {
 	"name": "churchtools-organigram-custom-module",
-	"version": "1.3.0",
+	"version": "1.3.0-bwl21",
 	"private": true,
 	"dependencies": {
 		"@churchtools/churchtools-client": "^1.6.0",
