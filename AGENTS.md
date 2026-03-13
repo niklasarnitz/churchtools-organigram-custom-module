@@ -1,4 +1,4 @@
-# Gemini Project Instructions
+# Agent Project Instructions
 
 ## Changelog Management
 
@@ -27,4 +27,3 @@
 
 - Use `bun` for package management.
 - Adhere to the existing project structure and styling (Tailwind CSS, React, TypeScript).
-- Prefer Server Components where possible (though this project seems to be a client-side SPA).
