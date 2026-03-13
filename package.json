@@ -46,7 +46,8 @@
 		"lint": "eslint src/",
 		"ci": "bun run lint && bun run typecheck",
 		"typecheck": "tsc --noEmit",
-		"prepare": "husky"
+		"prepare": "husky",
+		"format": "prettier --write ."
 	},
 	"lint-staged": {
 		"*.{js,ts,tsx}": [
