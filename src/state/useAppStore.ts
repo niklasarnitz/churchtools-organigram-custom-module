@@ -57,6 +57,7 @@ interface GroupState {
 
 	maxDepth: number | undefined;
 	pendingExport: PendingExport | undefined;
+	radialRingDistance: number;
 	renderer: RendererType;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
@@ -80,6 +81,7 @@ interface GroupState {
 	setMaxDepth: (depth: number | undefined) => void;
 
 	setPendingExport: (pendingExport: PendingExport | undefined) => void;
+	setRadialRingDistance: (distance: number) => void;
 	setRenderer: (renderer: RendererType) => void;
 
 	setShowGroupTypes: (show: boolean) => void;
@@ -165,6 +167,8 @@ export const useAppStore = create<GroupState>((set) => {
 
 		pendingExport: undefined,
 
+		radialRingDistance: 350,
+
 		renderer: 'webgl' as RendererType,
 
 		setAllSettings: (settings: Partial<UserSettings>) => {
@@ -243,6 +247,10 @@ export const useAppStore = create<GroupState>((set) => {
 
 		setPendingExport: (pendingExport: PendingExport | undefined) => {
 			set({ pendingExport });
+		},
+
+		setRadialRingDistance: (radialRingDistance: number) => {
+			set({ radialRingDistance });
 		},
 
 		setRenderer: (renderer: RendererType) => {

@@ -1,6 +1,190 @@
 {
 	"versions": [
 		{
+			"version": "1.5.6",
+			"date": "2026-04-05",
+			"changes": [
+				"CRITICAL FIX: FLAT_RADIAL edges now form linear chains along rays",
+				"Rewrote edge generation to connect nodes sequentially by distance within each ray",
+				"Instead of connecting parent to all children, now node[i] → node[i+1] sequentially",
+				"Rays now display as proper linear hierarchies: root → child1 → child2 → child3...",
+				"Fixed the issue where all nodes connected directly to the first node on each ray"
+			]
+		},
+		{
+			"version": "1.5.5",
+			"date": "2026-04-05",
+			"changes": [
+				"Added ELK DSL export feature for FLAT_RADIAL debugging",
+				"Ray structure export shows all nodes grouped by angle with distances from root",
+				"ELK DSL graph exported to console for visual analysis",
+				"Debug data available as window.__ELK_DSL and window.__RAY_STRUCTURE",
+				"Helps identify ray composition and parent-child relationships for troubleshooting"
+			]
+		},
+		{
+			"version": "1.5.4",
+			"date": "2026-04-05",
+			"changes": [
+				"FIXED: FLAT_RADIAL now only shows edges along rays (parent-child on same ray)",
+				"Removed cross-ray edges - each ray is an independent hierarchy",
+				"Only nodes with matching ray angles create edges (angleThreshold = 9°)",
+				"Simplified edge visualization to show only direct parent-child relationships within rays",
+				"Cleaner, less cluttered sunburst diagram"
+			]
+		},
+		{
+			"version": "1.5.3",
+			"date": "2026-04-05",
+			"changes": [
+				"FIXED: Reverted to true ray-based positioning for FLAT_RADIAL",
+				"Each ray now has same angle, with nodes stacked sequentially by distance from root",
+				"Nodes within a ray are evenly spaced along the ray direction (cumulative ringDistance)",
+				"Parent-child edges now properly follow rays as they connect nodes on the same angle",
+				"Sunburst now displays as proper radial tree with clear ray structure"
+			]
+		},
+		{
+			"version": "1.5.2",
+			"date": "2026-04-05",
+			"changes": [
+				"FIXED: FLAT_RADIAL edges now curve along rays instead of cutting through center",
+				"Converted cartesian positions to polar coordinates to determine ray angles",
+				"Added bezier control points that pull edges toward center while maintaining ray direction",
+				"Edges on same ray now follow the angular direction instead of direct path",
+				"Improved visual clarity of parent-child relationships in sunburst layout"
+			]
+		},
+		{
+			"version": "1.5.1",
+			"date": "2026-04-05",
+			"changes": [
+				"FIXED: FLAT_RADIAL edges now render in WebGL canvas",
+				"Added section data to edges (required by WebGL renderer)",
+				"Each edge now has startPoint, endPoint, and bendPoints for proper rendering",
+				"Parent-child relationships are now visually connected along rays"
+			]
+		},
+		{
+			"version": "1.5.0",
+			"date": "2026-04-05",
+			"changes": [
+				"Added ray-based edge connections for FLAT_RADIAL layout",
+				"Parent-child relationships are now visualized as edges along each ray",
+				"Edges are generated from childrenMap to preserve tree hierarchy in sunburst visualization",
+				"Both parent and child must be visible for an edge to be rendered",
+				"Improved visual clarity of organizational relationships in sunburst layout"
+			]
+		},
+		{
+			"version": "1.4.9",
+			"date": "2026-04-05",
+			"changes": [
+				"FIXED: FLAT_RADIAL sunburst layout now uses true equidistant positioning",
+				"All nodes at the same depth now share the same radius and are distributed angularly around the circle",
+				"Replaced per-ray cumulative spacing with global depth-based grouping for perfect sunburst visualization",
+				"Nodes are now evenly spaced at each radial layer (depth 1, depth 2, etc.)",
+				"Improved debug output to show angle and radius for each node placement"
+			]
+		},
+		{
+			"version": "1.4.8",
+			"date": "2026-04-05",
+			"changes": [
+				"Completed ELK Radial integration with full tree structure support",
+				"elkRadial now receives a properly reconstructed childrenMap built from full hierarchies",
+				"Added ELK radial-specific layout options (radius=300, compactionSteps=4) for optimal sunburst spacing",
+				"elkRadial generates relations only between visible nodes, preserving complete tree paths for layout calculation",
+				"Verified both elkRadial and FLAT_RADIAL paths are fully functional with hidden node handling"
+			]
+		},
+		{
+			"version": "1.4.7",
+			"date": "2026-04-04",
+			"changes": [
+				"FIXED: Nodes in each ray are now sequentially numbered (1, 2, 3, ...) regardless of hierarchy",
+				"TreeVisitor uses a mutable counter that increments only when adding visible nodes to the ray",
+				"Each ray now correctly displays: Ray start=depth1, second visible node=depth2, third=depth3, etc.",
+				"Hidden/filtered intermediate nodes are traversed but do NOT consume a depth number"
+			]
+		},
+		{
+			"version": "1.4.6",
+			"date": "2026-04-04",
+			"changes": [
+				"CRITICAL FIX: Depth counter now only increments for VISIBLE nodes in the ray",
+				"Hidden/filtered intermediate nodes are traversed but do NOT increase depth",
+				"Example: Root → [hidden A] → B (visible) → C (visible) now correctly gives B=depth1, C=depth2",
+				"This fixes the core issue where all children of filtered nodes appeared at the same depth"
+			]
+		},
+		{
+			"version": "1.4.5",
+			"date": "2026-04-04",
+			"changes": [
+				"Fixed TreeVisitor to support hidden/filtered intermediate nodes in path traversal",
+				"TreeVisitor now creates stub nodes for invisible nodes to preserve complete tree paths",
+				"Depth is now calculated across ALL nodes (visible and hidden) to ensure correct positioning of visible descendants",
+				"Only VISIBLE nodes are added to the ray output, but traversal continues through hidden nodes to maintain correct depths",
+				"This fixes the issue where filtered-out intermediate nodes caused all their children to have the same depth"
+			]
+		},
+		{
+			"version": "1.4.4",
+			"date": "2026-04-04",
+			"changes": [
+				"Fixed FLAT_RADIAL hierarchy reconstruction: now builds childrenMap from full hierarchies instead of filtered relations",
+				"This preserves complete tree structure even when intermediate nodes are filtered, ensuring correct path-based depths",
+				"Removed unnecessary nodeDepthMap complexity - depth is now correctly determined by each node's position in its ray",
+				"Each ray independently traverses from root to its direct child, with nodes appearing at correct depths per path"
+			]
+		},
+		{
+			"version": "1.4.3",
+			"date": "2026-04-04",
+			"changes": [
+				"Fixed TreeVisitor to support DAG (Directed Acyclic Graph) with multiple parents per node",
+				"Implemented path-based DFS traversal where each ray independently tracks its own path from root",
+				"Added cycle detection per ray to handle nodes reachable via multiple paths with different depths",
+				"Nodes with multiple parents now correctly appear in multiple rays with accurate depth-in-ray for each path",
+				"TreeVisitor now tracks visitedInRay per ray to ensure correct depth calculation along each unique path"
+			]
+		},
+		{
+			"version": "1.4.2",
+			"date": "2026-04-04",
+			"changes": [
+				"Enhanced TreeVisitor debug logging to show direct children count and actual traversal depth",
+				"Added comprehensive childrenMap structure validation logging to diagnose hierarchy flattening issues",
+				"Added relation count comparison (parent-child relations vs edges) to identify data structure mismatches",
+				"Improved TreeVisitor visitor tracking with per-node child enumeration for debugging depth calculation"
+			]
+		},
+		{
+			"version": "1.4.1",
+			"date": "2026-04-04",
+			"changes": [
+				"Refactored FLAT_RADIAL layout to use TreeVisitor pattern for explicit tree transformation",
+				"Implemented Depth-First Search (DFS) traversal that groups descendants into rays, each starting from a direct child of root",
+				"Fixed depth calculation within each ray: depths now correctly reflect position within the subtree, not absolute depth from root",
+				"Improved layout positioning: nodes on the same ray are now positioned with cumulative radius based on node heights",
+				"Enhanced readability by filtering out edges to/from root node in FLAT_RADIAL mode",
+				"Added comprehensive debug logging for tree transformation and ray positioning"
+			]
+		},
+		{
+			"version": "1.4.0",
+			"date": "2026-04-04",
+			"changes": [
+				"Added FLAT_RADIAL layout as a new separate layout option (distinct from ELK:Radial)",
+				"FLAT_RADIAL creates a sunburst-style visualization with a central root group and all other groups flattened into a single concentric ring",
+				"Implemented custom trigonometric positioning for FLAT_RADIAL (x = ringDistance * cos(angle), y = ringDistance * sin(angle))",
+				"Added dynamic ring distance slider in the sidebar to adjust FLAT_RADIAL layout spacing (300px - 500px)",
+				"Visual hierarchy in FLAT_RADIAL is maintained through node scaling by depth (deeper nodes appear smaller)",
+				"FLAT_RADIAL uses optimized custom calculation instead of ELK worker for faster lightweight layout computation"
+			]
+		},
+		{
 			"version": "1.3.1",
 			"date": "2026-03-13",
 			"changes": [

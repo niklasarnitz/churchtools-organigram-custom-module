@@ -18,6 +18,7 @@ import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
 import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
 import { PresetManager } from './PresetManager';
+import { RadialRingDistanceControl } from './RadialRingDistanceControl';
 import { StartGroupSelect } from './StartGroupSelect';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
@@ -96,6 +97,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 				<div className="my-4 border-t border-slate-200 dark:border-slate-700" />
 				<StartGroupSelect />
 				<LayoutSelect />
+				<RadialRingDistanceControl />
 				<div className="my-4 border-t border-slate-200 dark:border-slate-700" />
 				<ExclusionFilters />
 

@@ -20,6 +20,7 @@ export const LayoutSelect = React.memo(() => {
 		{ label: 'ELK: Layered (Vertikal)', value: LayoutAlgorithm.elkLayeredTB },
 		{ label: 'ELK: MR-Tree', value: LayoutAlgorithm.elkMrTree },
 		{ label: 'ELK: Radial', value: LayoutAlgorithm.elkRadial },
+		{ label: 'Flat Radial (Sunburst)', value: LayoutAlgorithm.FLAT_RADIAL },
 	];
 
 	return (
