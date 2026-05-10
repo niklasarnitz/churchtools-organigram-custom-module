@@ -5,17 +5,6 @@ export enum Position {
 	Top = 'top',
 }
 
-export interface EdgeRoutePoint {
-	x: number;
-	y: number;
-}
-
-export interface EdgeSection {
-	bendPoints?: EdgeRoutePoint[];
-	endPoint: EdgeRoutePoint;
-	startPoint: EdgeRoutePoint;
-}
-
 export interface Edge {
 	animated?: boolean;
 	className?: string;
@@ -26,6 +15,17 @@ export interface Edge {
 	style?: React.CSSProperties;
 	target: string;
 	type?: string;
+}
+
+export interface EdgeRoutePoint {
+	x: number;
+	y: number;
+}
+
+export interface EdgeSection {
+	bendPoints?: EdgeRoutePoint[];
+	endPoint: EdgeRoutePoint;
+	startPoint: EdgeRoutePoint;
 }
 
 export interface Node<T = unknown> {

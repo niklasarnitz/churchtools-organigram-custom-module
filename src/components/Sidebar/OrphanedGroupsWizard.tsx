@@ -119,36 +119,36 @@ export const OrphanedGroupsWizard = () => {
 				</DialogHeader>
 
 				<div className="grid gap-6 py-4">
-						<div className="grid gap-2">
-							<label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-								Übergeordnete Gruppe (Eltern)
-							</label>
-							<Combobox
-								onValueChange={setSelectedParentId}
-								options={groupOptions}
-								placeholder="Übergeordnete Gruppe wählen..."
-								value={selectedParentId}
-							/>
-							<p className="text-muted-foreground text-xs">
-								Diese Gruppe wird die neue übergeordnete Gruppe von {currentGroup.name}.
-							</p>
-						</div>
-
-						<div className="grid gap-2">
-							<label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-								Untergeordnete Gruppen (Kinder)
-							</label>
-							<MultiSelect
-								onChange={setSelectedChildrenIds}
-								options={groupOptions}
-								placeholder="Untergeordnete Gruppen wählen..."
-								value={selectedChildrenIds}
-							/>
-							<p className="text-muted-foreground text-xs">
-								Diese Gruppen werden Kinder von {currentGroup.name}.
-							</p>
-						</div>
+					<div className="grid gap-2">
+						<label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+							Übergeordnete Gruppe (Eltern)
+						</label>
+						<Combobox
+							onValueChange={setSelectedParentId}
+							options={groupOptions}
+							placeholder="Übergeordnete Gruppe wählen..."
+							value={selectedParentId}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Diese Gruppe wird die neue übergeordnete Gruppe von {currentGroup.name}.
+						</p>
 					</div>
+
+					<div className="grid gap-2">
+						<label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+							Untergeordnete Gruppen (Kinder)
+						</label>
+						<MultiSelect
+							onChange={setSelectedChildrenIds}
+							options={groupOptions}
+							placeholder="Untergeordnete Gruppen wählen..."
+							value={selectedChildrenIds}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Diese Gruppen werden Kinder von {currentGroup.name}.
+						</p>
+					</div>
+				</div>
 
 				<DialogFooter className="flex flex-row items-center justify-between border-t border-slate-100 pt-4 sm:justify-between dark:border-slate-800">
 					<div className="flex gap-2">
@@ -175,7 +175,13 @@ export const OrphanedGroupsWizard = () => {
 							<ChevronRight className="ml-1 size-4" />
 						</Button>
 					</div>
-					<Button disabled={updateHierarchy.isPending} onClick={() => { void handleSave(); }} size="sm">
+					<Button
+						disabled={updateHierarchy.isPending}
+						onClick={() => {
+							void handleSave();
+						}}
+						size="sm"
+					>
 						{updateHierarchy.isPending ? (
 							<Loader2 className="mr-2 size-4 animate-spin" />
 						) : (

@@ -3,14 +3,7 @@ import React from 'react';
 
 import changelogData from '../changelog.json';
 import { Button } from './ui/button';
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 export const ChangelogDialog = () => {
 	return (

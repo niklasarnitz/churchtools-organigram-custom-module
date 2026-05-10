@@ -20,12 +20,12 @@ const LABEL_GAP = 4;
 const MIN_NODE_WIDTH = 120;
 
 export const useGenerateGraphMLData = () => {
-    const data = useGenerateReflowData();
-    const committedFilters = useAppStore((s) => s.committedFilters);
-    const showGroupTypes = committedFilters?.showGroupTypes ?? true;
+	const data = useGenerateReflowData();
+	const committedFilters = useAppStore((s) => s.committedFilters);
+	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 
-    return useCallback(() => {
-        let graphml = `<?xml version="1.0" encoding="UTF-8"?>
+	return useCallback(() => {
+		let graphml = `<?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns"
     xmlns:y="http://www.yworks.com/xml/graphml"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -39,29 +39,33 @@ export const useGenerateGraphMLData = () => {
   <graph id="G" edgedefault="directed">
 `;
 
-        for (const node of data.nodes as Node<PreviewGraphNodeData>[]) {
-            const d = node.data;
-            const shade500 = d.color.shades[500];
-            const headerBg = oklchToHex(d.color.shades[100]);
-            const borderColor = oklchToHex(d.color.shades[300]);
-            const colorHex = shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
+		for (const node of data.nodes as Node<PreviewGraphNodeData>[]) {
+			const d = node.data;
+			const shade500 = d.color.shades[500];
+			const headerBg = oklchToHex(d.color.shades[100]);
+			const borderColor = oklchToHex(d.color.shades[300]);
+			const colorHex = shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
 
-            const plainLabel = buildPlainLabel(d.title, showGroupTypes ? d.groupTypeName : '', d.roles, d.memberNamesByRoleId);
-            const bodyLines = plainLabel.split('\n');
+			const plainLabel = buildPlainLabel(
+				d.title,
+				showGroupTypes ? d.groupTypeName : '',
+				d.roles,
+				d.memberNamesByRoleId,
+			);
+			const bodyLines = plainLabel.split('\n');
 
-            // Width: widest line across title (bold 12) and body (plain 10) + padding
-            const titleWidth = d.title.length * TITLE_CHAR_WIDTH;
-            const maxBodyLineWidth = bodyLines.reduce((max, line) => Math.max(max, line.length * BODY_CHAR_WIDTH), 0);
-            const nodeWidth = Math.max(MIN_NODE_WIDTH, Math.max(titleWidth, maxBodyLineWidth) + NODE_PADDING_X * 2);
+			// Width: widest line across title (bold 12) and body (plain 10) + padding
+			const titleWidth = d.title.length * TITLE_CHAR_WIDTH;
+			const maxBodyLineWidth = bodyLines.reduce((max, line) => Math.max(max, line.length * BODY_CHAR_WIDTH), 0);
+			const nodeWidth = Math.max(MIN_NODE_WIDTH, Math.max(titleWidth, maxBodyLineWidth) + NODE_PADDING_X * 2);
 
-            // Height: title line + gap + body lines + vertical padding
-            const titleHeight = TITLE_LINE_HEIGHT;
-            const bodyHeight = bodyLines.length > 0 && plainLabel.length > 0
-                ? LABEL_GAP + bodyLines.length * BODY_LINE_HEIGHT
-                : 0;
-            const nodeHeight = NODE_PADDING_Y * 2 + titleHeight + bodyHeight;
+			// Height: title line + gap + body lines + vertical padding
+			const titleHeight = TITLE_LINE_HEIGHT;
+			const bodyHeight =
+				bodyLines.length > 0 && plainLabel.length > 0 ? LABEL_GAP + bodyLines.length * BODY_LINE_HEIGHT : 0;
+			const nodeHeight = NODE_PADDING_Y * 2 + titleHeight + bodyHeight;
 
-            graphml += `    <node id="${node.id}">
+			graphml += `    <node id="${node.id}">
       <data key="d0">${escapeXml(d.title)}</data>
       <data key="d1">${showGroupTypes ? escapeXml(d.groupTypeName) : ''}</data>
       <data key="d3">${escapeXml(colorHex)}</data>
@@ -77,10 +81,10 @@ export const useGenerateGraphMLData = () => {
       </data>
     </node>
 `;
-        }
+		}
 
-        for (const edge of data.edges) {
-            graphml += `    <edge id="${edge.id}" source="${edge.source}" target="${edge.target}">
+		for (const edge of data.edges) {
+			graphml += `    <edge id="${edge.id}" source="${edge.source}" target="${edge.target}">
       <data key="d5">
         <y:PolyLineEdge>
           <y:LineStyle color="#64748B" type="line" width="2.0"/>
@@ -89,57 +93,57 @@ export const useGenerateGraphMLData = () => {
       </data>
     </edge>
 `;
-        }
+		}
 
-        graphml += `  </graph>
+		graphml += `  </graph>
 </graphml>`;
 
-        return graphml;
-    }, [data, showGroupTypes]);
+		return graphml;
+	}, [data, showGroupTypes]);
 };
 
 function buildPlainLabel(
-    title: string,
-    groupTypeName: string,
-    roles: { id: number; name: string }[],
-    memberNamesByRoleId: Map<number, string[]>,
+	title: string,
+	groupTypeName: string,
+	roles: { id: number; name: string }[],
+	memberNamesByRoleId: Map<number, string[]>,
 ): string {
-    const lines: string[] = [];
+	const lines: string[] = [];
 
-    if (groupTypeName) {
-        lines.push(groupTypeName.toUpperCase());
-    }
+	if (groupTypeName) {
+		lines.push(groupTypeName.toUpperCase());
+	}
 
-    const rolesWithMembers = roles.filter((role) => memberNamesByRoleId.has(role.id));
-    if (rolesWithMembers.length > 0) {
-        lines.push('');
-        for (const role of rolesWithMembers) {
-            const names = memberNamesByRoleId.get(role.id) ?? [];
-            lines.push(`\n${role.name}:`);
-            for (const name of names) {
-                lines.push(`  ${name}`);
-            }
-        }
-    }
+	const rolesWithMembers = roles.filter((role) => memberNamesByRoleId.has(role.id));
+	if (rolesWithMembers.length > 0) {
+		lines.push('');
+		for (const role of rolesWithMembers) {
+			const names = memberNamesByRoleId.get(role.id) ?? [];
+			lines.push(`\n${role.name}:`);
+			for (const name of names) {
+				lines.push(`  ${name}`);
+			}
+		}
+	}
 
-    return lines.join('\n');
+	return lines.join('\n');
 }
 
 function escapeXml(unsafe: string) {
-    return unsafe.replace(/[<>&"']/g, (c) => {
-        switch (c) {
-            case '"':
-                return '&quot;';
-            case '&':
-                return '&amp;';
-            case "'":
-                return '&apos;';
-            case '<':
-                return '&lt;';
-            case '>':
-                return '&gt;';
-            default:
-                return c;
-        }
-    });
+	return unsafe.replace(/[<>&"']/g, (c) => {
+		switch (c) {
+			case '"':
+				return '&quot;';
+			case '&':
+				return '&amp;';
+			case "'":
+				return '&apos;';
+			case '<':
+				return '&lt;';
+			case '>':
+				return '&gt;';
+			default:
+				return c;
+		}
+	});
 }

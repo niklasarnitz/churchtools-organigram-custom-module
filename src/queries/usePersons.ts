@@ -19,9 +19,13 @@ export const usePersons = () => {
 	const personIds = useMemo(() => {
 		if (!members) return [];
 		const excludedRoles = committedFilters?.excludedRoles ?? [];
-		const filteredMembers = excludedRoles.length > 0
-			? members.filter((m) => !excludedRoles.includes(m.groupTypeRoleId))
-			: members;
+
+		let filteredMembers = members;
+		if (excludedRoles.length > 0) {
+			const excludedRolesSet = new Set(excludedRoles);
+			filteredMembers = members.filter((m) => !excludedRolesSet.has(m.groupTypeRoleId));
+		}
+
 		return Array.from(new Set(filteredMembers.map((m) => m.personId)));
 	}, [members, committedFilters?.excludedRoles]);
 
@@ -50,9 +54,7 @@ export const usePersons = () => {
 			const chunkResults = await Promise.all(
 				chunks.map((chunk) => {
 					const queryParams = chunk.map((id) => `ids[]=${String(id)}`).join('&');
-					return churchtoolsClient.get<Person[]>(
-						`/persons?${queryParams}&limit=${String(resultsPerCall)}`,
-					);
+					return churchtoolsClient.get<Person[]>(`/persons?${queryParams}&limit=${String(resultsPerCall)}`);
 				}),
 			);
 

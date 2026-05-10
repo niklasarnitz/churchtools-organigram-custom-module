@@ -46,10 +46,11 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 					variant="outline"
 				>
 					<span className="min-w-0 flex-1 truncate text-left">
-						{value.length > 0
-							? value.map((v) => options.find((o) => o.value === v)?.label ?? v).join(', ')
-							: <span className="text-slate-500 dark:text-slate-400">{placeholder ?? 'Auswählen...'}</span>
-						}
+						{value.length > 0 ? (
+							value.map((v) => options.find((o) => o.value === v)?.label ?? v).join(', ')
+						) : (
+							<span className="text-slate-500 dark:text-slate-400">{placeholder ?? 'Auswählen...'}</span>
+						)}
 					</span>
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>

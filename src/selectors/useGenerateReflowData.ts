@@ -107,7 +107,7 @@ export const useGenerateReflowData = () => {
 			if (!measureCanvas) return;
 			const measureCtx = measureCanvas.getContext('2d');
 			if (!measureCtx) return;
-			const nodeSizes = new Map<string, { height: number; width: number; }>();
+			const nodeSizes = new Map<string, { height: number; width: number }>();
 			for (const node of reflowNodes) {
 				const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
 				nodeSizes.set(node.id, { height: metrics.height, width: metrics.width });
