@@ -1,5 +1,6 @@
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
 import type { Edge, Node } from '../../../types/GraphTypes';
+import type { SunburstInteractionMeta, SunburstRenderData } from '../../../types/Sunburst';
 
 import { oklchToHex } from '../../../globals/Colors';
 import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
@@ -12,6 +13,7 @@ export interface Camera {
 
 export interface NodeHit {
 	height: number;
+	interactionMeta?: SunburstInteractionMeta;
 	node: Node<PreviewGraphNodeData>;
 	width: number;
 }
@@ -39,6 +41,9 @@ export class WebGLGraphEngine {
 	private nodeMap = new Map<string, Node<PreviewGraphNodeData>>();
 	private nodeMetrics = new Map<string, NodeCardMetrics>();
 	private nodes: Node<PreviewGraphNodeData>[] = [];
+	private hoveredNodeId: null | string = null;
+	private sunburstChildrenByNodeId = new Map<string, string[]>();
+	private sunburstRenderData: SunburstRenderData | undefined;
 
 	private showGroupTypes = true;
 
@@ -61,6 +66,10 @@ export class WebGLGraphEngine {
 	}
 
 	edgeHitTest(screenX: number, screenY: number): Edge | null {
+		if (this.sunburstRenderData) {
+			return null;
+		}
+
 		const world = this.screenToWorld(screenX, screenY);
 		const threshold = 6 / this.camera.zoom;
 
@@ -118,6 +127,20 @@ export class WebGLGraphEngine {
 	}
 
 	focusNode(nodeId: string, canvasRect: DOMRect) {
+		if (this.sunburstRenderData) {
+			const interactionMeta = this.sunburstRenderData.interactionByNodeId[Number(nodeId)];
+			if (!interactionMeta) return;
+
+			const zoom = 1.15;
+			this.camera = {
+				x: interactionMeta.center.x - canvasRect.width / 2 / zoom,
+				y: interactionMeta.center.y - canvasRect.height / 2 / zoom,
+				zoom,
+			};
+			this.needsRender = true;
+			return;
+		}
+
 		const node = this.nodeMap.get(nodeId);
 		if (!node) return;
 
@@ -142,6 +165,16 @@ export class WebGLGraphEngine {
 	}
 
 	getBounds(): null | { maxX: number; maxY: number; minX: number; minY: number } {
+		if (this.sunburstRenderData) {
+			const maxRadius = this.sunburstRenderData.maxRadius;
+			return {
+				maxX: maxRadius,
+				maxY: maxRadius,
+				minX: -maxRadius,
+				minY: -maxRadius,
+			};
+		}
+
 		if (this.nodes.length === 0) return null;
 
 		let maxX = -Infinity,
@@ -188,7 +221,16 @@ export class WebGLGraphEngine {
 		return this.nodes;
 	}
 
+	getSunburstInteractionMeta(nodeId: string): SunburstInteractionMeta | undefined {
+		if (!this.sunburstRenderData) return undefined;
+		return this.sunburstRenderData.interactionByNodeId[Number(nodeId)];
+	}
+
 	hitTest(screenX: number, screenY: number): NodeHit | null {
+		if (this.sunburstRenderData) {
+			return this.hitTestSunburst(screenX, screenY);
+		}
+
 		const world = this.screenToWorld(screenX, screenY);
 
 		// Iterate in reverse to get top-most node first
@@ -234,15 +276,34 @@ export class WebGLGraphEngine {
 		this.needsRender = true;
 	}
 
-	setData(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean, isDarkMode: boolean) {
+	setData(
+		nodes: Node<PreviewGraphNodeData>[],
+		edges: Edge[],
+		showGroupTypes: boolean,
+		isDarkMode: boolean,
+		sunburstRenderData?: SunburstRenderData,
+	) {
 		this.nodes = nodes;
 		this.edges = edges;
 		this.showGroupTypes = showGroupTypes;
 		this.isDarkMode = isDarkMode;
+		this.sunburstRenderData = sunburstRenderData;
+		this.hoveredNodeId = null;
+		this.sunburstChildrenByNodeId.clear();
 
 		this.nodeMap.clear();
 		for (const node of nodes) {
 			this.nodeMap.set(node.id, node);
+		}
+
+		if (sunburstRenderData) {
+			for (const interaction of Object.values(sunburstRenderData.interactionByNodeId)) {
+				if (interaction.primaryParentId === undefined) continue;
+				const parentId = String(interaction.primaryParentId);
+				const children = this.sunburstChildrenByNodeId.get(parentId) ?? [];
+				children.push(String(interaction.nodeId));
+				this.sunburstChildrenByNodeId.set(parentId, children);
+			}
 		}
 
 		// Recalculate metrics
@@ -270,6 +331,12 @@ export class WebGLGraphEngine {
 		if (nodeId !== null) {
 			this.collectSubgraphNodes(nodeId, this.highlightedNodeIds);
 		}
+		this.needsRender = true;
+	}
+
+	setHoveredNodeId(nodeId: null | string) {
+		if (this.hoveredNodeId === nodeId) return;
+		this.hoveredNodeId = nodeId;
 		this.needsRender = true;
 	}
 
@@ -302,6 +369,11 @@ export class WebGLGraphEngine {
 	}
 
 	private buildSpatialGrid() {
+		if (this.sunburstRenderData) {
+			this.spatialGrid.clear();
+			return;
+		}
+
 		this.spatialGrid.clear();
 		for (const node of this.nodes) {
 			const m = this.nodeMetrics.get(node.id);
@@ -327,6 +399,15 @@ export class WebGLGraphEngine {
 
 	private collectSubgraphNodes(nodeId: string, result: Set<string>) {
 		result.add(nodeId);
+		if (this.sunburstRenderData) {
+			for (const childId of this.sunburstChildrenByNodeId.get(nodeId) ?? []) {
+				if (!result.has(childId)) {
+					this.collectSubgraphNodes(childId, result);
+				}
+			}
+			return;
+		}
+
 		for (const edge of this.edges) {
 			if (edge.source === nodeId && !result.has(edge.target)) {
 				this.collectSubgraphNodes(edge.target, result);
@@ -454,6 +535,7 @@ export class WebGLGraphEngine {
 	}
 
 	private drawGrid(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
+		if (this.sunburstRenderData) return;
 		if (this.nodes.length === 0) return;
 
 		const zoom = this.camera.zoom;
@@ -489,6 +571,7 @@ export class WebGLGraphEngine {
 	}
 
 	private drawNodes(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
+		if (this.sunburstRenderData) return;
 		const zoom = this.camera.zoom;
 		const hiddenIds = this.getHiddenNodeIds();
 		const hasHighlight = this.highlightedNodeIds.size > 0;
@@ -576,6 +659,10 @@ export class WebGLGraphEngine {
 	}
 
 	private getHiddenNodeIds(): Set<string> {
+		if (this.sunburstRenderData) {
+			return new Set();
+		}
+
 		const hidden = new Set<string>();
 		for (const collapsedId of this.collapsedNodeIds) {
 			// Hide all descendants of the collapsed node (but not the collapsed node itself)
@@ -612,6 +699,99 @@ export class WebGLGraphEngine {
 		return result;
 	}
 
+	private drawSunburst(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
+		const renderData = this.sunburstRenderData;
+		if (!renderData) return;
+
+		const hasHighlight = this.highlightedNodeIds.size > 0;
+
+		for (const segment of renderData.segments) {
+			const boundsMin = this.worldToScreen(-segment.outerRadius, -segment.outerRadius);
+			const boundsMax = this.worldToScreen(segment.outerRadius, segment.outerRadius);
+			if (boundsMax.x < 0 || boundsMax.y < 0 || boundsMin.x > viewW || boundsMin.y > viewH) continue;
+
+			const isHighlighted = this.highlightedNodeIds.has(String(segment.nodeId));
+			const isHovered = this.hoveredNodeId === String(segment.nodeId);
+			const opacity = hasHighlight && !isHighlighted ? 0.25 : 1;
+
+			ctx.save();
+			ctx.globalAlpha = opacity;
+			ctx.beginPath();
+			ctx.arc(0, 0, segment.outerRadius, segment.startAngle - Math.PI / 2, segment.endAngle - Math.PI / 2);
+			ctx.arc(0, 0, segment.innerRadius, segment.endAngle - Math.PI / 2, segment.startAngle - Math.PI / 2, true);
+			ctx.closePath();
+			ctx.fillStyle = segment.fillColor;
+			ctx.fill();
+			ctx.strokeStyle = isHovered ? '#0f172a' : isHighlighted ? '#1d4ed8' : segment.strokeColor;
+			ctx.lineWidth = isHovered
+				? 5 / this.camera.zoom
+				: isHighlighted
+					? 4 / this.camera.zoom
+					: 1.5 / this.camera.zoom;
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		if (this.camera.zoom < 0.12) return;
+
+		for (const label of renderData.labels) {
+			if (!label.isVisible) continue;
+			const screen = this.worldToScreen(label.x, label.y);
+			if (screen.x < -40 || screen.x > viewW + 40 || screen.y < -20 || screen.y > viewH + 20) continue;
+
+			const segment = renderData.segmentByNodeId[label.nodeId];
+			if (!segment) continue;
+			const isHighlighted = this.highlightedNodeIds.has(String(label.nodeId));
+
+			ctx.save();
+			ctx.beginPath();
+			ctx.arc(0, 0, segment.outerRadius, segment.startAngle - Math.PI / 2, segment.endAngle - Math.PI / 2);
+			ctx.arc(0, 0, segment.innerRadius, segment.endAngle - Math.PI / 2, segment.startAngle - Math.PI / 2, true);
+			ctx.closePath();
+			ctx.clip();
+			ctx.translate(label.x, label.y);
+			ctx.rotate((label.rotation * Math.PI) / 180);
+			ctx.font = `${isHighlighted ? '600' : '500'} ${String(label.fontSize)}px Lato, sans-serif`;
+			ctx.textAlign = label.textAlign;
+			ctx.textBaseline = 'middle';
+			ctx.fillStyle = getReadableTextColor(segment.fillColor, this.isDarkMode);
+			const lineHeight = label.fontSize * 1.05;
+			const firstLineY = -((label.lines.length - 1) * lineHeight) / 2;
+			for (const [index, line] of label.lines.entries()) {
+				ctx.fillText(line, 0, firstLineY + index * lineHeight);
+			}
+			ctx.restore();
+		}
+	}
+
+	private hitTestSunburst(screenX: number, screenY: number): NodeHit | null {
+		const renderData = this.sunburstRenderData;
+		if (!renderData) return null;
+
+		const world = this.screenToWorld(screenX, screenY);
+		const radius = Math.hypot(world.x, world.y);
+		let angle = Math.atan2(world.y, world.x) + Math.PI / 2;
+		if (angle < 0) angle += Math.PI * 2;
+
+		for (let index = renderData.segments.length - 1; index >= 0; index--) {
+			const segment = renderData.segments[index];
+			if (radius < segment.innerRadius || radius > segment.outerRadius) continue;
+			if (angle < segment.startAngle || angle > segment.endAngle) continue;
+
+			const node = this.nodeMap.get(String(segment.nodeId));
+			if (!node) continue;
+
+			return {
+				height: segment.outerRadius - segment.innerRadius,
+				interactionMeta: renderData.interactionByNodeId[segment.nodeId],
+				node,
+				width: segment.outerRadius - segment.innerRadius,
+			};
+		}
+
+		return null;
+	}
+
 	private loop = (time: number) => {
 		const dt = (time - this.lastFrameTime) / 1000;
 		this.lastFrameTime = time;
@@ -626,7 +806,7 @@ export class WebGLGraphEngine {
 	};
 
 	private render() {
-		if (this.nodes.length === 0) return;
+		if (this.nodes.length === 0 && !this.sunburstRenderData) return;
 
 		const ctx = this.ctx;
 		const rect = this.canvas.getBoundingClientRect();
@@ -644,14 +824,18 @@ export class WebGLGraphEngine {
 		ctx.translate(-this.camera.x * this.camera.zoom, -this.camera.y * this.camera.zoom);
 		ctx.scale(this.camera.zoom, this.camera.zoom);
 
-		// Draw grid
-		this.drawGrid(ctx, viewW, viewH);
+		if (this.sunburstRenderData) {
+			this.drawSunburst(ctx, viewW, viewH);
+		} else {
+			// Draw grid
+			this.drawGrid(ctx, viewW, viewH);
 
-		// Draw edges
-		this.drawEdges(ctx);
+			// Draw edges
+			this.drawEdges(ctx);
 
-		// Draw nodes
-		this.drawNodes(ctx, viewW, viewH);
+			// Draw nodes
+			this.drawNodes(ctx, viewW, viewH);
+		}
 
 		ctx.restore();
 
@@ -702,4 +886,18 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 	ctx.lineTo(x, y + r);
 	ctx.arcTo(x, y, x + r, y, r);
 	ctx.closePath();
+}
+
+function getReadableTextColor(backgroundHex: string, isDarkMode: boolean): string {
+	const hex = backgroundHex.replace('#', '');
+	if (hex.length !== 6) {
+		return isDarkMode ? '#f8fafc' : '#0f172a';
+	}
+
+	const red = Number.parseInt(hex.slice(0, 2), 16);
+	const green = Number.parseInt(hex.slice(2, 4), 16);
+	const blue = Number.parseInt(hex.slice(4, 6), 16);
+	const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+	return luminance > 0.62 ? '#0f172a' : '#f8fafc';
 }

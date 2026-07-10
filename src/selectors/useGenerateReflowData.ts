@@ -8,14 +8,22 @@ import { Logger } from '../globals/Logger';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutElk } from '../helpers/layoutAlgorithms/elk';
 import { calculateRadialPositions, flattenTree } from '../helpers/radialLayout';
+import { buildSunburstLayout } from '../helpers/sunburstLayout';
 import { useAppStore } from '../state/useAppStore';
 import { type Edge, type Node, Position } from '../types/GraphTypes';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
+import type { SunburstRenderData } from '../types/Sunburst';
 import { exportRayStructure, exportToElkDsl } from '../helpers/elkDslExport';
 import { useCreateRelatedData } from './useCreateRelatedData';
 import { useGroupTypesById } from './useGroupTypesById';
 import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 import { usePersonsById } from './usePersonsById';
+
+interface ReflowLayoutData {
+	edges: Edge[];
+	nodes: Node[];
+	sunburstRenderData?: SunburstRenderData;
+}
 
 export const useGenerateReflowData = () => {
 	const { nodes, relations } = useCreateRelatedData();
@@ -29,7 +37,7 @@ export const useGenerateReflowData = () => {
 	const beginLayoutCalculation = useAppStore((s) => s.beginLayoutCalculation);
 	const endLayoutCalculation = useAppStore((s) => s.endLayoutCalculation);
 
-	const [layoutedData, setLayoutedData] = useState<{ edges: Edge[]; nodes: Node[] }>({
+	const [layoutedData, setLayoutedData] = useState<ReflowLayoutData>({
 		edges: [],
 		nodes: [],
 	});
@@ -140,7 +148,7 @@ export const useGenerateReflowData = () => {
 				}
 
 				// Build childrenMap early (needed for both ELK Radial and FLAT_RADIAL)
-				let result: { edges: Edge[]; nodes: Node[] };
+				let result: ReflowLayoutData;
 				
 				if (reflowNodes.length === 0) {
 					result = { edges: reflowEdges, nodes: reflowNodes };
@@ -192,7 +200,33 @@ export const useGenerateReflowData = () => {
 					}
 				}
 
-				if (layoutAlgorithm === LayoutAlgorithm.elkRadial) {
+				if (layoutAlgorithm === LayoutAlgorithm.SUNBURST) {
+					const sunburstLayout = buildSunburstLayout({
+						hierarchiesByGroupId,
+						nodeDataById,
+						radialRingDistance,
+						visibleNodeIds,
+					});
+					const layoutNodeById = new Map(sunburstLayout.layoutNodes.map((entry) => [entry.id, entry]));
+
+					const positionedReflowNodes = reflowNodes.map((node) => {
+						const nodeData = node.data as PreviewGraphNodeData;
+						const layoutNode = layoutNodeById.get(nodeData.id);
+
+						return {
+							...node,
+							position: layoutNode ? { x: layoutNode.x, y: layoutNode.y } : { x: 0, y: 0 },
+							sourcePosition: Position.Bottom,
+							targetPosition: Position.Top,
+						};
+					});
+
+					result = {
+						edges: [],
+						nodes: positionedReflowNodes,
+						sunburstRenderData: sunburstLayout.renderData,
+					};
+				} else if (layoutAlgorithm === LayoutAlgorithm.elkRadial) {
 					// Use ELK Radial with the complete tree structure
 					const elkRelations: Edge[] = [];
 					
@@ -484,7 +518,7 @@ export const useGenerateReflowData = () => {
 			active = false;
 			finishLayout();
 		};
-	}, [reflowNodes, reflowEdges, layoutAlgorithm, radialRingDistance, showGroupTypes, beginLayoutCalculation, endLayoutCalculation, relations]);
+	}, [reflowNodes, reflowEdges, layoutAlgorithm, radialRingDistance, showGroupTypes, beginLayoutCalculation, endLayoutCalculation, relations, hierarchiesByGroupId]);
 
 	return { ...layoutedData, isCalculating };
 };

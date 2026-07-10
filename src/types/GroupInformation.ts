@@ -2,6 +2,7 @@ import type { ChatStatus } from './ChatStatus';
 import type { GroupStatus } from './GroupStatus';
 
 export interface GroupInformation {
+	[key: string]: unknown;
 	ageGroupIds: number[];
 	campusId: number;
 	chatStatus: ChatStatus;

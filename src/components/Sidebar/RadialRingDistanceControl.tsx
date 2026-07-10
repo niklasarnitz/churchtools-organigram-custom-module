@@ -15,7 +15,7 @@ export const RadialRingDistanceControl = React.memo(() => {
 		[setRadialRingDistance],
 	);
 
-	// Only show when FLAT_RADIAL is active
+	// Only show when a radial layout is active
 	if (layoutAlgorithm !== LayoutAlgorithm.FLAT_RADIAL) {
 		return null;
 	}
@@ -35,7 +35,9 @@ export const RadialRingDistanceControl = React.memo(() => {
 				type="range"
 				value={radialRingDistance}
 			/>
-			<div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Min: 300px — Max: 500px</div>
+			<div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+				Min: 300px — Max: 500px
+			</div>
 		</div>
 	);
 });

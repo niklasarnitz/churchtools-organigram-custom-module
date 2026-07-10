@@ -4,11 +4,25 @@
 			"version": "1.6.0-bwl21",
 			"date": "2026-07-10",
 			"changes": [
+				"Die lokale Entwicklung verwendet verbindlich den Vite-Standardport 5173.",
 				"Organigramm wird nun auch ohne Berechtigung \"administer persons\" gerendert (ohne Leiter-Namen)",
 				"GroupMembers-Query wird gar nicht erst gestartet, wenn die Berechtigung fehlt - keine unnoetigen API-Aufrufe",
 				"Globaler Retry-Schutz: 403 Forbidden wird nie retried (fuer alle Queries)",
 				"Neuer Schalter \"Leiter anzeigen\" in den Darstellungsoptionen zum Ein-/Ausblenden der Mitglieder auf den Karten",
-				"Warnungs-Banner zeigt nur noch an, dass Personendaten fehlen, wenn Leiter angezeigt werden sollen"
+				"Warnungs-Banner zeigt nur noch an, dass Personendaten fehlen, wenn Leiter angezeigt werden sollen",
+				"Neuer Sunburst-Layoutmodus mit d3-hierarchy-basierter Segmentberechnung fuer grosse Hierarchien",
+				"Sunburst rendert direkt im bestehenden WebGL/Canvas-Pfad mit Hover, Hit-Testing und Tooltip-Pfaden",
+				"Mehrfach-Obergruppen werden im Sunburst ueber eine primaere Obergruppe mit ChurchTools-Feld oder Fallback-Regel aufgeloest",
+				"Sunburst-Beschriftungen sind groesser, koennen auf zwei Zeilen umbrechen und Geschwistersegmente unterscheiden sich farblich staerker.",
+				"Sunburst nutzt ein kleineres Donutloch und mehr Flaeche fuer groessere Beschriftungen.",
+				"Der Ringbreiten-Regler beeinflusst im Sunburst sichtbar die Breite der Hierarchieebenen bei konstantem Zwischenraum.",
+				"Auch enge Sunburst-Segmente zeigen nun skalierbare Kleinschrift, die beim Hineinzoomen besser lesbar wird.",
+				"Sunburst-Beschriftungen nutzen eine groessere Skalierung fuer bessere Lesbarkeit.",
+				"Beschriftungen grosser Sunburst-Segmente folgen nun dem Kreisbogen; schmale Segmente bleiben radial lesbar.",
+				"Der Ringbreiten-Regler behaelt beim Neuberechnen die Kameraansicht bei und wirkt dadurch sichtbar.",
+				"Der nicht aussagekraeftige Ringbreiten-Regler wird im Sunburst-Modus nicht mehr angezeigt.",
+				"Sunburst-Ringe liegen nun ohne Zwischenraum nahtlos aneinander.",
+				"Untergruppen fuellen nun den Winkel ihrer Obergruppe vollstaendig aus."
 			]
 		},
 		{

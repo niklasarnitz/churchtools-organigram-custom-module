@@ -31,6 +31,7 @@ export const layoutElk = async (
 		[LayoutAlgorithm.elkMrTree]: 'mrtree',
 		[LayoutAlgorithm.elkRadial]: 'radial',
 		[LayoutAlgorithm.FLAT_RADIAL]: 'layered', // Not used for FLAT_RADIAL, but needed for type completeness
+		[LayoutAlgorithm.SUNBURST]: 'layered', // Sunburst uses d3-hierarchy instead of ELK
 	};
 
 	const isVertical =

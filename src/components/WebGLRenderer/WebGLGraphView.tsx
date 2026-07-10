@@ -6,6 +6,7 @@ import { Item, Menu, useContextMenu } from 'react-contexify';
 
 import type { PreviewGraphNodeData } from '../../types/GraphNode';
 import type { Node } from '../../types/GraphTypes';
+import type { SunburstInteractionMeta } from '../../types/Sunburst';
 
 import { Constants } from '../../globals/Constants';
 import { Logger } from '../../globals/Logger';
@@ -20,6 +21,12 @@ interface ContextMenuProps {
 	groupId: number;
 }
 
+interface HoverTooltipState {
+	clientX: number;
+	clientY: number;
+	meta: SunburstInteractionMeta;
+}
+
 const DRAG_SUPPRESS_CLICK_THRESHOLD = 4;
 
 export const WebGLGraphView = React.memo(() => {
@@ -31,6 +38,7 @@ export const WebGLGraphView = React.memo(() => {
 	const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const isDarkMode = useIsDarkMode();
+	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
 
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const engineRef = useRef<null | WebGLGraphEngine>(null);
@@ -43,14 +51,17 @@ export const WebGLGraphView = React.memo(() => {
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
 	const isPanning = useRef(false);
+	const previousSunburstRenderRingWidth = useRef<number | undefined>(undefined);
 
 	// Camera state for minimap reactivity
 	const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
+	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
 
 	const { show } = useContextMenu({
 		id: Constants.contextMenuId,
 	});
+	const containerRect = containerRef.current?.getBoundingClientRect();
 
 	// Initialize engine
 	useEffect(() => {
@@ -81,13 +92,35 @@ export const WebGLGraphView = React.memo(() => {
 		const engine = engineRef.current;
 		if (!engine || data.nodes.length === 0) return;
 
-		engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes, isDarkMode);
+		engine.setData(
+			data.nodes as Node<PreviewGraphNodeData>[],
+			data.edges,
+			showGroupTypes,
+			isDarkMode,
+			data.sunburstRenderData,
+		);
 
-		// Fit view immediately after data is set
-		engine.fitView(0.05);
+		const renderedRingWidth = data.sunburstRenderData?.ringWidth;
+		const changedOnlyRingWidth =
+			renderedRingWidth !== undefined &&
+			previousSunburstRenderRingWidth.current !== undefined &&
+			previousSunburstRenderRingWidth.current !== renderedRingWidth;
+
+		// Preserve the current zoom when the Sunburst ring width changes. Otherwise
+		// auto-fitting would scale the wider rings straight back to the same screen size.
+		if (!changedOnlyRingWidth) {
+			engine.fitView(0.05);
+		}
+		previousSunburstRenderRingWidth.current = renderedRingWidth;
 		const cam = engine.getCamera();
 		setCameraState(cam);
-	}, [data.nodes, data.edges, showGroupTypes, isDarkMode]);
+	}, [
+		data.nodes,
+		data.edges,
+		data.sunburstRenderData,
+		isDarkMode,
+		showGroupTypes,
+	]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
@@ -161,11 +194,25 @@ export const WebGLGraphView = React.memo(() => {
 
 	const handlePointerMove = useCallback(
 		(e: React.PointerEvent) => {
-			if (activePointers.current.size === 0) return;
-
 			const engine = engineRef.current;
 			const canvas = canvasRef.current;
 			if (!engine || !canvas) return;
+
+			if (activePointers.current.size === 0) {
+				const rect = canvas.getBoundingClientRect();
+				const hit = engine.hitTest(e.clientX - rect.left, e.clientY - rect.top);
+				engine.setHoveredNodeId(hit?.node.id ?? null);
+				setHoverTooltip(
+					hit?.interactionMeta
+						? {
+								clientX: e.clientX,
+								clientY: e.clientY,
+								meta: hit.interactionMeta,
+							}
+						: null,
+				);
+				return;
+			}
 
 			const prevPointer = activePointers.current.get(e.pointerId);
 			if (!prevPointer) return;
@@ -182,6 +229,8 @@ export const WebGLGraphView = React.memo(() => {
 			}
 
 			if (activePointers.current.size === 1 && isPanning.current) {
+				engine.setHoveredNodeId(null);
+				setHoverTooltip(null);
 				// Single-finger panning
 				const dx = e.clientX - prevPointer.x;
 				const dy = e.clientY - prevPointer.y;
@@ -194,6 +243,8 @@ export const WebGLGraphView = React.memo(() => {
 				});
 				updateCameraState();
 			} else if (activePointers.current.size === 2) {
+				engine.setHoveredNodeId(null);
+				setHoverTooltip(null);
 				// Two-finger pinch to zoom
 				const pointers = Array.from(activePointers.current.values());
 				const currentDistance = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
@@ -285,6 +336,12 @@ export const WebGLGraphView = React.memo(() => {
 		}
 	}, []);
 
+	const handlePointerLeave = useCallback(() => {
+		const engine = engineRef.current;
+		engine?.setHoveredNodeId(null);
+		setHoverTooltip(null);
+	}, []);
+
 	const handleContextMenu = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -316,6 +373,8 @@ export const WebGLGraphView = React.memo(() => {
 			e.preventDefault();
 			const engine = engineRef.current;
 			if (!engine) return;
+			engine.setHoveredNodeId(null);
+			setHoverTooltip(null);
 
 			const rect = canvas.getBoundingClientRect();
 			const mouseX = e.clientX - rect.left;
@@ -492,11 +551,34 @@ export const WebGLGraphView = React.memo(() => {
 				onContextMenu={handleContextMenu}
 				onPointerCancel={handlePointerUp}
 				onPointerDown={handlePointerDown}
+				onPointerLeave={handlePointerLeave}
 				onPointerMove={handlePointerMove}
 				onPointerUp={handlePointerUp}
 				ref={canvasRef}
 				style={{ display: 'block' }}
 			/>
+
+			{hoverTooltip ? (
+				<div
+					className="pointer-events-none absolute z-20 max-w-sm rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200"
+					style={{
+						left: hoverTooltip.clientX - (containerRect?.left ?? 0) + 14,
+						top: hoverTooltip.clientY - (containerRect?.top ?? 0) + 14,
+					}}
+				>
+					<div className="font-semibold text-slate-900 dark:text-slate-50">{hoverTooltip.meta.title}</div>
+					<div className="mt-1">{hoverTooltip.meta.pathTitles.join(' -> ')}</div>
+					<div className="mt-1 text-slate-500 dark:text-slate-400">
+						Primärobergruppe:{' '}
+						{hoverTooltip.meta.primaryParentSource === 'churchtools-field' ? 'Feld' : 'Fallback'}
+					</div>
+					{hoverTooltip.meta.alternateParentTitles.length > 0 ? (
+						<div className="mt-1 text-slate-500 dark:text-slate-400">
+							Weitere Obergruppen: {hoverTooltip.meta.alternateParentTitles.join(', ')}
+						</div>
+					) : null}
+				</div>
+			) : null}
 
 			{/* Context Menu - reuse same IDs */}
 			<Menu animation="scale" id={Constants.contextMenuId}>

@@ -22,6 +22,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
+		"d3-hierarchy": "^3.1.2",
 		"dom-to-svg": "^0.12.2",
 		"elkjs": "^0.11.0",
 		"jspdf": "^4.2.0",

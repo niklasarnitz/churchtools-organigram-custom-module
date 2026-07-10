@@ -4,4 +4,5 @@ export enum LayoutAlgorithm {
 	elkMrTree = 'elkMrTree',
 	elkRadial = 'elkRadial',
 	FLAT_RADIAL = 'FLAT_RADIAL',
+	SUNBURST = 'SUNBURST',
 }

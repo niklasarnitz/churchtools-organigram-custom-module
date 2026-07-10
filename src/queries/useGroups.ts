@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Group } from '../types/Group';
 
 import { Logger } from '../globals/Logger';
+import { extractConfiguredPrimaryParentGroupId } from '../helpers/sunburstLayout';
 import { useAppStore } from '../state/useAppStore';
 
 export const useGroups = () => {
@@ -34,7 +35,11 @@ export const useGroups = () => {
 			}
 
 			const queryString = params.length > 0 ? `?${params.join('&')}` : '';
-			return churchtoolsClient.getAllPages<Group>(`/groups${queryString}`);
+			const groups = await churchtoolsClient.getAllPages<Group>(`/groups${queryString}`);
+			return groups.map((group) => ({
+				...group,
+				sunburstPrimaryParentGroupId: extractConfiguredPrimaryParentGroupId(group),
+			}));
 		},
 		queryKey: [
 			'groups',
