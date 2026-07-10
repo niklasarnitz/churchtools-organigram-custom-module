@@ -6,13 +6,17 @@ import type { GroupMember } from '../types/GroupMember';
 import { Logger } from '../globals/Logger';
 import { useFilteredGroupIds } from '../selectors/useFilteredGroupIds';
 import { useAppStore } from '../state/useAppStore';
+import { usePermissions } from './usePermissions';
 
 export const useGroupMembers = () => {
 	const filteredGroupIds = useFilteredGroupIds();
 	const committedFilters = useAppStore((s) => s.committedFilters);
+	const { data: permissions } = usePermissions();
+	const canAdministerPersons = permissions?.churchcore['administer persons'] ?? false;
+	const showLeaders = useAppStore((s) => s.showLeaders);
 
 	return useQuery({
-		enabled: !!committedFilters && filteredGroupIds.length > 0,
+		enabled: !!committedFilters && filteredGroupIds.length > 0 && canAdministerPersons && showLeaders,
 		queryFn: async () => {
 			if (filteredGroupIds.length === 0) return [];
 

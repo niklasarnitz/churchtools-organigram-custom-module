@@ -24,6 +24,7 @@ export interface UserSettings {
 	layoutAlgorithm: LayoutAlgorithm;
 	maxDepth: number | undefined;
 	showGroupTypes: boolean;
+	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
 }
 

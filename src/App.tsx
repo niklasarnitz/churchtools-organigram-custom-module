@@ -13,6 +13,12 @@ const queryClient = new QueryClient({
 		queries: {
 			gcTime: 1000 * 60 * 60 * 24, // 24 hours
 			refetchOnWindowFocus: false,
+			retry: (failureCount, error) => {
+				// Never retry on 403 Forbidden - missing permissions will not change
+				const status = (error as { response?: { status?: number } }).response?.status;
+				if (status === 403) return false;
+				return failureCount < 3;
+			},
 			staleTime: 1000 * 60 * 5, // 5 minutes
 		},
 	},

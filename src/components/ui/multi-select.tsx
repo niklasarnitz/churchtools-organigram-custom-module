@@ -13,13 +13,14 @@ export interface MultiSelectOption {
 
 export interface MultiSelectProps {
 	className?: string;
+	disabled?: boolean;
 	onChange: (value: string[]) => void;
 	options: MultiSelectOption[];
 	placeholder?: string;
 	value: string[];
 }
 
-export function MultiSelect({ className, onChange, options, placeholder, value }: MultiSelectProps) {
+export function MultiSelect({ className, disabled, onChange, options, placeholder, value }: MultiSelectProps) {
 	const [open, setOpen] = React.useState(false);
 
 	const handleSelect = React.useCallback(
@@ -38,8 +39,14 @@ export function MultiSelect({ className, onChange, options, placeholder, value }
 			<PopoverTrigger asChild>
 				<Button
 					aria-expanded={open}
-					className={cn('h-auto min-h-9 w-full justify-between font-normal', className)}
+					className={cn(
+						'h-auto min-h-9 w-full justify-between font-normal',
+						disabled && 'cursor-not-allowed opacity-50',
+						className,
+					)}
+					disabled={disabled}
 					onClick={() => {
+						if (disabled) return;
 						setOpen(!open);
 					}}
 					role="combobox"

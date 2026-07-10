@@ -1,9 +1,11 @@
 import _ from 'lodash';
 import React, { useCallback, useMemo } from 'react';
 
+import { cn } from '../../lib/utils';
 import { useGroupRoles } from '../../queries/useGroupRoles';
 import { useGroups } from '../../queries/useGroups';
 import { useGroupTypes } from '../../queries/useGroupTypes';
+import { usePermissions } from '../../queries/usePermissions';
 import { usePersonMasterData } from '../../queries/usePersonMasterData';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
@@ -51,6 +53,14 @@ export const ExclusionFilters = React.memo(() => {
 	const setFilteredGroupCategoryIds = useAppStore((s) => s.setFilteredGroupCategoryIds);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
+	const showLeaders = useAppStore((s) => s.showLeaders);
+	const setShowLeaders = useAppStore((s) => s.setShowLeaders);
+	const { data: permissions } = usePermissions();
+	const canAdministerPersons = permissions?.churchcore['administer persons'] ?? false;
+	const rolesDisabled = !showLeaders || !canAdministerPersons;
+	const rolesDisabledReason = !showLeaders
+		? 'Aktiviere „Mitglieder anzeigen“, um Rollen zu filtern'
+		: 'Fehlende Berechtigung „Personen verwalten” (administer persons)';
 	const maxDepth = useAppStore((s) => s.maxDepth);
 	const setMaxDepth = useAppStore((s) => s.setMaxDepth);
 	const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
@@ -198,11 +208,17 @@ export const ExclusionFilters = React.memo(() => {
 				/>
 			</div>
 
-			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">
+			<div className="flex flex-col" title={rolesDisabled ? rolesDisabledReason : undefined}>
+				<h5
+					className={cn(
+						'mb-1 text-sm font-semibold text-red-700 dark:text-red-400',
+						rolesDisabled && 'opacity-40',
+					)}
+				>
 					Gruppenrollen ausschließen
 				</h5>
 				<MultiSelect
+					disabled={rolesDisabled}
 					onChange={handleRolesChange}
 					options={roleOptions}
 					placeholder="Keine Gruppenrollen ausgeschlossen"
@@ -260,6 +276,11 @@ export const ExclusionFilters = React.memo(() => {
 					<div className="flex flex-row items-center gap-x-2">
 						<Switch checked={showGroupTypes} onCheckedChange={setShowGroupTypes} />
 						<span className="text-sm">Gruppentypen anzeigen</span>
+					</div>
+
+					<div className="flex flex-row items-center gap-x-2">
+						<Switch checked={showLeaders} onCheckedChange={setShowLeaders} />
+						<span className="text-sm">Mitglieder anzeigen</span>
 					</div>
 
 					<div className="flex flex-row items-center gap-x-2">
