@@ -217,9 +217,9 @@ export function buildSunburstLayout({
 	const maxDepth = Math.max(...d3Root.descendants().map((node) => node.depth), 1);
 	partition<DisplayTreeNode>().size([Math.PI * 2, maxDepth])(d3Root);
 
-	// Keep the donut hole proportional to the current ring width so the center
-	// matches the original larger layout again while still scaling with the control.
-	const holeRadius = Math.max(radialRingDistance / 2, 40);
+	// Restore the original larger donut center. The ring-width control should
+	// affect the hierarchy bands, not continuously resize the center hole.
+	const holeRadius = radialRingDistance / 2;
 	const ringGap = 0;
 	const segments: SunburstSegmentLayout[] = [];
 	const labels: SunburstLabelLayout[] = [];

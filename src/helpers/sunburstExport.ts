@@ -24,7 +24,7 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 	const segments = renderData.segments
 		.map(
 			(segment) =>
-				`<g><title>${escapeXml(segment.pathTitles.join(' -> '))}</title><path d="${arcPath(segment, center)}" fill="${segment.fillColor}" stroke="${segment.strokeColor}" stroke-width="1"/></g>`,
+				`<g class="export-node export-node--sunburst" data-node-id="${String(segment.nodeId)}"><title>${escapeXml(segment.pathTitles.join(' -> '))}</title><path d="${arcPath(segment, center)}" fill="${segment.fillColor}" stroke="${segment.strokeColor}" stroke-width="1"/></g>`,
 		)
 		.join('');
 	const labels = renderData.labels

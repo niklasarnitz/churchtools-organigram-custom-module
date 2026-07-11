@@ -10,11 +10,12 @@
 				"Sunburst-Beschriftungen passen ihre Zeilenumbrueche und Schriftgroesse jetzt genauer an die verfuegbare Segmentflaeche an.",
 				"Sunburst-Farbvererbung orientiert sich jetzt robust am ersten sichtbaren Astsegment ausserhalb des Donut-Zentrums.",
 				"Gruppenfarben aus ChurchTools werden jetzt bevorzugt aus dem gelieferten Farbnamen uebernommen und nur bei unbekannten Werten durch die Gruppentyp-Palette ersetzt.",
-				"Das Sunburst-Donutloch skaliert wieder groesser und orientiert seinen Durchmesser an der aktuellen Ringbreite.",
+				"Das Sunburst-Donutloch skaliert wieder mit der Ringbreite ueber einen Radius von Ringbreite/2.",
 				"Sunburst-PDF-Exporte versuchen jetzt einen A3-Vektorexport ueber svg2pdf.js statt des bisherigen Rasterbilds.",
 				"Der Sunburst-Vektor-PDF-Export verwendet fuer die Beschriftungen jetzt eine serifenlose PDF-Standardschrift.",
 				"Sunburst-Beschriftungen werden im SVG/PDF-Export leicht kleiner gesetzt, damit sie in PDF-Fonts sauberer in die Segmente passen.",
-				"Die Sunburst-SVG-Erzeugung bleibt zentral an einer Stelle und steuert PDF-spezifische Font-Optionen jetzt nur noch ueber Export-Parameter ein."
+				"Die Sunburst-SVG-Erzeugung bleibt zentral an einer Stelle und steuert PDF-spezifische Font-Optionen jetzt nur noch ueber Export-Parameter ein.",
+				"HTML-Exporte enthalten jetzt wieder Hover-Popups und verlinken die exportierten Gruppen direkt nach ChurchTools."
 			]
 		},
 		{

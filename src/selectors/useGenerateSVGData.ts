@@ -157,7 +157,7 @@ function renderNodeSVG(
 	const rolesWithMembers = d.roles.filter((role) => d.memberNamesByRoleId.has(role.id));
 	const hasMembers = rolesWithMembers.length > 0;
 
-	let svg = `  <g>\n`;
+	let svg = `  <g class="export-node" data-node-id="${String(d.id)}">\n`;
 
 	// Card background
 	svg += `    <rect x="${String(x)}" y="${String(y)}" width="${String(w)}" height="${String(h)}" rx="${String(BORDER_RADIUS)}" fill="#ffffff" stroke="${esc(borderColor)}" stroke-width="${String(BORDER_WIDTH)}"/>\n`;
