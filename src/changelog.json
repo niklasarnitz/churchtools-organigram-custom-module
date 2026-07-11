@@ -6,7 +6,8 @@
 			"changes": [
 				"Sunburst-Segmente orientieren ihre Farbe nun an der Ring-1-Wurzel und werden pro Ebene heller.",
 				"Sunburst-Segmentgrenzen werden mit einer duennen weissen Linie getrennt.",
-				"Die Minimap zeigt im Sunburst-Modus jetzt die Segmente statt einer flachen Knoten-Vorschau."
+				"Die Minimap zeigt im Sunburst-Modus jetzt die Segmente statt einer flachen Knoten-Vorschau.",
+				"Sunburst-Beschriftungen passen ihre Zeilenumbrueche und Schriftgroesse jetzt genauer an die verfuegbare Segmentflaeche an."
 			]
 		},
 		{

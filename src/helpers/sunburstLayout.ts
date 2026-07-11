@@ -467,14 +467,13 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 	const x = radius * Math.cos(angleForText);
 	const y = radius * Math.sin(angleForText);
 	const maximumFontSize = Math.min(40, ringHeight * 0.38);
-	// Narrow segments retain their label at a smaller world-space font size. It scales
-	// naturally with the canvas when people zoom in, while clipping keeps it inside the arc.
-	const fontSize = Math.max(
-		5,
-		Math.min(maximumFontSize, (arcLength / Math.max(segment.title.length * 0.58, 1)) * 1.25),
-	);
-	const maxLineCharacters = Math.max(1, Math.floor(arcLength / (fontSize * 0.58)));
-	const lines = fontSize >= 12 ? wrapLabel(segment.title, maxLineCharacters) : [segment.title];
+	const inlineSpace = Math.max(orientation === 'tangential' ? arcLength * 0.9 : ringHeight * 0.82, 1);
+	const crossSpace = Math.max(orientation === 'tangential' ? ringHeight * 0.82 : arcLength * 0.72, 1);
+	const { fontSize, lines } = fitLabelText(segment.title, {
+		crossSpace,
+		inlineSpace,
+		maximumFontSize,
+	});
 
 	return {
 		fontSize,
@@ -576,6 +575,47 @@ function hslToHex(hue: number, saturation: number, lightness: number): string {
 		.join('')}`;
 }
 
+function fitLabelText(
+	title: string,
+	{ crossSpace, inlineSpace, maximumFontSize }: { crossSpace: number; inlineSpace: number; maximumFontSize: number },
+): { fontSize: number; lines: string[] } {
+	const minFontSize = 5;
+	const lineHeightFactor = 1.05;
+	const words = title.trim().split(/\s+/).filter(Boolean);
+	if (words.length === 0) return { fontSize: minFontSize, lines: [] };
+
+	const maxLines = Math.max(1, Math.min(words.length, Math.floor(crossSpace / (minFontSize * lineHeightFactor))));
+	let bestFontSize = 0;
+	let bestLines = [title];
+
+	for (let lineCount = 1; lineCount <= maxLines; lineCount += 1) {
+		const lines = wrapLabelBalanced(words, lineCount);
+		if (lines.length === 0) continue;
+
+		const widestLine = Math.max(...lines.map((line) => estimateTextWidthUnits(line)));
+		if (widestLine <= 0) continue;
+
+		const fontSizeByWidth = inlineSpace / widestLine;
+		const fontSizeByHeight = crossSpace / (1 + (lines.length - 1) * lineHeightFactor);
+		const fontSize = Math.max(minFontSize, Math.min(maximumFontSize, fontSizeByWidth, fontSizeByHeight));
+
+		if (
+			fontSize > bestFontSize + 0.01 ||
+			(Math.abs(fontSize - bestFontSize) <= 0.01 && lines.length > bestLines.length)
+		) {
+			bestFontSize = fontSize;
+			bestLines = lines;
+		}
+	}
+
+	if (bestFontSize === 0) {
+		const fallbackWidth = Math.max(estimateTextWidthUnits(title), 1);
+		bestFontSize = Math.max(minFontSize, Math.min(maximumFontSize, inlineSpace / fallbackWidth));
+	}
+
+	return { fontSize: bestFontSize, lines: bestLines };
+}
+
 function wrapLabel(title: string, maxLineCharacters: number): string[] {
 	const words = title.trim().split(/\s+/).filter(Boolean);
 	if (words.length === 0) return [];
@@ -593,6 +633,80 @@ function wrapLabel(title: string, maxLineCharacters: number): string[] {
 	}
 	if (currentLine) lines.push(currentLine);
 	return lines;
+}
+
+function wrapLabelBalanced(words: string[], lineCount: number): string[] {
+	if (words.length === 0) return [];
+	if (lineCount <= 1 || words.length === 1) return [words.join(' ')];
+
+	const memo = new Map<string, { lines: string[]; score: number }>();
+	const totalWordCount = words.length;
+
+	const partition = (startIndex: number, remainingLines: number): { lines: string[]; score: number } => {
+		const memoKey = `${String(startIndex)}:${String(remainingLines)}`;
+		const cached = memo.get(memoKey);
+		if (cached) return cached;
+
+		const remainingWords = totalWordCount - startIndex;
+		if (remainingLines <= 1 || remainingWords <= 1) {
+			const line = words.slice(startIndex).join(' ');
+			const result = { lines: [line], score: estimateTextWidthUnits(line) };
+			memo.set(memoKey, result);
+			return result;
+		}
+
+		let bestResult: undefined | { lines: string[]; score: number };
+		const maxBreakIndex = totalWordCount - remainingLines + 1;
+		for (let endIndex = startIndex + 1; endIndex <= maxBreakIndex; endIndex += 1) {
+			const line = words.slice(startIndex, endIndex).join(' ');
+			const lineWidth = estimateTextWidthUnits(line);
+			const next = partition(endIndex, remainingLines - 1);
+			const score = Math.max(lineWidth, next.score);
+			if (!bestResult || score < bestResult.score) {
+				bestResult = { lines: [line, ...next.lines], score };
+			}
+		}
+
+		const result = bestResult ?? { lines: [words.slice(startIndex).join(' ')], score: Number.POSITIVE_INFINITY };
+		memo.set(memoKey, result);
+		return result;
+	};
+
+	return partition(0, lineCount).lines;
+}
+
+function estimateTextWidthUnits(text: string): number {
+	let width = 0;
+	for (const character of text) {
+		if (character === ' ') {
+			width += 0.34;
+			continue;
+		}
+
+		if ('ilIjtfr'.includes(character)) {
+			width += 0.34;
+			continue;
+		}
+
+		if ('mwMW@%&QGO'.includes(character)) {
+			width += 0.9;
+			continue;
+		}
+
+		if (/[A-Z0-9]/.test(character)) {
+			width += 0.68;
+			continue;
+		}
+
+		if (/[.,:;!|()[\]/\\-]/.test(character)) {
+			width += 0.38;
+			continue;
+		}
+
+		width += 0.56;
+	}
+
+	return width;
 }
 
 function clampChannel(value: number): number {
