@@ -1,6 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable perfectionist/sort-classes */
+/* eslint-disable perfectionist/sort-modules */
+
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
 import type { Edge, Node } from '../../../types/GraphTypes';
-import type { SunburstInteractionMeta, SunburstRenderData } from '../../../types/Sunburst';
+import type { SunburstInteractionMeta, SunburstRenderData, SunburstSegmentLayout } from '../../../types/Sunburst';
 
 import { oklchToHex } from '../../../globals/Colors';
 import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
@@ -736,8 +740,6 @@ export class WebGLGraphEngine {
 
 		for (const label of renderData.labels) {
 			if (!label.isVisible) continue;
-			const screen = this.worldToScreen(label.x, label.y);
-			if (screen.x < -40 || screen.x > viewW + 40 || screen.y < -20 || screen.y > viewH + 20) continue;
 
 			const segment = renderData.segmentByNodeId[label.nodeId];
 			if (!segment) continue;
@@ -749,16 +751,26 @@ export class WebGLGraphEngine {
 			ctx.arc(0, 0, segment.innerRadius, segment.endAngle - Math.PI / 2, segment.startAngle - Math.PI / 2, true);
 			ctx.closePath();
 			ctx.clip();
-			ctx.translate(label.x, label.y);
-			ctx.rotate((label.rotation * Math.PI) / 180);
 			ctx.font = `${isHighlighted ? '600' : '500'} ${String(label.fontSize)}px Lato, sans-serif`;
-			ctx.textAlign = label.textAlign;
-			ctx.textBaseline = 'middle';
 			ctx.fillStyle = getReadableTextColor(segment.fillColor, this.isDarkMode);
-			const lineHeight = label.fontSize * 1.05;
-			const firstLineY = -((label.lines.length - 1) * lineHeight) / 2;
-			for (const [index, line] of label.lines.entries()) {
-				ctx.fillText(line, 0, firstLineY + index * lineHeight);
+
+			if (label.orientation === 'tangential') {
+				const lineHeight = label.fontSize * 1.05;
+				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
+				for (const [index, line] of label.lines.entries()) {
+					const lineOffset = (index - (label.lines.length - 1) / 2) * lineHeight;
+					drawTextOnArc(ctx, line, textRadiusBase + lineOffset, segment);
+				}
+			} else {
+				ctx.translate(label.x, label.y);
+				ctx.rotate((label.rotation * Math.PI) / 180);
+				ctx.textAlign = label.textAlign;
+				ctx.textBaseline = 'middle';
+				const lineHeight = label.fontSize * 1.05;
+				const firstLineY = -((label.lines.length - 1) * lineHeight) / 2;
+				for (const [index, line] of label.lines.entries()) {
+					ctx.fillText(line, 0, firstLineY + index * lineHeight);
+				}
 			}
 			ctx.restore();
 		}
@@ -862,6 +874,45 @@ export class WebGLGraphEngine {
 			ctx.textBaseline = 'middle';
 			ctx.fillText(`${String(this.fps)} FPS`, viewW - 40, 23);
 		}
+	}
+}
+
+function drawTextOnArc(
+	ctx: CanvasRenderingContext2D,
+	text: string,
+	radius: number,
+	segment: SunburstSegmentLayout,
+): void {
+	if (!text) return;
+
+	const glyphWidths = Array.from(text, (character) => ctx.measureText(character).width);
+	const totalWidth = glyphWidths.reduce((sum, width) => sum + width, 0);
+	if (totalWidth <= 0 || radius <= 0) return;
+
+	const centerAngle = segment.midAngle - Math.PI / 2;
+	const useReversedDirection = Math.sin(centerAngle) > 0;
+	const direction = useReversedDirection ? -1 : 1;
+	let currentAngle = centerAngle - direction * (totalWidth / (2 * radius));
+
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+
+	const characters = Array.from(text);
+	for (const [index, character] of characters.entries()) {
+		const glyphWidth = glyphWidths[index] ?? 0;
+		const glyphAngle = glyphWidth / radius;
+		const angle = currentAngle + direction * (glyphAngle / 2);
+		const point = { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
+		let tangentAngle = angle + Math.PI / 2;
+		if (useReversedDirection) tangentAngle += Math.PI;
+
+		ctx.save();
+		ctx.translate(point.x, point.y);
+		ctx.rotate(tangentAngle);
+		ctx.fillText(character, 0, 0);
+		ctx.restore();
+
+		currentAngle += direction * glyphAngle;
 	}
 }
 

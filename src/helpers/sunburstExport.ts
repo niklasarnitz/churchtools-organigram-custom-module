@@ -15,6 +15,21 @@ export function createSunburstSvg(renderData: SunburstRenderData): string {
 		.filter((label) => label.isVisible)
 		.map((label) => {
 			const segment = renderData.segmentByNodeId[label.nodeId];
+			if (label.orientation === 'tangential') {
+				const lineHeight = label.fontSize * 1.05;
+				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
+				const textPaths = label.lines
+					.map((line, index) => {
+						const lineOffset = (index - (label.lines.length - 1) / 2) * lineHeight;
+						const textRadius = textRadiusBase + lineOffset;
+						const pathId = `sunburst-label-${String(label.nodeId)}-${String(index)}`;
+						const pathData = textArcPath(segment, center, textRadius);
+						return `<path id="${pathId}" d="${pathData}" fill="none"/><text font-family="Lato, sans-serif" font-size="${String(label.fontSize)}" font-weight="500" fill="${readableTextColor(segment.fillColor)}"><textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXml(line)}</textPath></text>`;
+					})
+					.join('');
+				return `<g>${textPaths}</g>`;
+			}
+
 			const lines = label.lines
 				.map(
 					(line, index) =>
@@ -55,16 +70,26 @@ export function renderSunburstToCanvas(
 		ctx.save();
 		traceArc(ctx, segment);
 		ctx.clip();
-		ctx.translate(label.x, label.y);
-		ctx.rotate((label.rotation * Math.PI) / 180);
-		ctx.font = `500 ${String(label.fontSize)}px Lato, sans-serif`;
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'middle';
 		ctx.fillStyle = readableTextColor(segment.fillColor);
-		const lineHeight = label.fontSize * 1.05;
-		const firstLineY = -((label.lines.length - 1) * lineHeight) / 2;
-		for (const [index, line] of label.lines.entries()) {
-			ctx.fillText(line, 0, firstLineY + index * lineHeight);
+		ctx.font = `500 ${String(label.fontSize)}px Lato, sans-serif`;
+
+		if (label.orientation === 'tangential') {
+			const lineHeight = label.fontSize * 1.05;
+			const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
+			for (const [index, line] of label.lines.entries()) {
+				const lineOffset = (index - (label.lines.length - 1) / 2) * lineHeight;
+				drawTextOnArc(ctx, line, textRadiusBase + lineOffset, segment);
+			}
+		} else {
+			ctx.translate(label.x, label.y);
+			ctx.rotate((label.rotation * Math.PI) / 180);
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			const lineHeight = label.fontSize * 1.05;
+			const firstLineY = -((label.lines.length - 1) * lineHeight) / 2;
+			for (const [index, line] of label.lines.entries()) {
+				ctx.fillText(line, 0, firstLineY + index * lineHeight);
+			}
 		}
 		ctx.restore();
 	}
@@ -82,6 +107,45 @@ function arcPath(segment: SunburstSegmentLayout, center: number): string {
 	return `M ${String(outerStart.x)} ${String(outerStart.y)} A ${String(segment.outerRadius)} ${String(segment.outerRadius)} 0 ${String(largeArc)} 1 ${String(outerEnd.x)} ${String(outerEnd.y)} L ${String(innerEnd.x)} ${String(innerEnd.y)} A ${String(segment.innerRadius)} ${String(segment.innerRadius)} 0 ${String(largeArc)} 0 ${String(innerStart.x)} ${String(innerStart.y)} Z`;
 }
 
+function drawTextOnArc(
+	ctx: CanvasRenderingContext2D,
+	text: string,
+	radius: number,
+	segment: SunburstSegmentLayout,
+): void {
+	if (!text) return;
+
+	const glyphWidths = Array.from(text, (character) => ctx.measureText(character).width);
+	const totalWidth = glyphWidths.reduce((sum, width) => sum + width, 0);
+	if (totalWidth <= 0 || radius <= 0) return;
+
+	const centerAngle = segment.midAngle - Math.PI / 2;
+	const useReversedDirection = Math.sin(centerAngle) > 0;
+	const direction = useReversedDirection ? -1 : 1;
+	let currentAngle = centerAngle - direction * (totalWidth / (2 * radius));
+
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+
+	const characters = Array.from(text);
+	for (const [index, character] of characters.entries()) {
+		const glyphWidth = glyphWidths[index] ?? 0;
+		const glyphAngle = glyphWidth / radius;
+		const angle = currentAngle + direction * (glyphAngle / 2);
+		const point = pointAt(radius, angle, 0);
+		let tangentAngle = angle + Math.PI / 2;
+		if (useReversedDirection) tangentAngle += Math.PI;
+
+		ctx.save();
+		ctx.translate(point.x, point.y);
+		ctx.rotate(tangentAngle);
+		ctx.fillText(character, 0, 0);
+		ctx.restore();
+
+		currentAngle += direction * glyphAngle;
+	}
+}
+
 function escapeXml(value: string): string {
 	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -96,6 +160,17 @@ function readableTextColor(hex: string): string {
 	const green = (value >> 8) & 0xff;
 	const blue = value & 0xff;
 	return red * 0.299 + green * 0.587 + blue * 0.114 > 150 ? '#0f172a' : '#ffffff';
+}
+
+function textArcPath(segment: SunburstSegmentLayout, center: number, radius: number): string {
+	const useReversedDirection = Math.sin(segment.midAngle - Math.PI / 2) > 0;
+	const start = useReversedDirection ? segment.endAngle - Math.PI / 2 : segment.startAngle - Math.PI / 2;
+	const end = useReversedDirection ? segment.startAngle - Math.PI / 2 : segment.endAngle - Math.PI / 2;
+	const largeArc = Math.abs(segment.endAngle - segment.startAngle) > Math.PI ? 1 : 0;
+	const sweepFlag = useReversedDirection ? 0 : 1;
+	const startPoint = pointAt(radius, start, center);
+	const endPoint = pointAt(radius, end, center);
+	return `M ${String(startPoint.x)} ${String(startPoint.y)} A ${String(radius)} ${String(radius)} 0 ${String(largeArc)} ${String(sweepFlag)} ${String(endPoint.x)} ${String(endPoint.y)}`;
 }
 
 function traceArc(ctx: CanvasRenderingContext2D, segment: SunburstSegmentLayout): void {
