@@ -34,8 +34,7 @@ if (import.meta.env.DEV) {
 	Logger.log('Running in development mode.');
 
 	// These environment variables are only available during local development
-	const churchToolsUrl =
-		import.meta.env.VITE_CT_URL ?? import.meta.env.VITE_CTURL ?? import.meta.env.REACT_APP_CTURL;
+	const churchToolsUrl = import.meta.env.VITE_CT_URL ?? import.meta.env.VITE_CTURL ?? import.meta.env.REACT_APP_CTURL;
 
 	if (!churchToolsUrl) {
 		throw new Error('VITE_CT_URL is required for local ChurchTools development.');

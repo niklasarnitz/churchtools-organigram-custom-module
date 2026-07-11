@@ -12,7 +12,7 @@ export interface TransformedRayNode {
 /**
  * Visitor pattern to transform the tree into rays
  * Each direct child of root becomes a ray, containing all its descendants in DFS order
- * 
+ *
  * Supports DAG (nodes with multiple parents):
  * Each unique path from root to a node is tracked separately,
  * so nodes with multiple parents appear once per path with correct depth
@@ -25,7 +25,7 @@ export class TreeVisitor {
 	 * Returns a map where:
 	 *   - Key: direct child ID
 	 *   - Value: array of nodes in DFS order for that ray
-	 * 
+	 *
 	 * Nodes are sequentially numbered by their order of appearance (1, 2, 3, ...)
 	 * regardless of hierarchical depth
 	 */
@@ -37,7 +37,7 @@ export class TreeVisitor {
 		this.rays.clear();
 
 		const directChildren = childrenMap.get(rootNode.id) || [];
-		
+
 		if (typeof window !== 'undefined' && (window as any).__DEBUG_TREE_VISITOR) {
 			console.log(`\n=== TreeVisitor.visit() (Sequential numbering per ray) ===`);
 			console.log(`Root: ${rootNode.id} (${rootNode.title})`);
@@ -64,7 +64,7 @@ export class TreeVisitor {
 	/**
 	 * Recursively visit nodes in DFS order along a single ray
 	 * Visible nodes are sequentially numbered (1, 2, 3, ...)
-	 * 
+	 *
 	 * @param node Current node being visited
 	 * @param childrenMap Map of children for each node (includes hidden nodes)
 	 * @param rayNodes Accumulator for visible nodes in this ray
@@ -83,7 +83,9 @@ export class TreeVisitor {
 		// Detect cycles: if we've already visited this node in this ray, skip it
 		if (visitedInRay.has(node.id)) {
 			if (typeof window !== 'undefined' && (window as any).__DEBUG_TREE_VISITOR) {
-				console.log(`  [CYCLE] visitNodeInRay: ${node.id} (${node.title}) already visited in this ray, skipping`);
+				console.log(
+					`  [CYCLE] visitNodeInRay: ${node.id} (${node.title}) already visited in this ray, skipping`,
+				);
 			}
 			return;
 		}
@@ -92,7 +94,7 @@ export class TreeVisitor {
 
 		// Check if this node is visible
 		const isVisible = !visibleNodeIds || visibleNodeIds.has(node.id);
-		
+
 		// Only add VISIBLE nodes to the ray, incrementing their sequential number
 		if (isVisible) {
 			depthCounter.count++;
@@ -103,10 +105,12 @@ export class TreeVisitor {
 		}
 
 		const children = childrenMap.get(node.id) || [];
-		
+
 		if (typeof window !== 'undefined' && (window as any).__DEBUG_TREE_VISITOR) {
 			const vis = isVisible ? '✓' : '✗';
-			console.log(`  [${vis}] visitNodeInRay: ${node.id} (${node.title}), sequenceNumber: ${depthCounter.count}, children: ${children.length}`);
+			console.log(
+				`  [${vis}] visitNodeInRay: ${node.id} (${node.title}), sequenceNumber: ${depthCounter.count}, children: ${children.length}`,
+			);
 			for (const child of children) {
 				const childVis = !visibleNodeIds || visibleNodeIds.has(child.id) ? '✓' : '✗';
 				console.log(`    [${childVis}] child: ${child.id} (${child.title})`);

@@ -35,9 +35,7 @@ export const RadialRingDistanceControl = React.memo(() => {
 				type="range"
 				value={radialRingDistance}
 			/>
-			<div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-				Min: 300px — Max: 500px
-			</div>
+			<div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Min: 300px — Max: 500px</div>
 		</div>
 	);
 });

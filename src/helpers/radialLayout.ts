@@ -20,7 +20,10 @@ export interface PositionedNode extends PreviewGraphNodeData {
  * Flattens a tree hierarchy to a flat list, excluding the root node
  * (deprecated - kept for compatibility but not used in new ray-based layout)
  */
-export function flattenTree(rootNode: PreviewGraphNodeData, childrenMap: Map<number, PreviewGraphNodeData[]>): PreviewGraphNodeData[] {
+export function flattenTree(
+	rootNode: PreviewGraphNodeData,
+	childrenMap: Map<number, PreviewGraphNodeData[]>,
+): PreviewGraphNodeData[] {
 	const flattened: PreviewGraphNodeData[] = [];
 	const queue: PreviewGraphNodeData[] = [...(childrenMap.get(rootNode.id) || [])];
 
@@ -44,7 +47,11 @@ interface NodeWithSubtreeDepth extends PreviewGraphNodeData {
 	__subtreeDepth?: number;
 }
 
-function flattenSubtreeDFS(node: PreviewGraphNodeData, childrenMap: Map<number, PreviewGraphNodeData[]>, depth: number = 1): NodeWithSubtreeDepth[] {
+function flattenSubtreeDFS(
+	node: PreviewGraphNodeData,
+	childrenMap: Map<number, PreviewGraphNodeData[]>,
+	depth: number = 1,
+): NodeWithSubtreeDepth[] {
 	const result: NodeWithSubtreeDepth[] = [{ ...node, __subtreeDepth: depth }];
 	const children = childrenMap.get(node.id) || [];
 	for (const child of children) {
@@ -78,7 +85,7 @@ function calculateNodeDepth(
 
 /**
  * Calculates radial positions for nodes arranged in rays from root
- * 
+ *
  * Algorithm:
  * 1. Each direct child of root gets its own ray/angle
  * 2. For each ray, flatten the subtree in DFS order
@@ -116,7 +123,8 @@ export function calculateRadialPositions(
 	if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
 		console.log(`=== CHILDREN MAP DEBUG (${childrenMap.size} parents) ===`);
 		for (const [parentId, children] of childrenMap) {
-			const parentNode = flattenedNodes.find((n) => n.id === parentId) || (parentId === rootNode.id ? rootNode : null);
+			const parentNode =
+				flattenedNodes.find((n) => n.id === parentId) || (parentId === rootNode.id ? rootNode : null);
 			console.log(`Parent: ${parentId} (${parentNode?.title}), Children: ${children.length}`);
 			if (children.length > 0) {
 				for (const child of children) {
@@ -155,7 +163,9 @@ export function calculateRadialPositions(
 
 	if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
 		console.log(`=== FLAT RADIAL LAYOUT ===`);
-		console.log(`Total nodes: ${flattenedNodes.length}, Max depth: ${maxDepth}, RingDistance: ${(flattenedNodes[0] as any).ringDistance || 'N/A'}`);
+		console.log(
+			`Total nodes: ${flattenedNodes.length}, Max depth: ${maxDepth}, RingDistance: ${(flattenedNodes[0] as any).ringDistance || 'N/A'}`,
+		);
 		console.log(`Root: ${rootNode.id} (${rootNode.title})`);
 		console.log(`Direct children: ${rootDirectChildren.length}`);
 	}
@@ -198,7 +208,9 @@ export function calculateRadialPositions(
 
 			// Debug log
 			if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
-				console.log(`  [${nodeIndex}] Node: ${node.id} (${node.title}), Angle: ${(rayAngle * 180 / Math.PI).toFixed(1)}°, Radius: ${nodeRadius}`);
+				console.log(
+					`  [${nodeIndex}] Node: ${node.id} (${node.title}), Angle: ${((rayAngle * 180) / Math.PI).toFixed(1)}°, Radius: ${nodeRadius}`,
+				);
 			}
 
 			positionedNodes.push({
