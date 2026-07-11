@@ -12,7 +12,7 @@ export function exportRayStructure(
 	let output = '=== RAY STRUCTURE ===\n\n';
 
 	// Group nodes by ray angle
-	const rayMap = new Map<number, { angle: number; nodeId: number; radius: number; }[]>();
+	const rayMap = new Map<number, { angle: number; nodeId: number; radius: number }[]>();
 
 	for (const [nodeId, polar] of nodePolarMap) {
 		// Round angle to nearest 0.1 radian to group nodes on same ray
