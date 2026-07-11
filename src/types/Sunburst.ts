@@ -3,6 +3,32 @@
 
 export type PrimaryParentSource = 'churchtools-field' | 'fallback' | 'root';
 
+export interface SunburstColorDebugEntry {
+	ancestorIds: number[];
+	ancestorTitles: string[];
+	branchRootColor: string;
+	branchRootDepth: number;
+	branchRootId: number;
+	branchRootTitle: string;
+	depth: number;
+	effectiveCenterNodeId?: number;
+	fillColor: string;
+	nodeId: number;
+	nodeTitle: string;
+}
+
+export interface SunburstBaseColorDebugEntry {
+	derivedColor: string;
+	groupColorName?: string;
+	groupName?: string;
+	nodeId: number;
+	nodeTitle?: string;
+	rawColorCandidates?: string[];
+	reason: 'converted' | 'invalid-conversion' | 'missing-node' | 'missing-shade-500';
+	resolvedFromPath?: string;
+	shade500?: string;
+}
+
 export interface SunburstSegmentLayout {
 	endAngle: number;
 	fillColor: string;
@@ -57,6 +83,10 @@ export interface SunburstRenderData {
 		nodeId?: number;
 		radius: number;
 		strokeColor: string;
+	};
+	debug?: {
+		baseColors: SunburstBaseColorDebugEntry[];
+		segments: SunburstColorDebugEntry[];
 	};
 	interactionByNodeId: Record<number, SunburstInteractionMeta>;
 	labelByNodeId: Record<number, SunburstLabelLayout>;

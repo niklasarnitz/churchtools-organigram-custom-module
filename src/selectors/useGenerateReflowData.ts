@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
-import { getColorForGroupType } from '../globals/Colors';
+import { getColorForChurchToolsColor, getColorForGroupType } from '../globals/Colors';
 import { Logger } from '../globals/Logger';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutElk } from '../helpers/layoutAlgorithms/elk';
@@ -109,7 +109,9 @@ export const useGenerateReflowData = () => {
 
 			return {
 				data: {
-					color: getColorForGroupType(node.group.information.groupTypeId),
+					color:
+						getColorForChurchToolsColor(node.group.information.color) ??
+						getColorForGroupType(node.group.information.groupTypeId),
 					group: node.group,
 					groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
 					id: node.group.id,

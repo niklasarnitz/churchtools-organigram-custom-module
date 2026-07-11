@@ -13,6 +13,8 @@ import type { Group } from '../types/Group';
 import type { Hierarchy } from '../types/Hierarchy';
 import type {
 	PrimaryParentSource,
+	SunburstBaseColorDebugEntry,
+	SunburstColorDebugEntry,
 	SunburstInteractionMeta,
 	SunburstLabelLayout,
 	SunburstRenderData,
@@ -215,9 +217,9 @@ export function buildSunburstLayout({
 	const maxDepth = Math.max(...d3Root.descendants().map((node) => node.depth), 1);
 	partition<DisplayTreeNode>().size([Math.PI * 2, maxDepth])(d3Root);
 
-	// A fixed center lets the ring-distance setting visibly change the hierarchy proportions
-	// even though the camera always fits the complete sunburst into the viewport.
-	const holeRadius = 120;
+	// Keep the donut hole proportional to the current ring width so the center
+	// matches the original larger layout again while still scaling with the control.
+	const holeRadius = Math.max(radialRingDistance / 2, 40);
 	const ringGap = 0;
 	const segments: SunburstSegmentLayout[] = [];
 	const labels: SunburstLabelLayout[] = [];
@@ -226,17 +228,21 @@ export function buildSunburstLayout({
 	const segmentByNodeId: Record<number, SunburstSegmentLayout> = {};
 	const layoutNodes: Array<{ id: number; x: number; y: number }> = [];
 	const branchRootColorByNodeId = new Map<number, string>();
+	const sunburstDebugEnabled = import.meta.env.DEV;
+	const sunburstBaseColorDebugEntries: SunburstBaseColorDebugEntry[] = [];
+	const sunburstColorDebugEntries: SunburstColorDebugEntry[] = [];
 
 	for (const descendant of d3Root.descendants() as HierarchyRectangularNode<DisplayTreeNode>[]) {
 		if (descendant.data.id === VIRTUAL_ROOT_ID) continue;
 
 		const nodeId = descendant.data.id;
-		const branchRootNode = descendant.ancestors().find((entry) => entry.depth === 1);
+		const branchRootNode = findVisibleBranchRootNode(descendant, effectiveCenterNodeId);
 		if (!branchRootNode) continue;
 
 		const branchRootId = branchRootNode.data.id;
 		const branchRootColor =
-			branchRootColorByNodeId.get(branchRootId) ?? deriveBaseNodeColor(branchRootId, nodeDataById);
+			branchRootColorByNodeId.get(branchRootId) ??
+			deriveBaseNodeColor(branchRootId, nodeDataById, sunburstBaseColorDebugEntries);
 		branchRootColorByNodeId.set(branchRootId, branchRootColor);
 
 		const parentId = primaryParentByNodeId.get(nodeId);
@@ -254,6 +260,29 @@ export function buildSunburstLayout({
 		if (!nodeData) continue;
 
 		const fillColor = deriveSegmentColor(branchRootColor, depth - branchRootNode.depth);
+		if (sunburstDebugEnabled) {
+			sunburstColorDebugEntries.push({
+				ancestorIds: descendant
+					.ancestors()
+					.map((entry) => entry.data.id)
+					.filter((id) => id !== VIRTUAL_ROOT_ID)
+					.reverse(),
+				ancestorTitles: descendant
+					.ancestors()
+					.map((entry) => entry.data.title)
+					.filter((title) => title !== VIRTUAL_ROOT_TITLE)
+					.reverse(),
+				branchRootColor,
+				branchRootDepth: branchRootNode.depth,
+				branchRootId,
+				branchRootTitle: branchRootNode.data.title,
+				depth,
+				effectiveCenterNodeId,
+				fillColor,
+				nodeId,
+				nodeTitle: nodeData.title,
+			});
+		}
 		const strokeColor = deriveSeparatorColor();
 		const primaryParentSource = primaryParentSourceByNodeId.get(nodeId) ?? 'fallback';
 		const pathNodeIds = descendant
@@ -367,6 +396,12 @@ export function buildSunburstLayout({
 						nodeId: effectiveCenterNodeId,
 						radius: holeRadius - 8,
 						strokeColor: centerNodeStrokeColor,
+					}
+				: undefined,
+			debug: sunburstDebugEnabled
+				? {
+						baseColors: sunburstBaseColorDebugEntries,
+						segments: sunburstColorDebugEntries,
 					}
 				: undefined,
 			interactionByNodeId,
@@ -489,6 +524,16 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 	};
 }
 
+function findVisibleBranchRootNode(
+	descendant: HierarchyRectangularNode<DisplayTreeNode>,
+	effectiveCenterNodeId?: number,
+): HierarchyRectangularNode<DisplayTreeNode> | undefined {
+	return descendant
+		.ancestors()
+		.toReversed()
+		.find((entry) => entry.data.id !== VIRTUAL_ROOT_ID && entry.data.id !== effectiveCenterNodeId);
+}
+
 function deriveSegmentColor(baseColor: string, depthOffset: number): string {
 	return lightenHexColor(baseColor, depthOffset);
 }
@@ -526,9 +571,66 @@ function lightenHexColor(hexColor: string, depthOffset: number): string {
 	);
 }
 
-function deriveBaseNodeColor(nodeId: number, nodeDataById: Map<number, PreviewGraphNodeData>): string {
+function deriveBaseNodeColor(
+	nodeId: number,
+	nodeDataById: Map<number, PreviewGraphNodeData>,
+	debugEntries?: SunburstBaseColorDebugEntry[],
+): string {
 	const nodeData = nodeDataById.get(nodeId);
-	return nodeData?.color.shades[500] ? oklchToHex(nodeData.color.shades[500]) : '#94a3b8';
+	if (!nodeData) {
+		debugEntries?.push({
+			derivedColor: '#94a3b8',
+			nodeId,
+			reason: 'missing-node',
+		});
+		return '#94a3b8';
+	}
+
+	const shade500 = nodeData.color.shades[500];
+	const churchToolsColorName = nodeData.group.information.color;
+	if (!shade500) {
+		debugEntries?.push({
+			derivedColor: '#94a3b8',
+			groupColorName: churchToolsColorName,
+			groupName: nodeData.group?.name,
+			nodeId,
+			nodeTitle: nodeData.title,
+			rawColorCandidates: churchToolsColorName ? [`information.color=${churchToolsColorName}`] : [],
+			reason: 'missing-shade-500',
+			resolvedFromPath: churchToolsColorName ? 'information.color' : undefined,
+		});
+		return '#94a3b8';
+	}
+
+	const derivedColor = shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
+	const normalizedColor = derivedColor.trim().toLowerCase();
+	if (!normalizedColor.startsWith('#') || normalizedColor.length !== 7) {
+		debugEntries?.push({
+			derivedColor,
+			groupColorName: churchToolsColorName,
+			groupName: nodeData.group?.name,
+			nodeId,
+			nodeTitle: nodeData.title,
+			rawColorCandidates: churchToolsColorName ? [`information.color=${churchToolsColorName}`] : [],
+			reason: 'invalid-conversion',
+			resolvedFromPath: churchToolsColorName ? 'information.color' : undefined,
+			shade500,
+		});
+		return '#94a3b8';
+	}
+
+	debugEntries?.push({
+		derivedColor: normalizedColor,
+		groupColorName: churchToolsColorName,
+		groupName: nodeData.group?.name,
+		nodeId,
+		nodeTitle: nodeData.title,
+		rawColorCandidates: churchToolsColorName ? [`information.color=${churchToolsColorName}`] : [],
+		reason: 'converted',
+		resolvedFromPath: churchToolsColorName ? 'information.color' : undefined,
+		shade500,
+	});
+	return normalizedColor;
 }
 
 function hexToHsl(hexColor: string): { hue: number; lightness: number; saturation: number } {

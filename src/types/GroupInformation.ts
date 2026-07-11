@@ -6,6 +6,7 @@ export interface GroupInformation {
 	ageGroupIds: number[];
 	campusId: number;
 	chatStatus: ChatStatus;
+	color?: string;
 	groupCategoryId: number;
 	groupStatusId: GroupStatus;
 	groupTypeId: number;

@@ -6,7 +6,7 @@ import { Item, Menu, useContextMenu } from 'react-contexify';
 
 import type { PreviewGraphNodeData } from '../../types/GraphNode';
 import type { Node } from '../../types/GraphTypes';
-import type { SunburstInteractionMeta } from '../../types/Sunburst';
+import type { SunburstBaseColorDebugEntry, SunburstInteractionMeta } from '../../types/Sunburst';
 
 import { Constants } from '../../globals/Constants';
 import { Logger } from '../../globals/Logger';
@@ -28,6 +28,16 @@ interface HoverTooltipState {
 }
 
 const DRAG_SUPPRESS_CLICK_THRESHOLD = 4;
+
+function getSunburstDebugEntries(entries: SunburstBaseColorDebugEntry[]): SunburstBaseColorDebugEntry[] {
+	return [...entries].sort((left, right) => {
+		if (left.reason !== right.reason) {
+			return left.reason === 'converted' ? 1 : -1;
+		}
+
+		return (left.nodeTitle ?? '').localeCompare(right.nodeTitle ?? '');
+	});
+}
 
 export const WebGLGraphView = React.memo(() => {
 	const data = useGenerateReflowData();
@@ -57,6 +67,9 @@ export const WebGLGraphView = React.memo(() => {
 	const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
+	const sunburstDebugEntries = data.sunburstRenderData?.debug?.baseColors
+		? getSunburstDebugEntries(data.sunburstRenderData.debug.baseColors)
+		: [];
 
 	const { show } = useContextMenu({
 		id: Constants.contextMenuId,
@@ -572,6 +585,67 @@ export const WebGLGraphView = React.memo(() => {
 							Weitere Obergruppen: {hoverTooltip.meta.alternateParentTitles.join(', ')}
 						</div>
 					) : null}
+				</div>
+			) : null}
+
+			{import.meta.env.DEV && sunburstDebugEntries.length > 0 ? (
+				<div className="absolute top-16 right-4 z-30 max-h-[55vh] w-[28rem] overflow-auto rounded-xl border border-slate-200 bg-white/95 p-3 text-[11px] text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200">
+					<div className="mb-2 flex items-center justify-between gap-3">
+						<div>
+							<div className="font-semibold text-slate-900 dark:text-slate-50">Sunburst-Farbdebug</div>
+							<div className="text-slate-500 dark:text-slate-400">
+								Ring-1-Farbquellen aus ChurchTools und internem Mapping
+							</div>
+						</div>
+						<div className="text-right text-slate-500 dark:text-slate-400">
+							{sunburstDebugEntries.length} Aeste
+						</div>
+					</div>
+					<div className="space-y-2">
+						{sunburstDebugEntries.map((entry) => (
+							<div
+								className={`rounded-lg border p-2 ${
+									entry.reason === 'converted'
+										? 'border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70'
+										: 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30'
+								}`}
+								key={entry.nodeId}
+							>
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="truncate font-medium text-slate-900 dark:text-slate-50">
+											{entry.nodeTitle ?? `#${String(entry.nodeId)}`}
+										</div>
+										<div className="truncate text-slate-500 dark:text-slate-400">
+											CT: {entry.groupColorName ?? 'keine erkannte CT-Farbe'} | Grund:{' '}
+											{entry.reason}
+										</div>
+									</div>
+									<div
+										className="mt-0.5 h-5 w-5 shrink-0 rounded border border-slate-300 dark:border-slate-600"
+										style={{ backgroundColor: entry.derivedColor }}
+										title={entry.derivedColor}
+									/>
+								</div>
+								<div className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-slate-600 dark:text-slate-300">
+									<span className="font-medium">Pfad</span>
+									<span className="truncate">
+										{entry.resolvedFromPath ?? 'kein Farbpfad erkannt'}
+									</span>
+									<span className="font-medium">Shade500</span>
+									<span className="truncate">{entry.shade500 ?? 'fehlt'}</span>
+									<span className="font-medium">Final</span>
+									<span>{entry.derivedColor}</span>
+									<span className="font-medium">Kandidaten</span>
+									<span className="truncate">
+										{entry.rawColorCandidates && entry.rawColorCandidates.length > 0
+											? entry.rawColorCandidates.join(' | ')
+											: 'keine *color*-Felder im Payload'}
+									</span>
+								</div>
+							</div>
+						))}
+					</div>
 				</div>
 			) : null}
 

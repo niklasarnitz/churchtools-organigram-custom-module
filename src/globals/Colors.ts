@@ -48,10 +48,70 @@ const ctColors = (Object.keys(colors) as (keyof typeof colors)[]).map((name) => 
 	return { key: name, shades: group };
 });
 
+type ChurchToolsColorKey = keyof typeof colors;
+
+const churchToolsColorAliases: Record<string, ChurchToolsColorKey> = {
+	grey: 'gray',
+	slate: 'gray',
+};
+
 const getColorForId = (id: number, seed: number) => {
 	const randomColorIndex = Math.floor(mulberry32(id * seed)() * ctColors.length);
 	return ctColors[randomColorIndex];
 };
+
+export function findChurchToolsColorCandidates(group: Record<string, unknown>): string[] {
+	const candidates: string[] = [];
+	const seen = new Set<string>();
+
+	const pushCandidate = (path: string, value: unknown) => {
+		if (typeof value !== 'string' || value.trim() === '') return;
+		const candidate = `${path}=${value}`;
+		if (seen.has(candidate)) return;
+		seen.add(candidate);
+		candidates.push(candidate);
+	};
+
+	const explicitPaths = [
+		'color',
+		'information.color',
+		'settings.color',
+		'information.groupColor',
+		'settings.groupColor',
+	];
+	for (const path of explicitPaths) {
+		pushCandidate(path, getNestedRecordValue(group, path));
+	}
+
+	for (const [key, value] of Object.entries(group)) {
+		if (/color/i.test(key)) {
+			pushCandidate(key, value);
+		}
+
+		if (value && typeof value === 'object') {
+			for (const [nestedKey, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+				if (/color/i.test(nestedKey)) {
+					pushCandidate(`${key}.${nestedKey}`, nestedValue);
+				}
+			}
+		}
+	}
+
+	return candidates;
+}
+
+export function getColorForChurchToolsColor(colorName?: string) {
+	if (!colorName) return undefined;
+
+	const normalizedColorName = colorName.trim().toLowerCase();
+	const resolvedColorName = churchToolsColorAliases[normalizedColorName] ?? normalizedColorName;
+	if (!(resolvedColorName in colors)) return undefined;
+
+	return {
+		key: resolvedColorName,
+		shades: colors[resolvedColorName],
+	};
+}
 
 export function oklchToHex(input: string): string {
 	const match = /^oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)$/i.exec(input.trim());
@@ -100,6 +160,49 @@ export function oklchToHex(input: string): string {
 			.padStart(2, '0');
 
 	return `#${toHex(r)}${toHex(g)}${toHex(b2)}`;
+}
+
+export function resolveChurchToolsGroupColorName(group: Record<string, unknown>): {
+	candidates: string[];
+	colorName?: string;
+	sourcePath?: string;
+} {
+	const explicitPaths = [
+		'color',
+		'information.color',
+		'settings.color',
+		'information.groupColor',
+		'settings.groupColor',
+	];
+	for (const path of explicitPaths) {
+		const value = getNestedRecordValue(group, path);
+		if (typeof value === 'string' && value.trim() !== '') {
+			return {
+				candidates: findChurchToolsColorCandidates(group),
+				colorName: value,
+				sourcePath: path,
+			};
+		}
+	}
+
+	const candidates = findChurchToolsColorCandidates(group);
+	const fallbackCandidate = candidates.find((candidate) => {
+		const [, value = ''] = candidate.split('=');
+		return getColorForChurchToolsColor(value) !== undefined;
+	});
+
+	return {
+		candidates,
+		colorName: fallbackCandidate?.split('=')[1],
+		sourcePath: fallbackCandidate?.split('=')[0],
+	};
+}
+
+function getNestedRecordValue(record: Record<string, unknown>, path: string): unknown {
+	return path.split('.').reduce<unknown>((current, segment) => {
+		if (!current || typeof current !== 'object') return undefined;
+		return (current as Record<string, unknown>)[segment];
+	}, record);
 }
 
 export const getColorForGroupType = (id: number) => {
