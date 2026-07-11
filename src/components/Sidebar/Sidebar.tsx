@@ -35,6 +35,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 	const { data: hierarchies } = useHierarchies();
 
 	const isExporting = useAppStore((s) => s.isExporting);
+	const setIsExporting = useAppStore((s) => s.setIsExporting);
 
 	const orphanedGroups = useMemo(() => {
 		if (!groups || !hierarchies) return [];
@@ -79,10 +80,15 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 		downloadTextFile(generateHTMLData(), getFileName('html'), document);
 	}, [generateHTMLData, getFileName]);
 
-	const didPressDownloadPDF = useCallback(() => {
-		const doc = generatePDFData();
-		doc.save(getFileName('pdf'));
-	}, [generatePDFData, getFileName]);
+	const didPressDownloadPDF = useCallback(async () => {
+		setIsExporting(true);
+		try {
+			const doc = await generatePDFData();
+			doc.save(getFileName('pdf'));
+		} finally {
+			setIsExporting(false);
+		}
+	}, [generatePDFData, getFileName, setIsExporting]);
 
 	if (isLoading) {
 		return (
@@ -136,7 +142,14 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 						</div>
 					)}
 
-					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadPDF} variant="outline">
+					<Button
+						className="w-full"
+						disabled={isExporting}
+						onClick={() => {
+							void didPressDownloadPDF();
+						}}
+						variant="outline"
+					>
 						<Download className="size-4" />
 						Export als PDF Datei
 					</Button>

@@ -3,8 +3,22 @@
 import type { SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
 
 const EXPORT_PADDING = 80;
+const DEFAULT_EXPORT_OPTIONS: Required<SunburstSvgExportOptions> = {
+	fontFamily: 'Lato, sans-serif',
+	fontScale: 1,
+	fontWeight: '500',
+	target: 'svg',
+};
 
-export function createSunburstSvg(renderData: SunburstRenderData): string {
+export interface SunburstSvgExportOptions {
+	fontFamily?: string;
+	fontScale?: number;
+	fontWeight?: string;
+	target?: 'pdf' | 'svg';
+}
+
+export function createSunburstSvg(renderData: SunburstRenderData, options: SunburstSvgExportOptions = {}): string {
+	const exportOptions = resolveSvgExportOptions(options);
 	const diameter = renderData.maxRadius * 2 + EXPORT_PADDING * 2;
 	const center = renderData.maxRadius + EXPORT_PADDING;
 	const segments = renderData.segments
@@ -17,8 +31,9 @@ export function createSunburstSvg(renderData: SunburstRenderData): string {
 		.filter((label) => label.isVisible)
 		.map((label) => {
 			const segment = renderData.segmentByNodeId[label.nodeId];
+			const exportFontSize = label.fontSize * exportOptions.fontScale;
 			if (label.orientation === 'tangential') {
-				const lineHeight = label.fontSize * 1.05;
+				const lineHeight = exportFontSize * 1.05;
 				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
 				const textPaths = label.lines
 					.map((line, index) => {
@@ -26,7 +41,7 @@ export function createSunburstSvg(renderData: SunburstRenderData): string {
 						const textRadius = textRadiusBase + lineOffset;
 						const pathId = `sunburst-label-${String(label.nodeId)}-${String(index)}`;
 						const pathData = textArcPath(segment, center, textRadius);
-						return `<path id="${pathId}" d="${pathData}" fill="none"/><text font-family="Lato, sans-serif" font-size="${String(label.fontSize)}" font-weight="500" fill="${readableTextColor(segment.fillColor)}"><textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXml(line)}</textPath></text>`;
+						return `<path id="${pathId}" d="${pathData}" fill="none"/><text font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}"><textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXml(line)}</textPath></text>`;
 					})
 					.join('');
 				return `<g>${textPaths}</g>`;
@@ -35,13 +50,15 @@ export function createSunburstSvg(renderData: SunburstRenderData): string {
 			const lines = label.lines
 				.map(
 					(line, index) =>
-						`<tspan x="0" dy="${String(index === 0 ? -((label.lines.length - 1) * label.fontSize * 1.05) / 2 : label.fontSize * 1.05)}">${escapeXml(line)}</tspan>`,
+						`<tspan x="0" dy="${String(index === 0 ? -((label.lines.length - 1) * exportFontSize * 1.05) / 2 : exportFontSize * 1.05)}">${escapeXml(line)}</tspan>`,
 				)
 				.join('');
-			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="middle" dominant-baseline="middle" font-family="Lato, sans-serif" font-size="${String(label.fontSize)}" font-weight="500" fill="${readableTextColor(segment.fillColor)}">${lines}</text></g>`;
+			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="middle" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}">${lines}</text></g>`;
 		})
 		.join('');
-	const centerLabel = renderData.centerLabel ? createCenterLabelSvg(renderData.centerLabel, center) : '';
+	const centerLabel = renderData.centerLabel
+		? createCenterLabelSvg(renderData.centerLabel, center, exportOptions)
+		: '';
 
 	return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${String(diameter)}" height="${String(diameter)}" viewBox="0 0 ${String(diameter)} ${String(diameter)}"><rect width="100%" height="100%" fill="#ffffff"/>${segments}${centerLabel}${labels}</svg>`;
 }
@@ -114,15 +131,20 @@ function arcPath(segment: SunburstSegmentLayout, center: number): string {
 	return `M ${String(outerStart.x)} ${String(outerStart.y)} A ${String(segment.outerRadius)} ${String(segment.outerRadius)} 0 ${String(largeArc)} 1 ${String(outerEnd.x)} ${String(outerEnd.y)} L ${String(innerEnd.x)} ${String(innerEnd.y)} A ${String(segment.innerRadius)} ${String(segment.innerRadius)} 0 ${String(largeArc)} 0 ${String(innerStart.x)} ${String(innerStart.y)} Z`;
 }
 
-function createCenterLabelSvg(centerLabel: NonNullable<SunburstRenderData['centerLabel']>, center: number): string {
-	const lineHeight = centerLabel.fontSize * 1.05;
+function createCenterLabelSvg(
+	centerLabel: NonNullable<SunburstRenderData['centerLabel']>,
+	center: number,
+	exportOptions: Required<SunburstSvgExportOptions>,
+): string {
+	const exportFontSize = centerLabel.fontSize * exportOptions.fontScale;
+	const lineHeight = exportFontSize * 1.05;
 	const lines = centerLabel.lines
 		.map(
 			(line, index) =>
 				`<tspan x="${String(center)}" dy="${String(index === 0 ? -((centerLabel.lines.length - 1) * lineHeight) / 2 : lineHeight)}">${escapeXml(line)}</tspan>`,
 		)
 		.join('');
-	return `<circle cx="${String(center)}" cy="${String(center)}" r="${String(centerLabel.radius)}" fill="${centerLabel.fillColor}" stroke="${centerLabel.strokeColor}" stroke-width="2"/><text x="${String(center)}" y="${String(center)}" text-anchor="middle" dominant-baseline="middle" font-family="Lato, sans-serif" font-size="${String(centerLabel.fontSize)}" font-weight="500" fill="${readableTextColor(centerLabel.fillColor)}">${lines}</text>`;
+	return `<circle cx="${String(center)}" cy="${String(center)}" r="${String(centerLabel.radius)}" fill="${centerLabel.fillColor}" stroke="${centerLabel.strokeColor}" stroke-width="2"/><text x="${String(center)}" y="${String(center)}" text-anchor="middle" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(centerLabel.fillColor)}">${lines}</text>`;
 }
 
 function drawTextOnArc(
@@ -220,4 +242,21 @@ function traceArc(ctx: CanvasRenderingContext2D, segment: SunburstSegmentLayout)
 	ctx.arc(0, 0, segment.outerRadius, segment.startAngle - Math.PI / 2, segment.endAngle - Math.PI / 2);
 	ctx.arc(0, 0, segment.innerRadius, segment.endAngle - Math.PI / 2, segment.startAngle - Math.PI / 2, true);
 	ctx.closePath();
+}
+
+function resolveSvgExportOptions(options: SunburstSvgExportOptions): Required<SunburstSvgExportOptions> {
+	if (options.target === 'pdf') {
+		return {
+			fontFamily: options.fontFamily ?? 'helvetica',
+			fontScale: options.fontScale ?? 0.93,
+			fontWeight: options.fontWeight ?? 'normal',
+			target: 'pdf',
+		};
+	}
+
+	return {
+		...DEFAULT_EXPORT_OPTIONS,
+		...options,
+		target: 'svg',
+	};
 }

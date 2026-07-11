@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { useCallback } from 'react';
+import 'svg2pdf.js';
 
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 import type { Edge, Node } from '../types/GraphTypes';
@@ -7,7 +8,7 @@ import type { SunburstRenderData } from '../types/Sunburst';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { oklchToHex } from '../globals/Colors';
-import { renderSunburstToCanvas } from '../helpers/sunburstExport';
+import { createSunburstSvg } from '../helpers/sunburstExport';
 import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
@@ -30,6 +31,7 @@ const BORDER_RADIUS = 12; // Rounded corner radius
 const PDF_PADDING = 0; // Padding around entire diagram in PDF
 const PDF_SCALE = 2.0; // Zoom factor (1.0 = normal, 2.0 = 2x larger)
 const LANDSCAPE_THRESHOLD = 1.15; // Aspect ratio threshold for landscape orientation
+const SUNBURST_PDF_MARGIN = 10;
 
 /**
  * Calculates optimal PDF orientation based on content aspect ratio
@@ -72,7 +74,7 @@ export const useGeneratePDFData = () => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 
-	return useCallback(() => {
+	return useCallback(async () => {
 		if (data.sunburstRenderData) {
 			return createSunburstPDF(data.sunburstRenderData);
 		}
@@ -176,23 +178,41 @@ export const useGeneratePDFData = () => {
 			drawNodePDF(doc, node, metrics, showGroupTypes, minX, minY, finalScale, offsetX, offsetY);
 		}
 
-		return doc;
+		return Promise.resolve(doc);
 	}, [data, showGroupTypes]);
 };
 
-function createSunburstPDF(renderData: SunburstRenderData): jsPDF {
-	const canvas = document.createElement('canvas');
-	canvas.width = 2400;
-	canvas.height = 2400;
-	const context = canvas.getContext('2d');
-	if (!context) return createInfoPDF('Die Sunburst-Grafik konnte nicht fuer den PDF-Export vorbereitet werden.');
+async function createSunburstPDF(renderData: SunburstRenderData): Promise<jsPDF> {
+	const svgMarkup = createSunburstSvg(renderData, { target: 'pdf' });
+	const svgDocument = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
+	const svg = svgDocument.documentElement;
+	if (svg.nodeName.toLowerCase() === 'parsererror') {
+		return createInfoPDF('Die Sunburst-SVG konnte nicht fuer den PDF-Export vorbereitet werden.');
+	}
 
-	renderSunburstToCanvas(context, renderData, canvas.width);
-	const doc = new jsPDF({ format: 'a4', orientation: 'landscape', unit: 'mm' });
+	const doc = new jsPDF({
+		compress: true,
+		format: 'a3',
+		orientation: 'landscape',
+		unit: 'mm',
+	});
 	const pageWidth = doc.internal.pageSize.getWidth();
 	const pageHeight = doc.internal.pageSize.getHeight();
-	const size = Math.min(pageWidth, pageHeight);
-	doc.addImage(canvas.toDataURL('image/png'), 'PNG', (pageWidth - size) / 2, (pageHeight - size) / 2, size, size);
+	const availableWidth = pageWidth - SUNBURST_PDF_MARGIN * 2;
+	const availableHeight = pageHeight - SUNBURST_PDF_MARGIN * 2;
+	const sourceWidth = Number.parseFloat(svg.getAttribute('width') ?? '') || 1;
+	const sourceHeight = Number.parseFloat(svg.getAttribute('height') ?? '') || 1;
+	const scale = Math.min(availableWidth / sourceWidth, availableHeight / sourceHeight);
+	const width = sourceWidth * scale;
+	const height = sourceHeight * scale;
+
+	await doc.svg(svg, {
+		height,
+		width,
+		x: (pageWidth - width) / 2,
+		y: (pageHeight - height) / 2,
+	});
+
 	return doc;
 }
 

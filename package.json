@@ -32,6 +32,7 @@
 		"react": "^19.2.4",
 		"react-contexify": "^6.0.0",
 		"react-dom": "^19.2.4",
+		"svg2pdf.js": "^2.7.0",
 		"tailwind-merge": "^3.5.0",
 		"tough-cookie": "^6.0.0",
 		"typescript": "^5.9.3",
