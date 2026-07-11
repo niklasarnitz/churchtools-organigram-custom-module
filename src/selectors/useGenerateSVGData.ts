@@ -5,6 +5,7 @@ import type { Edge, Node } from '../types/GraphTypes';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { oklchToHex } from '../globals/Colors';
+import { createSunburstSvg } from '../helpers/sunburstExport';
 import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
@@ -29,6 +30,10 @@ export const useGenerateSVGData = () => {
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 
 	return useCallback(() => {
+		if (data.sunburstRenderData) {
+			return createSunburstSvg(data.sunburstRenderData);
+		}
+
 		const nodes = data.nodes as Node<PreviewGraphNodeData>[];
 		const edges = data.edges;
 

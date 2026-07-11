@@ -7,6 +7,7 @@ import { downloadTextFile } from '../../helpers/downloadTextFile';
 import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
+import { useGenerateHTMLData } from '../../selectors/useGenerateHTMLData';
 import { useGeneratePDFData } from '../../selectors/useGeneratePDFData';
 import { useGenerateSVGData } from '../../selectors/useGenerateSVGData';
 import { useGroupsById } from '../../selectors/useGroupsById';
@@ -27,6 +28,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
 	const groupsById = useGroupsById();
 	const generateGraphMLData = useGenerateGraphMLData();
+	const generateHTMLData = useGenerateHTMLData();
 	const generatePDFData = useGeneratePDFData();
 	const generateSVGData = useGenerateSVGData();
 	const { data: groups } = useGroups();
@@ -72,6 +74,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 	const didPressDownloadSVG = useCallback(() => {
 		downloadTextFile(generateSVGData(), getFileName('svg'), document);
 	}, [generateSVGData, getFileName]);
+
+	const didPressDownloadHTML = useCallback(() => {
+		downloadTextFile(generateHTMLData(), getFileName('html'), document);
+	}, [generateHTMLData, getFileName]);
 
 	const didPressDownloadPDF = useCallback(() => {
 		const doc = generatePDFData();
@@ -137,6 +143,10 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadSVG} variant="outline">
 						<Download className="size-4" />
 						Export als SVG Datei
+					</Button>
+					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadHTML} variant="outline">
+						<Download className="size-4" />
+						Export als HTML Datei
 					</Button>
 					<Button
 						className="w-full"

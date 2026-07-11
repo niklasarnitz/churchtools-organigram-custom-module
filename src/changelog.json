@@ -22,7 +22,11 @@
 				"Der Ringbreiten-Regler behaelt beim Neuberechnen die Kameraansicht bei und wirkt dadurch sichtbar.",
 				"Der nicht aussagekraeftige Ringbreiten-Regler wird im Sunburst-Modus nicht mehr angezeigt.",
 				"Sunburst-Ringe liegen nun ohne Zwischenraum nahtlos aneinander.",
-				"Untergruppen fuellen nun den Winkel ihrer Obergruppe vollstaendig aus."
+				"Untergruppen fuellen nun den Winkel ihrer Obergruppe vollstaendig aus.",
+				"Die Sunburst-Ansicht kann ueber die bestehenden Exportfunktionen als Vektor-SVG und als hochaufloesendes PDF exportiert werden.",
+				"Sunburst-Beschriftungen werden im SVG-Export korrekt ausgegeben.",
+				"Sunburst-SVGs enthalten Hover-Tooltips mit dem vollstaendigen Hierarchiepfad.",
+				"Die aktuelle Ansicht kann als eigenstaendige HTML-Datei exportiert und direkt gehostet werden."
 			]
 		},
 		{

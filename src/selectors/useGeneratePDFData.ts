@@ -3,9 +3,11 @@ import { useCallback } from 'react';
 
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 import type { Edge, Node } from '../types/GraphTypes';
+import type { SunburstRenderData } from '../types/Sunburst';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { oklchToHex } from '../globals/Colors';
+import { renderSunburstToCanvas } from '../helpers/sunburstExport';
 import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
@@ -71,6 +73,10 @@ export const useGeneratePDFData = () => {
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 
 	return useCallback(() => {
+		if (data.sunburstRenderData) {
+			return createSunburstPDF(data.sunburstRenderData);
+		}
+
 		const nodes = data.nodes as Node<PreviewGraphNodeData>[];
 		const edges = data.edges;
 
@@ -173,6 +179,22 @@ export const useGeneratePDFData = () => {
 		return doc;
 	}, [data, showGroupTypes]);
 };
+
+function createSunburstPDF(renderData: SunburstRenderData): jsPDF {
+	const canvas = document.createElement('canvas');
+	canvas.width = 2400;
+	canvas.height = 2400;
+	const context = canvas.getContext('2d');
+	if (!context) return createInfoPDF('Die Sunburst-Grafik konnte nicht fuer den PDF-Export vorbereitet werden.');
+
+	renderSunburstToCanvas(context, renderData, canvas.width);
+	const doc = new jsPDF({ format: 'a4', orientation: 'landscape', unit: 'mm' });
+	const pageWidth = doc.internal.pageSize.getWidth();
+	const pageHeight = doc.internal.pageSize.getHeight();
+	const size = Math.min(pageWidth, pageHeight);
+	doc.addImage(canvas.toDataURL('image/png'), 'PNG', (pageWidth - size) / 2, (pageHeight - size) / 2, size, size);
+	return doc;
+}
 
 // Edge rendering for PDF
 function drawEdgePDF(
