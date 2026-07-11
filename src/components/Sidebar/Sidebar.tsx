@@ -172,7 +172,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 							</div>
 						</CollapsibleContent>
 					</Collapsible>
-
 					<div className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400">
 						<div className="flex items-end justify-between">
 							<div>

@@ -42,7 +42,7 @@ export const useGenerateSVGData = () => {
 		measureCanvas.width = 1;
 		measureCanvas.height = 1;
 		const measureCtx = measureCanvas.getContext('2d');
-		if (!measureCtx) throw new Error('Failed to get canvas context');
+		if (!measureCtx) return '';
 
 		// Compute metrics for each node
 		const metricsMap = new Map<string, ReturnType<typeof measureNodeCard>>();
