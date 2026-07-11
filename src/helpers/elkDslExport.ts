@@ -65,7 +65,7 @@ export function exportToElkDsl(nodes: Node<PreviewGraphNodeData>[], edges: Edge[
 	// Export nodes
 	for (const node of nodes) {
 		const data = node.data;
-		const title = (data.title || '').replace(/"/g, '\\"');
+		const title = data.title.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 		dsl += `  node_${node.id} [label="${title}"]\n`;
 	}
 
