@@ -1,33 +1,5 @@
-import type { Edge, Node } from '../types/GraphTypes';
 import type { PreviewGraphNodeData } from '../types/GraphNode';
-
-/**
- * Exports graph structure to ELK DSL format for debugging
- */
-export function exportToElkDsl(nodes: Node<PreviewGraphNodeData>[], edges: Edge[]): string {
-	let dsl = 'graph G {\n';
-	dsl += '  layoutOptions {\n';
-	dsl += '    elk.algorithm: radial\n';
-	dsl += '    elk.direction: DOWN\n';
-	dsl += '  }\n\n';
-
-	// Export nodes
-	for (const node of nodes) {
-		const data = node.data as PreviewGraphNodeData;
-		const title = (data.title || '').replace(/"/g, '\\"');
-		dsl += `  node_${node.id} [label="${title}"]\n`;
-	}
-
-	dsl += '\n';
-
-	// Export edges
-	for (const edge of edges) {
-		dsl += `  node_${edge.source} -> node_${edge.target}\n`;
-	}
-
-	dsl += '}\n';
-	return dsl;
-}
+import type { Edge, Node } from '../types/GraphTypes';
 
 /**
  * Exports ray structure for debugging
@@ -40,7 +12,7 @@ export function exportRayStructure(
 	let output = '=== RAY STRUCTURE ===\n\n';
 
 	// Group nodes by ray angle
-	const rayMap = new Map<number, Array<{ nodeId: number; radius: number; angle: number }>>();
+	const rayMap = new Map<number, { angle: number; nodeId: number; radius: number; }[]>();
 
 	for (const [nodeId, polar] of nodePolarMap) {
 		// Round angle to nearest 0.1 radian to group nodes on same ray
@@ -48,7 +20,7 @@ export function exportRayStructure(
 		if (!rayMap.has(roundedAngle)) {
 			rayMap.set(roundedAngle, []);
 		}
-		rayMap.get(roundedAngle)!.push({ nodeId, radius: polar.radius, angle: polar.angle });
+		rayMap.get(roundedAngle)?.push({ angle: polar.angle, nodeId, radius: polar.radius });
 	}
 
 	// Sort rays by angle
@@ -64,13 +36,13 @@ export function exportRayStructure(
 		for (let i = 0; i < sorted.length; i++) {
 			const node = sorted[i];
 			const nodeData = nodeDataById.get(node.nodeId);
-			const title = nodeData?.title || 'Unknown';
-			output += `  [${i}] Node ${node.nodeId} (${title}) - Radius: ${node.radius.toFixed(0)}\n`;
+			const title = nodeData?.title ?? 'Unknown';
+			output += `  [${String(i)}] Node ${String(node.nodeId)} (${title}) - Radius: ${node.radius.toFixed(0)}\n`;
 
 			// Show parent-child on same ray
 			if (i > 0) {
 				const parentNode = sorted[i - 1];
-				output += `      └─ Child of ${parentNode.nodeId}\n`;
+				output += `      └─ Child of ${String(parentNode.nodeId)}\n`;
 			}
 		}
 
@@ -78,4 +50,32 @@ export function exportRayStructure(
 	}
 
 	return output;
+}
+
+/**
+ * Exports graph structure to ELK DSL format for debugging
+ */
+export function exportToElkDsl(nodes: Node<PreviewGraphNodeData>[], edges: Edge[]): string {
+	let dsl = 'graph G {\n';
+	dsl += '  layoutOptions {\n';
+	dsl += '    elk.algorithm: radial\n';
+	dsl += '    elk.direction: DOWN\n';
+	dsl += '  }\n\n';
+
+	// Export nodes
+	for (const node of nodes) {
+		const data = node.data;
+		const title = (data.title || '').replace(/"/g, '\\"');
+		dsl += `  node_${node.id} [label="${title}"]\n`;
+	}
+
+	dsl += '\n';
+
+	// Export edges
+	for (const edge of edges) {
+		dsl += `  node_${edge.source} -> node_${edge.target}\n`;
+	}
+
+	dsl += '}\n';
+	return dsl;
 }

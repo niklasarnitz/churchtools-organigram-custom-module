@@ -4,8 +4,8 @@
  */
 function drawRadialEdges(
 	ctx: CanvasRenderingContext2D,
-	nodes: Array<{ id: string; x: number; y: number }>,
-	edges: Array<{ source: string; target: string }>,
+	nodes: { id: string; x: number; y: number }[],
+	edges: { source: string; target: string }[],
 	isDarkMode: boolean,
 ): void {
 	// Set up line styling

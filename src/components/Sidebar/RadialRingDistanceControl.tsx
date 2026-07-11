@@ -22,7 +22,7 @@ export const RadialRingDistanceControl = React.memo(() => {
 
 	return (
 		<div className="mt-4 flex flex-col">
-			<label htmlFor="ring-distance" className="mb-2 text-sm font-semibold">
+			<label className="mb-2 text-sm font-semibold" htmlFor="ring-distance">
 				Ring Distanz: {radialRingDistance}px
 			</label>
 			<input

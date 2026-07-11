@@ -5,8 +5,8 @@ import type { PreviewGraphNodeData } from '../types/GraphNode';
  * A ray contains all descendants of a direct child in DFS order
  */
 export interface TransformedRayNode {
-	node: PreviewGraphNodeData;
 	depthInRay: number; // Position in the ray (1 = first, directly after root)
+	node: PreviewGraphNodeData;
 }
 
 /**
@@ -18,7 +18,21 @@ export interface TransformedRayNode {
  * so nodes with multiple parents appear once per path with correct depth
  */
 export class TreeVisitor {
-	private rays: Map<number, TransformedRayNode[]> = new Map();
+	private rays = new Map<number, TransformedRayNode[]>();
+
+	/**
+	 * Get debug information about the transformed tree
+	 */
+	public getDebugInfo(): string {
+		let debug = '=== TREE VISITOR DEBUG ===\n';
+		for (const [rayId, nodes] of this.rays) {
+			debug += `Ray ${String(rayId)} (${nodes[0]?.node.title ?? ''}):\n`;
+			for (const transformedNode of nodes) {
+				debug += `  Depth ${String(transformedNode.depthInRay)}: ${String(transformedNode.node.id)} (${transformedNode.node.title})\n`;
+			}
+		}
+		return debug;
+	}
 
 	/**
 	 * Visit the tree and transform it into rays
@@ -36,17 +50,7 @@ export class TreeVisitor {
 	): Map<number, TransformedRayNode[]> {
 		this.rays.clear();
 
-		const directChildren = childrenMap.get(rootNode.id) || [];
-
-		if (typeof window !== 'undefined' && (window as any).__DEBUG_TREE_VISITOR) {
-			console.log(`\n=== TreeVisitor.visit() (Sequential numbering per ray) ===`);
-			console.log(`Root: ${rootNode.id} (${rootNode.title})`);
-			console.log(`Direct children: ${directChildren.length}`);
-			for (const dc of directChildren) {
-				const vis = visibleNodeIds?.has(dc.id) ? '✓' : '✗';
-				console.log(`  [${vis}] ${dc.id} (${dc.title})`);
-			}
-		}
+		const directChildren = childrenMap.get(rootNode.id) ?? [];
 
 		// Visit each direct child as a separate ray
 		// Each ray represents a path from root through one direct child
@@ -82,11 +86,6 @@ export class TreeVisitor {
 	): void {
 		// Detect cycles: if we've already visited this node in this ray, skip it
 		if (visitedInRay.has(node.id)) {
-			if (typeof window !== 'undefined' && (window as any).__DEBUG_TREE_VISITOR) {
-				console.log(
-					`  [CYCLE] visitNodeInRay: ${node.id} (${node.title}) already visited in this ray, skipping`,
-				);
-			}
 			return;
 		}
 
@@ -99,41 +98,16 @@ export class TreeVisitor {
 		if (isVisible) {
 			depthCounter.count++;
 			rayNodes.push({
-				node,
 				depthInRay: depthCounter.count,
+				node,
 			});
 		}
 
-		const children = childrenMap.get(node.id) || [];
-
-		if (typeof window !== 'undefined' && (window as any).__DEBUG_TREE_VISITOR) {
-			const vis = isVisible ? '✓' : '✗';
-			console.log(
-				`  [${vis}] visitNodeInRay: ${node.id} (${node.title}), sequenceNumber: ${depthCounter.count}, children: ${children.length}`,
-			);
-			for (const child of children) {
-				const childVis = !visibleNodeIds || visibleNodeIds.has(child.id) ? '✓' : '✗';
-				console.log(`    [${childVis}] child: ${child.id} (${child.title})`);
-			}
-		}
+		const children = childrenMap.get(node.id) ?? [];
 
 		// Recursively visit all children (traverse through hidden ones)
 		for (const child of children) {
 			this.visitNodeInRay(child, childrenMap, rayNodes, depthCounter, visitedInRay, visibleNodeIds);
 		}
-	}
-
-	/**
-	 * Get debug information about the transformed tree
-	 */
-	public getDebugInfo(): string {
-		let debug = '=== TREE VISITOR DEBUG ===\n';
-		for (const [rayId, nodes] of this.rays) {
-			debug += `Ray ${rayId} (${nodes[0]?.node.title}):\n`;
-			for (const transformedNode of nodes) {
-				debug += `  Depth ${transformedNode.depthInRay}: ${transformedNode.node.id} (${transformedNode.node.title})\n`;
-			}
-		}
-		return debug;
 	}
 }

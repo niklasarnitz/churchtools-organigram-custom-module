@@ -1,86 +1,19 @@
 import type { PreviewGraphNodeData } from '../types/GraphNode';
-import { TreeVisitor } from './treeTransformer';
-import type { TransformedRayNode } from './treeTransformer';
 
-export interface RadialLayoutConfig {
-	ringDistance: number;
-	startAngle: number;
-	clockwise: boolean;
-	nodeScaleByDepth: Record<number, number>;
-}
+import { TreeVisitor } from './treeTransformer';
 
 export interface PositionedNode extends PreviewGraphNodeData {
-	x: number;
-	y: number;
 	depth: number;
 	scale: number;
+	x: number;
+	y: number;
 }
 
-/**
- * Flattens a tree hierarchy to a flat list, excluding the root node
- * (deprecated - kept for compatibility but not used in new ray-based layout)
- */
-export function flattenTree(
-	rootNode: PreviewGraphNodeData,
-	childrenMap: Map<number, PreviewGraphNodeData[]>,
-): PreviewGraphNodeData[] {
-	const flattened: PreviewGraphNodeData[] = [];
-	const queue: PreviewGraphNodeData[] = [...(childrenMap.get(rootNode.id) || [])];
-
-	while (queue.length > 0) {
-		const node = queue.shift()!;
-		flattened.push(node);
-
-		const children = childrenMap.get(node.id) || [];
-		queue.push(...children);
-	}
-
-	return flattened;
-}
-
-/**
- * Flattens a subtree in DFS order (depth-first)
- * Used to get all descendants of a node in tree traversal order
- * Returns nodes with their depth within the subtree
- */
-interface NodeWithSubtreeDepth extends PreviewGraphNodeData {
-	__subtreeDepth?: number;
-}
-
-function flattenSubtreeDFS(
-	node: PreviewGraphNodeData,
-	childrenMap: Map<number, PreviewGraphNodeData[]>,
-	depth: number = 1,
-): NodeWithSubtreeDepth[] {
-	const result: NodeWithSubtreeDepth[] = [{ ...node, __subtreeDepth: depth }];
-	const children = childrenMap.get(node.id) || [];
-	for (const child of children) {
-		result.push(...flattenSubtreeDFS(child, childrenMap, depth + 1));
-	}
-	return result;
-}
-
-/**
- * Calculates the depth of a node relative to the root node
- */
-function calculateNodeDepth(
-	node: PreviewGraphNodeData,
-	rootNode: PreviewGraphNodeData,
-	parentMap: Map<number, PreviewGraphNodeData>,
-): number {
-	let depth = 0;
-	let current = node;
-
-	while (current.id !== rootNode.id) {
-		const parent = parentMap.get(current.id);
-		if (!parent) {
-			break;
-		}
-		depth++;
-		current = parent;
-	}
-
-	return depth;
+export interface RadialLayoutConfig {
+	clockwise: boolean;
+	nodeScaleByDepth: Partial<Record<number, number>>;
+	ringDistance: number;
+	startAngle: number;
 }
 
 /**
@@ -114,28 +47,13 @@ export function calculateRadialPositions(
 			}
 			const childNode = flattenedNodes.find((n) => n.id === childId);
 			if (childNode) {
-				childrenMap.get(parent.id)!.push(childNode);
-			}
-		}
-	}
-
-	// Debug: Check children map structure
-	if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
-		console.log(`=== CHILDREN MAP DEBUG (${childrenMap.size} parents) ===`);
-		for (const [parentId, children] of childrenMap) {
-			const parentNode =
-				flattenedNodes.find((n) => n.id === parentId) || (parentId === rootNode.id ? rootNode : null);
-			console.log(`Parent: ${parentId} (${parentNode?.title}), Children: ${children.length}`);
-			if (children.length > 0) {
-				for (const child of children) {
-					console.log(`  - ${child.id} (${child.title})`);
-				}
+				childrenMap.get(parent.id)?.push(childNode);
 			}
 		}
 	}
 
 	// Get direct children of root
-	const rootDirectChildren = childrenMap.get(rootNode.id) || [];
+	const rootDirectChildren = childrenMap.get(rootNode.id) ?? [];
 	const totalDirectChildren = rootDirectChildren.length;
 
 	// Assign angles to each direct child ray
@@ -154,45 +72,19 @@ export function calculateRadialPositions(
 	// Position all nodes
 	const positionedNodes: PositionedNode[] = [];
 
-	// Calculate max depth for debugging
-	let maxDepth = 0;
-	for (const node of flattenedNodes) {
-		const depth = calculateNodeDepth(node, rootNode, parentMap);
-		maxDepth = Math.max(maxDepth, depth);
-	}
-
-	if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
-		console.log(`=== FLAT RADIAL LAYOUT ===`);
-		console.log(
-			`Total nodes: ${flattenedNodes.length}, Max depth: ${maxDepth}, RingDistance: ${(flattenedNodes[0] as any).ringDistance || 'N/A'}`,
-		);
-		console.log(`Root: ${rootNode.id} (${rootNode.title})`);
-		console.log(`Direct children: ${rootDirectChildren.length}`);
-	}
-
 	// Transform tree using visitor pattern
 	const visitor = new TreeVisitor();
 	const transformedRays = visitor.visit(rootNode, childrenMap, visibleNodeIds);
 
-	if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
-		console.log(visitor.getDebugInfo());
-	}
-
 	// For each ray, position nodes sequentially along the ray angle
-	for (let rayIndex = 0; rayIndex < rootDirectChildren.length; rayIndex++) {
-		const directChild = rootDirectChildren[rayIndex];
-		const rayAngle = childAngleMap.get(directChild.id) || 0;
-		const rayNodes = transformedRays.get(directChild.id) || [];
-
-		if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
-			console.log(`\n=== RAY ${rayIndex}: ${directChild.title} (${rayNodes.length} nodes) ===`);
-		}
+	for (const directChild of rootDirectChildren) {
+		const rayAngle = childAngleMap.get(directChild.id) ?? 0;
+		const rayNodes = transformedRays.get(directChild.id) ?? [];
 
 		// Position each node on this ray sequentially
 		let cumulativeRadius = config.ringDistance; // Start at ringDistance from root
 
-		for (let nodeIndex = 0; nodeIndex < rayNodes.length; nodeIndex++) {
-			const transformedNode = rayNodes[nodeIndex];
+		for (const transformedNode of rayNodes) {
 			const node = transformedNode.node;
 			const depth = transformedNode.depthInRay;
 
@@ -206,19 +98,12 @@ export function calculateRadialPositions(
 			const x = nodeRadius * Math.cos(rayAngle);
 			const y = nodeRadius * Math.sin(rayAngle);
 
-			// Debug log
-			if (typeof window !== 'undefined' && (window as any).__DEBUG_RADIAL) {
-				console.log(
-					`  [${nodeIndex}] Node: ${node.id} (${node.title}), Angle: ${((rayAngle * 180) / Math.PI).toFixed(1)}°, Radius: ${nodeRadius}`,
-				);
-			}
-
 			positionedNodes.push({
 				...node,
-				x,
-				y,
 				depth,
 				scale,
+				x,
+				y,
 			});
 
 			// Add ringDistance for next node spacing
@@ -227,4 +112,27 @@ export function calculateRadialPositions(
 	}
 
 	return positionedNodes;
+}
+
+/**
+ * Flattens a tree hierarchy to a flat list, excluding the root node
+ * (deprecated - kept for compatibility but not used in new ray-based layout)
+ */
+export function flattenTree(
+	rootNode: PreviewGraphNodeData,
+	childrenMap: Map<number, PreviewGraphNodeData[]>,
+): PreviewGraphNodeData[] {
+	const flattened: PreviewGraphNodeData[] = [];
+	const queue: PreviewGraphNodeData[] = [...(childrenMap.get(rootNode.id) ?? [])];
+
+	while (queue.length > 0) {
+		const node = queue.shift();
+		if (!node) break;
+		flattened.push(node);
+
+		const children = childrenMap.get(node.id) ?? [];
+		queue.push(...children);
+	}
+
+	return flattened;
 }

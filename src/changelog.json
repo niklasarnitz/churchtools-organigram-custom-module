@@ -1,6 +1,13 @@
 {
 	"versions": [
 		{
+			"version": "1.6.0-bwl23",
+			"date": "2026-07-11",
+			"changes": [
+				"CI lint errors fixed: removed debug console.log blocks, fixed type issues and unused code in radialLayout.ts, treeTransformer.ts, elkDslExport.ts, and index.tsx."
+			]
+		},
+		{
 			"version": "1.6.0-bwl22",
 			"date": "2026-07-11",
 			"changes": [

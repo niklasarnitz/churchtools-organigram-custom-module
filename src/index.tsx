@@ -34,6 +34,7 @@ if (import.meta.env.DEV) {
 	Logger.log('Running in development mode.');
 
 	// These environment variables are only available during local development
+	// eslint-disable-next-line @typescript-eslint/no-deprecated
 	const churchToolsUrl = import.meta.env.VITE_CT_URL ?? import.meta.env.VITE_CTURL ?? import.meta.env.REACT_APP_CTURL;
 
 	if (!churchToolsUrl) {
@@ -43,7 +44,9 @@ if (import.meta.env.DEV) {
 	useAppStore.getState().setBaseUrl(churchToolsUrl);
 
 	await churchtoolsClient.post('/login', {
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
 		password: (import.meta.env.VITE_CT_PASSWORD ?? import.meta.env.REACT_APP_PASSWORD) as string,
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
 		username: (import.meta.env.VITE_CT_USERNAME ?? import.meta.env.REACT_APP_USERNAME) as string,
 	});
 
