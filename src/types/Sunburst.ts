@@ -1,3 +1,6 @@
+/* eslint-disable perfectionist/sort-interfaces */
+/* eslint-disable perfectionist/sort-modules */
+
 export type PrimaryParentSource = 'churchtools-field' | 'fallback' | 'root';
 
 export interface SunburstSegmentLayout {
@@ -47,6 +50,14 @@ export interface SunburstInteractionMeta {
 
 export interface SunburstRenderData {
 	center: { x: number; y: number };
+	centerLabel?: {
+		fillColor: string;
+		fontSize: number;
+		lines: string[];
+		nodeId?: number;
+		radius: number;
+		strokeColor: string;
+	};
 	interactionByNodeId: Record<number, SunburstInteractionMeta>;
 	labelByNodeId: Record<number, SunburstLabelLayout>;
 	labels: SunburstLabelLayout[];

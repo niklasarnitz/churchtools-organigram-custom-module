@@ -44,9 +44,11 @@ export const useGenerateReflowData = () => {
 	const { nodes, relations } = useCreateRelatedData();
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
+	const showParentGroups = committedFilters?.showParentGroups ?? false;
 	const layoutAlgorithm = committedFilters?.layoutAlgorithm ?? LayoutAlgorithm.elkLayeredTB;
 	const effectiveLayoutAlgorithm =
 		layoutAlgorithm === LayoutAlgorithm.elkRadial ? LayoutAlgorithm.FLAT_RADIAL : layoutAlgorithm;
+	const centerNodeId = committedFilters?.groupIdToStartWith ? Number(committedFilters.groupIdToStartWith) : undefined;
 	const radialRingDistance = useAppStore((s) => s.radialRingDistance);
 	const personsById = usePersonsById();
 	const groupTypesById = useGroupTypesById();
@@ -217,7 +219,15 @@ export const useGenerateReflowData = () => {
 					}
 
 					if (effectiveLayoutAlgorithm === LayoutAlgorithm.SUNBURST) {
+						const sunburstCenterNodeId =
+							showParentGroups && centerNodeId !== undefined
+								? (hierarchiesByGroupId[centerNodeId]?.parents.find((parentId) =>
+										visibleNodeIds.has(parentId),
+									) ?? centerNodeId)
+								: centerNodeId;
+
 						const sunburstLayout = buildSunburstLayout({
+							centerNodeId: sunburstCenterNodeId,
 							hierarchiesByGroupId,
 							nodeDataById,
 							radialRingDistance,
@@ -524,7 +534,9 @@ export const useGenerateReflowData = () => {
 		reflowEdges,
 		effectiveLayoutAlgorithm,
 		layoutAlgorithm,
+		centerNodeId,
 		radialRingDistance,
+		showParentGroups,
 		showGroupTypes,
 		beginLayoutCalculation,
 		endLayoutCalculation,

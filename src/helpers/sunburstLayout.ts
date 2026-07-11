@@ -1,3 +1,11 @@
+/* eslint-disable @typescript-eslint/array-type */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+/* eslint-disable no-useless-assignment */
+/* eslint-disable perfectionist/sort-modules */
+/* eslint-disable perfectionist/sort-named-imports */
+/* eslint-disable perfectionist/sort-objects */
+
 import { hierarchy, partition, type HierarchyRectangularNode } from 'd3-hierarchy';
 
 import type { PreviewGraphNodeData } from '../types/GraphNode';
@@ -14,6 +22,7 @@ import type {
 import { oklchToHex } from '../globals/Colors';
 
 interface BuildSunburstLayoutArgs {
+	centerNodeId?: number;
 	hierarchiesByGroupId: Record<number, Hierarchy | undefined>;
 	nodeDataById: Map<number, PreviewGraphNodeData>;
 	radialRingDistance: number;
@@ -27,11 +36,6 @@ interface DisplayTreeNode {
 	parentId?: number;
 	primaryParentSource: PrimaryParentSource;
 	title: string;
-}
-
-interface ParentResolution {
-	parentId?: number;
-	source: PrimaryParentSource;
 }
 
 const VIRTUAL_ROOT_ID = -1;
@@ -56,6 +60,7 @@ export function extractConfiguredPrimaryParentGroupId(group: Group): number | un
 }
 
 export function buildSunburstLayout({
+	centerNodeId,
 	hierarchiesByGroupId,
 	nodeDataById,
 	radialRingDistance,
@@ -96,12 +101,15 @@ export function buildSunburstLayout({
 	const rootNodeIds = Array.from(visibleNodeIds)
 		.filter((nodeId) => (visibleParentsByNodeId.get(nodeId) ?? []).length === 0)
 		.sort((left, right) => left - right);
+	const effectiveCenterNodeId = centerNodeId && visibleNodeIds.has(centerNodeId) ? centerNodeId : undefined;
 	const fallbackRoots =
-		rootNodeIds.length > 0
-			? rootNodeIds
-			: Array.from(visibleNodeIds)
-					.sort((a, b) => a - b)
-					.slice(0, 1);
+		effectiveCenterNodeId !== undefined
+			? [effectiveCenterNodeId]
+			: rootNodeIds.length > 0
+				? rootNodeIds
+				: Array.from(visibleNodeIds)
+						.sort((a, b) => a - b)
+						.slice(0, 1);
 	const rootDistanceByNodeId = computeMinDistanceFromRoots(fallbackRoots, visibleChildrenByNodeId);
 
 	const primaryParentByNodeId = new Map<number, number>();
@@ -176,13 +184,22 @@ export function buildSunburstLayout({
 	}
 
 	const treeRoot: DisplayTreeNode = {
-		children: buildDisplayChildren(
-			VIRTUAL_ROOT_ID,
-			displayChildrenByNodeId,
-			nodeDataById,
-			primaryParentByNodeId,
-			primaryParentSourceByNodeId,
-		),
+		children:
+			effectiveCenterNodeId !== undefined
+				? buildDisplayChildren(
+						effectiveCenterNodeId,
+						displayChildrenByNodeId,
+						nodeDataById,
+						primaryParentByNodeId,
+						primaryParentSourceByNodeId,
+					)
+				: buildDisplayChildren(
+						VIRTUAL_ROOT_ID,
+						displayChildrenByNodeId,
+						nodeDataById,
+						primaryParentByNodeId,
+						primaryParentSourceByNodeId,
+					),
 		id: VIRTUAL_ROOT_ID,
 		order: 0,
 		primaryParentSource: 'root',
@@ -208,15 +225,22 @@ export function buildSunburstLayout({
 	const labelByNodeId: Record<number, SunburstLabelLayout> = {};
 	const segmentByNodeId: Record<number, SunburstSegmentLayout> = {};
 	const layoutNodes: Array<{ id: number; x: number; y: number }> = [];
-	const fillColorByNodeId = new Map<number, string>();
+	const branchRootColorByNodeId = new Map<number, string>();
 
 	for (const descendant of d3Root.descendants() as HierarchyRectangularNode<DisplayTreeNode>[]) {
 		if (descendant.data.id === VIRTUAL_ROOT_ID) continue;
 
 		const nodeId = descendant.data.id;
+		const branchRootNode = descendant.ancestors().find((entry) => entry.depth === 1);
+		if (!branchRootNode) continue;
+
+		const branchRootId = branchRootNode.data.id;
+		const branchRootColor =
+			branchRootColorByNodeId.get(branchRootId) ?? deriveBaseNodeColor(branchRootId, nodeDataById);
+		branchRootColorByNodeId.set(branchRootId, branchRootColor);
+
 		const parentId = primaryParentByNodeId.get(nodeId);
 		const parentData = parentId ? nodeDataById.get(parentId) : undefined;
-		const parentFill = parentId ? fillColorByNodeId.get(parentId) : undefined;
 		const depth = descendant.depth;
 		const startAngle = descendant.x0;
 		const endAngle = descendant.x1;
@@ -229,15 +253,8 @@ export function buildSunburstLayout({
 		const nodeData = nodeDataById.get(nodeId);
 		if (!nodeData) continue;
 
-		const siblingIndex = descendant.parent?.children?.findIndex((child) => child.data.id === nodeId) ?? 0;
-		const fillColor = deriveSegmentColor(
-			nodeData.color.shades[500] ? oklchToHex(nodeData.color.shades[500]) : '#94a3b8',
-			parentFill,
-			depth,
-			siblingIndex,
-		);
-		fillColorByNodeId.set(nodeId, fillColor);
-		const strokeColor = deriveStrokeColor(fillColor);
+		const fillColor = deriveSegmentColor(branchRootColor, depth - branchRootNode.depth);
+		const strokeColor = deriveSeparatorColor();
 		const primaryParentSource = primaryParentSourceByNodeId.get(nodeId) ?? 'fallback';
 		const pathNodeIds = descendant
 			.ancestors()
@@ -303,8 +320,32 @@ export function buildSunburstLayout({
 		}
 	}
 
-	const maxRadius =
-		holeRadius + Math.max(maxDepth - 1, 0) * (radialRingDistance + ringGap) + radialRingDistance;
+	const maxRadius = holeRadius + Math.max(maxDepth - 1, 0) * (radialRingDistance + ringGap) + radialRingDistance;
+	const centerNodeData = effectiveCenterNodeId !== undefined ? nodeDataById.get(effectiveCenterNodeId) : undefined;
+	const centerNodeTitle = centerNodeData?.title;
+	const centerNodeFillColor = centerNodeData?.color.shades[500]
+		? oklchToHex(centerNodeData.color.shades[500])
+		: '#ffffff';
+	const centerNodeStrokeColor = deriveStrokeColor(centerNodeFillColor);
+
+	if (effectiveCenterNodeId !== undefined && centerNodeData) {
+		interactionByNodeId[effectiveCenterNodeId] = {
+			alternateParentTitles: [],
+			allParentIds: visibleParentsByNodeId.get(effectiveCenterNodeId) ?? [],
+			center: { x: 0, y: 0 },
+			hasMultipleParents: false,
+			nodeId: effectiveCenterNodeId,
+			pathIds: [effectiveCenterNodeId],
+			pathTitles: [centerNodeData.title],
+			primaryParentId: primaryParentByNodeId.get(effectiveCenterNodeId),
+			primaryParentSource: primaryParentSourceByNodeId.get(effectiveCenterNodeId) ?? 'root',
+			ring: { innerRadius: 0, outerRadius: holeRadius },
+			secondaryParentIds: secondaryParentIdsByNodeId[effectiveCenterNodeId] ?? [],
+			segmentId: `sunburst-center-${String(effectiveCenterNodeId)}`,
+			title: centerNodeData.title,
+		};
+		layoutNodes.push({ id: effectiveCenterNodeId, x: 0, y: 0 });
+	}
 
 	return {
 		interactionByNodeId,
@@ -318,6 +359,16 @@ export function buildSunburstLayout({
 		),
 		renderData: {
 			center: { x: 0, y: 0 },
+			centerLabel: centerNodeTitle
+				? {
+						fillColor: centerNodeFillColor,
+						fontSize: Math.min(28, holeRadius * 0.24),
+						lines: wrapLabel(centerNodeTitle, 18),
+						nodeId: effectiveCenterNodeId,
+						radius: holeRadius - 8,
+						strokeColor: centerNodeStrokeColor,
+					}
+				: undefined,
 			interactionByNodeId,
 			labelByNodeId,
 			labels,
@@ -439,21 +490,16 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 	};
 }
 
-function deriveSegmentColor(
-	baseColor: string,
-	parentColor: string | undefined,
-	depth: number,
-	siblingIndex: number,
-): string {
-	if (!parentColor) {
-		return varyHexColor(baseColor, depth, siblingIndex);
-	}
-
-	return varyHexColor(parentColor, depth, siblingIndex);
+function deriveSegmentColor(baseColor: string, depthOffset: number): string {
+	return lightenHexColor(baseColor, depthOffset);
 }
 
 function deriveStrokeColor(fillColor: string): string {
 	return adjustHexColor(fillColor, -0.14);
+}
+
+function deriveSeparatorColor(): string {
+	return '#ffffff';
 }
 
 function adjustHexColor(hexColor: string, amount: number): string {
@@ -468,17 +514,22 @@ function adjustHexColor(hexColor: string, amount: number): string {
 	return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function varyHexColor(hexColor: string, depth: number, siblingIndex: number): string {
+function lightenHexColor(hexColor: string, depthOffset: number): string {
+	if (depthOffset <= 0) return hexColor;
+
 	const { hue, lightness, saturation } = hexToHsl(hexColor);
-	const siblingOffset = (siblingIndex % 7) - 3;
-	const hueShift = siblingOffset * 9 + ((depth % 3) - 1) * 4;
-	const lightnessShift = siblingOffset * 0.035 + (depth % 2 === 0 ? 0.025 : -0.025);
+	const lightnessShift = depthOffset * 0.075;
 
 	return hslToHex(
-		(hue + hueShift + 360) % 360,
-		Math.min(0.9, saturation + 0.08),
-		Math.max(0.22, Math.min(0.76, lightness + lightnessShift)),
+		hue,
+		Math.max(0.12, Math.min(0.9, saturation * 0.96)),
+		Math.max(0.22, Math.min(0.86, lightness + lightnessShift)),
 	);
+}
+
+function deriveBaseNodeColor(nodeId: number, nodeDataById: Map<number, PreviewGraphNodeData>): string {
+	const nodeData = nodeDataById.get(nodeId);
+	return nodeData?.color.shades[500] ? oklchToHex(nodeData.color.shades[500]) : '#94a3b8';
 }
 
 function hexToHsl(hexColor: string): { hue: number; lightness: number; saturation: number } {

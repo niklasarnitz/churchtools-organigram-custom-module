@@ -32,13 +32,13 @@ const DRAG_SUPPRESS_CLICK_THRESHOLD = 4;
 export const WebGLGraphView = React.memo(() => {
 	const data = useGenerateReflowData();
 	const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
+	const toggleCollapsedNodeId = useAppStore((s) => s.toggleCollapsedNodeId);
 	const baseUrl = useAppStore((s) => s.baseUrl);
 	const showGroupTypes = useAppStore((s) => s.committedFilters?.showGroupTypes ?? true);
 	const focusNodeId = useAppStore((s) => s.focusNodeId);
 	const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const isDarkMode = useIsDarkMode();
-	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
 
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const engineRef = useRef<null | WebGLGraphEngine>(null);
@@ -61,7 +61,6 @@ export const WebGLGraphView = React.memo(() => {
 	const { show } = useContextMenu({
 		id: Constants.contextMenuId,
 	});
-	const containerRect = containerRef.current?.getBoundingClientRect();
 
 	// Initialize engine
 	useEffect(() => {
@@ -114,13 +113,7 @@ export const WebGLGraphView = React.memo(() => {
 		previousSunburstRenderRingWidth.current = renderedRingWidth;
 		const cam = engine.getCamera();
 		setCameraState(cam);
-	}, [
-		data.nodes,
-		data.edges,
-		data.sunburstRenderData,
-		isDarkMode,
-		showGroupTypes,
-	]);
+	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
@@ -521,13 +514,15 @@ export const WebGLGraphView = React.memo(() => {
 		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
 
-	const didClickToggleCollapse = useCallback((params: ItemParams<ContextMenuProps>) => {
-		const engine = engineRef.current;
-		const groupId = params.props?.groupId;
-		if (engine && groupId) {
-			engine.toggleCollapsedNode(String(groupId));
-		}
-	}, []);
+	const didClickToggleCollapse = useCallback(
+		(params: ItemParams<ContextMenuProps>) => {
+			const groupId = params.props?.groupId;
+			if (groupId) {
+				toggleCollapsedNodeId(String(groupId));
+			}
+		},
+		[toggleCollapsedNodeId],
+	);
 
 	const didClickShowParentGroups = useCallback(
 		(params: ItemParams<ContextMenuProps>) => {
@@ -560,10 +555,10 @@ export const WebGLGraphView = React.memo(() => {
 
 			{hoverTooltip ? (
 				<div
-					className="pointer-events-none absolute z-20 max-w-sm rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200"
+					className="pointer-events-none fixed z-20 max-w-sm rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200"
 					style={{
-						left: hoverTooltip.clientX - (containerRect?.left ?? 0) + 14,
-						top: hoverTooltip.clientY - (containerRect?.top ?? 0) + 14,
+						left: hoverTooltip.clientX + 14,
+						top: hoverTooltip.clientY + 14,
 					}}
 				>
 					<div className="font-semibold text-slate-900 dark:text-slate-50">{hoverTooltip.meta.title}</div>

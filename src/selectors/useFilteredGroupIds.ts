@@ -9,6 +9,7 @@ import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
 
 export const useFilteredGroupIds = (): number[] => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
+	const collapsedNodeIds = useAppStore((s) => s.collapsedNodeIds);
 
 	const { data: hierarchies } = useHierarchies();
 	const groupsById = useGroupsById();
@@ -45,6 +46,7 @@ export const useFilteredGroupIds = (): number[] => {
 		};
 
 		const startGroupId = groupIdToStartWith ? Number(groupIdToStartWith) : undefined;
+		const collapsedNodeIdSet = new Set(collapsedNodeIds.map(Number));
 		const rootNodes = startGroupId ? [startGroupId] : (hierarchies ?? []).map((h) => h.groupId);
 
 		const addedNodeIds = new Set<number>();
@@ -68,9 +70,10 @@ export const useFilteredGroupIds = (): number[] => {
 			if (!group || !shouldIncludeGroup(group)) continue;
 
 			addedNodeIds.add(groupId);
+			const isCollapsed = collapsedNodeIdSet.has(groupId);
 
 			// Only traverse downward if maxDepth not reached
-			if (maxDepth === undefined || depth < maxDepth) {
+			if (!isCollapsed && (maxDepth === undefined || depth < maxDepth)) {
 				const hierarchy = hierarchiesByGroupId[groupId];
 				if (hierarchy) {
 					// Add children (downward traversal)
@@ -108,5 +111,5 @@ export const useFilteredGroupIds = (): number[] => {
 		}
 
 		return Array.from(addedNodeIds);
-	}, [committedFilters, hierarchies, groupsById, hierarchiesByGroupId]);
+	}, [collapsedNodeIds, committedFilters, hierarchies, groupsById, hierarchiesByGroupId]);
 };

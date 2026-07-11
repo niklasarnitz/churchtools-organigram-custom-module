@@ -35,6 +35,7 @@ export interface PendingExport {
 interface GroupState {
 	baseUrl: string | undefined;
 	beginLayoutCalculation: () => void;
+	collapsedNodeIds: string[];
 	commitFilters: () => void;
 	committedFilters: CommittedFilters | undefined;
 	endLayoutCalculation: () => void;
@@ -62,6 +63,7 @@ interface GroupState {
 	renderer: RendererType;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
+	setCollapsedNodeIds: (nodeIds: string[]) => void;
 	setExcludedGroups: (groups: string | string[]) => void;
 	setExcludedGroupTypes: (groups: string | string[]) => void;
 	setExcludedRoles: (roles: string | string[]) => void;
@@ -94,6 +96,7 @@ interface GroupState {
 	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
 	showParentGroups: boolean;
+	toggleCollapsedNodeId: (nodeId: string) => void;
 }
 
 function snapshotFilters(state: GroupState): CommittedFilters {
@@ -136,6 +139,7 @@ export const useAppStore = create<GroupState>((set) => {
 				set({ isLayoutCalculating: true });
 			}
 		},
+		collapsedNodeIds: [],
 		commitFilters: () => {
 			set((state) => ({ committedFilters: snapshotFilters(state) }));
 		},
@@ -182,6 +186,10 @@ export const useAppStore = create<GroupState>((set) => {
 		setBaseUrl: (url: string | undefined) => {
 			churchtoolsClient.setBaseUrl(url ?? '');
 			set({ baseUrl: url });
+		},
+
+		setCollapsedNodeIds: (collapsedNodeIds: string[]) => {
+			set({ collapsedNodeIds });
 		},
 
 		setExcludedGroups: (groups: string | string[]) => {
@@ -281,5 +289,12 @@ export const useAppStore = create<GroupState>((set) => {
 		showLeaders: true,
 		showOnlyDirectChildren: false,
 		showParentGroups: false,
+		toggleCollapsedNodeId: (nodeId: string) => {
+			set((state) => ({
+				collapsedNodeIds: state.collapsedNodeIds.includes(nodeId)
+					? state.collapsedNodeIds.filter((id) => id !== nodeId)
+					: [...state.collapsedNodeIds, nodeId],
+			}));
+		},
 	};
 });

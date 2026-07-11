@@ -225,6 +225,10 @@ export class WebGLGraphEngine {
 		return this.nodes;
 	}
 
+	getSunburstRenderData(): SunburstRenderData | undefined {
+		return this.sunburstRenderData;
+	}
+
 	getSunburstInteractionMeta(nodeId: string): SunburstInteractionMeta | undefined {
 		if (!this.sunburstRenderData) return undefined;
 		return this.sunburstRenderData.interactionByNodeId[Number(nodeId)];
@@ -731,12 +735,43 @@ export class WebGLGraphEngine {
 				? 5 / this.camera.zoom
 				: isHighlighted
 					? 4 / this.camera.zoom
-					: 1.5 / this.camera.zoom;
+					: 1 / this.camera.zoom;
 			ctx.stroke();
 			ctx.restore();
 		}
 
 		if (this.camera.zoom < 0.12) return;
+
+		if (renderData.centerLabel) {
+			const isHighlighted =
+				renderData.centerLabel.nodeId !== undefined &&
+				this.highlightedNodeIds.has(String(renderData.centerLabel.nodeId));
+			const isHovered =
+				renderData.centerLabel.nodeId !== undefined &&
+				this.hoveredNodeId === String(renderData.centerLabel.nodeId);
+			ctx.save();
+			ctx.fillStyle = renderData.centerLabel.fillColor;
+			ctx.beginPath();
+			ctx.arc(0, 0, renderData.centerLabel.radius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.strokeStyle = isHovered ? '#0f172a' : isHighlighted ? '#1d4ed8' : renderData.centerLabel.strokeColor;
+			ctx.lineWidth = isHovered
+				? 5 / this.camera.zoom
+				: isHighlighted
+					? 4 / this.camera.zoom
+					: 1 / this.camera.zoom;
+			ctx.stroke();
+			ctx.fillStyle = getReadableTextColor(renderData.centerLabel.fillColor, this.isDarkMode);
+			ctx.font = `${isHighlighted ? '600' : '500'} ${String(renderData.centerLabel.fontSize)}px Lato, sans-serif`;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			const lineHeight = renderData.centerLabel.fontSize * 1.05;
+			const firstLineY = -((renderData.centerLabel.lines.length - 1) * lineHeight) / 2;
+			for (const [index, line] of renderData.centerLabel.lines.entries()) {
+				ctx.fillText(line, 0, firstLineY + index * lineHeight);
+			}
+			ctx.restore();
+		}
 
 		for (const label of renderData.labels) {
 			if (!label.isVisible) continue;
@@ -782,6 +817,19 @@ export class WebGLGraphEngine {
 
 		const world = this.screenToWorld(screenX, screenY);
 		const radius = Math.hypot(world.x, world.y);
+
+		if (renderData.centerLabel?.nodeId !== undefined && radius <= renderData.centerLabel.radius) {
+			const node = this.nodeMap.get(String(renderData.centerLabel.nodeId));
+			if (node) {
+				return {
+					height: renderData.centerLabel.radius * 2,
+					interactionMeta: renderData.interactionByNodeId[renderData.centerLabel.nodeId],
+					node,
+					width: renderData.centerLabel.radius * 2,
+				};
+			}
+		}
+
 		let angle = Math.atan2(world.y, world.x) + Math.PI / 2;
 		if (angle < 0) angle += Math.PI * 2;
 

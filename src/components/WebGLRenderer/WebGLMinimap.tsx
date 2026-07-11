@@ -38,6 +38,7 @@ export const WebGLMinimap = React.memo(({ camera, engine, isDarkMode = false, on
 		ctx.strokeRect(0, 0, MINIMAP_WIDTH, MINIMAP_HEIGHT);
 
 		const bounds = engine.getBounds();
+		const sunburstRenderData = engine.getSunburstRenderData();
 		if (!bounds) return;
 
 		const graphW = bounds.maxX - bounds.minX;
@@ -54,22 +55,60 @@ export const WebGLMinimap = React.memo(({ camera, engine, isDarkMode = false, on
 		const toMinimapX = (x: number) => (x - bounds.minX) * scale + offsetX;
 		const toMinimapY = (y: number) => (y - bounds.minY) * scale + offsetY;
 
-		// Draw nodes
-		const nodeData = engine.getNodes();
-		const nodeMetrics = engine.getAllNodeMetrics();
+		if (sunburstRenderData) {
+			ctx.save();
+			ctx.translate(offsetX, offsetY);
+			ctx.scale(scale, scale);
+			ctx.translate(-bounds.minX, -bounds.minY);
 
-		for (const node of nodeData) {
-			const metrics = nodeMetrics.get(node.id);
-			const w = metrics?.width ?? 250;
-			const h = metrics?.height ?? 80;
+			for (const segment of sunburstRenderData.segments) {
+				ctx.beginPath();
+				ctx.arc(0, 0, segment.outerRadius, segment.startAngle - Math.PI / 2, segment.endAngle - Math.PI / 2);
+				ctx.arc(
+					0,
+					0,
+					segment.innerRadius,
+					segment.endAngle - Math.PI / 2,
+					segment.startAngle - Math.PI / 2,
+					true,
+				);
+				ctx.closePath();
+				ctx.fillStyle = segment.fillColor;
+				ctx.fill();
+				ctx.strokeStyle = segment.strokeColor;
+				ctx.lineWidth = 1.25 / scale;
+				ctx.stroke();
+			}
 
-			const mx = toMinimapX(node.position.x);
-			const my = toMinimapY(node.position.y);
-			const mw = w * scale;
-			const mh = h * scale;
+			if (sunburstRenderData.centerLabel) {
+				ctx.beginPath();
+				ctx.arc(0, 0, sunburstRenderData.centerLabel.radius, 0, Math.PI * 2);
+				ctx.fillStyle = sunburstRenderData.centerLabel.fillColor;
+				ctx.fill();
+				ctx.strokeStyle = sunburstRenderData.centerLabel.strokeColor;
+				ctx.lineWidth = 1.25 / scale;
+				ctx.stroke();
+			}
 
-			ctx.fillStyle = oklchToHex(node.data.color.shades[isDarkMode ? 700 : 300]);
-			ctx.fillRect(mx, my, Math.max(mw, 2), Math.max(mh, 2));
+			ctx.restore();
+		} else {
+			// Draw nodes
+			const nodeData = engine.getNodes();
+			const nodeMetrics = engine.getAllNodeMetrics();
+
+			for (const node of nodeData) {
+				const metrics = nodeMetrics.get(node.id);
+				const w = metrics?.width ?? 250;
+				const h = metrics?.height ?? 80;
+
+				const mx = toMinimapX(node.position.x);
+				const my = toMinimapY(node.position.y);
+				const mw = w * scale;
+				const mh = h * scale;
+
+				ctx.fillStyle = oklchToHex(node.data.color.shades[isDarkMode ? 700 : 300]);
+				ctx.fillRect(mx, my, Math.max(mw, 2), Math.max(mh, 2));
+			}
 		}
 
 		// Draw viewport rectangle

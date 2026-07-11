@@ -1,3 +1,5 @@
+/* eslint-disable perfectionist/sort-modules */
+
 import type { SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
 
 const EXPORT_PADDING = 80;
@@ -8,7 +10,7 @@ export function createSunburstSvg(renderData: SunburstRenderData): string {
 	const segments = renderData.segments
 		.map(
 			(segment) =>
-				`<g><title>${escapeXml(segment.pathTitles.join(' -> '))}</title><path d="${arcPath(segment, center)}" fill="${segment.fillColor}" stroke="${segment.strokeColor}" stroke-width="2"/></g>`,
+				`<g><title>${escapeXml(segment.pathTitles.join(' -> '))}</title><path d="${arcPath(segment, center)}" fill="${segment.fillColor}" stroke="${segment.strokeColor}" stroke-width="1"/></g>`,
 		)
 		.join('');
 	const labels = renderData.labels
@@ -39,8 +41,9 @@ export function createSunburstSvg(renderData: SunburstRenderData): string {
 			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="middle" dominant-baseline="middle" font-family="Lato, sans-serif" font-size="${String(label.fontSize)}" font-weight="500" fill="${readableTextColor(segment.fillColor)}">${lines}</text></g>`;
 		})
 		.join('');
+	const centerLabel = renderData.centerLabel ? createCenterLabelSvg(renderData.centerLabel, center) : '';
 
-	return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${String(diameter)}" height="${String(diameter)}" viewBox="0 0 ${String(diameter)} ${String(diameter)}"><rect width="100%" height="100%" fill="#ffffff"/>${segments}${labels}</svg>`;
+	return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${String(diameter)}" height="${String(diameter)}" viewBox="0 0 ${String(diameter)} ${String(diameter)}"><rect width="100%" height="100%" fill="#ffffff"/>${segments}${centerLabel}${labels}</svg>`;
 }
 
 export function renderSunburstToCanvas(
@@ -60,7 +63,7 @@ export function renderSunburstToCanvas(
 		ctx.fillStyle = segment.fillColor;
 		ctx.fill();
 		ctx.strokeStyle = segment.strokeColor;
-		ctx.lineWidth = 2 / scale;
+		ctx.lineWidth = 1 / scale;
 		ctx.stroke();
 	}
 
@@ -93,6 +96,10 @@ export function renderSunburstToCanvas(
 		}
 		ctx.restore();
 	}
+
+	if (renderData.centerLabel) {
+		drawCenterLabel(ctx, renderData.centerLabel);
+	}
 	ctx.restore();
 }
 
@@ -105,6 +112,17 @@ function arcPath(segment: SunburstSegmentLayout, center: number): string {
 	const innerEnd = pointAt(segment.innerRadius, end, center);
 	const innerStart = pointAt(segment.innerRadius, start, center);
 	return `M ${String(outerStart.x)} ${String(outerStart.y)} A ${String(segment.outerRadius)} ${String(segment.outerRadius)} 0 ${String(largeArc)} 1 ${String(outerEnd.x)} ${String(outerEnd.y)} L ${String(innerEnd.x)} ${String(innerEnd.y)} A ${String(segment.innerRadius)} ${String(segment.innerRadius)} 0 ${String(largeArc)} 0 ${String(innerStart.x)} ${String(innerStart.y)} Z`;
+}
+
+function createCenterLabelSvg(centerLabel: NonNullable<SunburstRenderData['centerLabel']>, center: number): string {
+	const lineHeight = centerLabel.fontSize * 1.05;
+	const lines = centerLabel.lines
+		.map(
+			(line, index) =>
+				`<tspan x="${String(center)}" dy="${String(index === 0 ? -((centerLabel.lines.length - 1) * lineHeight) / 2 : lineHeight)}">${escapeXml(line)}</tspan>`,
+		)
+		.join('');
+	return `<circle cx="${String(center)}" cy="${String(center)}" r="${String(centerLabel.radius)}" fill="${centerLabel.fillColor}" stroke="${centerLabel.strokeColor}" stroke-width="2"/><text x="${String(center)}" y="${String(center)}" text-anchor="middle" dominant-baseline="middle" font-family="Lato, sans-serif" font-size="${String(centerLabel.fontSize)}" font-weight="500" fill="${readableTextColor(centerLabel.fillColor)}">${lines}</text>`;
 }
 
 function drawTextOnArc(
@@ -144,6 +162,30 @@ function drawTextOnArc(
 
 		currentAngle += direction * glyphAngle;
 	}
+}
+
+function drawCenterLabel(
+	ctx: CanvasRenderingContext2D,
+	centerLabel: NonNullable<SunburstRenderData['centerLabel']>,
+): void {
+	ctx.save();
+	ctx.fillStyle = centerLabel.fillColor;
+	ctx.beginPath();
+	ctx.arc(0, 0, centerLabel.radius, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.strokeStyle = centerLabel.strokeColor;
+	ctx.lineWidth = 1;
+	ctx.stroke();
+	ctx.fillStyle = readableTextColor(centerLabel.fillColor);
+	ctx.font = `500 ${String(centerLabel.fontSize)}px Lato, sans-serif`;
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	const lineHeight = centerLabel.fontSize * 1.05;
+	const firstLineY = -((centerLabel.lines.length - 1) * lineHeight) / 2;
+	for (const [index, line] of centerLabel.lines.entries()) {
+		ctx.fillText(line, 0, firstLineY + index * lineHeight);
+	}
+	ctx.restore();
 }
 
 function escapeXml(value: string): string {

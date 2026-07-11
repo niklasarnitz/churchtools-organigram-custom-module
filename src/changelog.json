@@ -1,6 +1,15 @@
 {
 	"versions": [
 		{
+			"version": "1.6.0-bwl22",
+			"date": "2026-07-11",
+			"changes": [
+				"Sunburst-Segmente orientieren ihre Farbe nun an der Ring-1-Wurzel und werden pro Ebene heller.",
+				"Sunburst-Segmentgrenzen werden mit einer duennen weissen Linie getrennt.",
+				"Die Minimap zeigt im Sunburst-Modus jetzt die Segmente statt einer flachen Knoten-Vorschau."
+			]
+		},
+		{
 			"version": "1.6.0-bwl21",
 			"date": "2026-07-10",
 			"changes": [
