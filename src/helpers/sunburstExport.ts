@@ -3,7 +3,7 @@
 import type { SunburstLabelLayout, SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
 
 import { oklchToHex } from '../globals/Colors';
-import { calculateTextOrientation } from './sunburstTextOrientation';
+import { calculateTextOrientation, getTangentialLineOffset } from './sunburstTextOrientation';
 
 const EXPORT_PADDING = 80;
 const DEFAULT_EXPORT_OPTIONS: Required<SunburstSvgExportOptions> = {
@@ -44,7 +44,12 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
 				const textPaths = label.lines
 					.map((line, index) => {
-						const lineOffset = (index - (label.lines.length - 1) / 2) * lineHeight;
+						const lineOffset = getTangentialLineOffset(
+							index,
+							label.lines.length,
+							lineHeight,
+							label.tangentialLineDirection,
+						);
 						const textRadius = textRadiusBase + lineOffset;
 						const pathId = `sunburst-label-${String(label.nodeId)}-${String(index)}`;
 						const pathData = textArcPath(segment, center, textRadius);
@@ -84,7 +89,12 @@ function createCurvedLabelSvg(
 	const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
 	const lines = label.lines
 		.map((line, lineIndex) => {
-			const lineOffset = (lineIndex - (label.lines.length - 1) / 2) * lineHeight;
+			const lineOffset = getTangentialLineOffset(
+				lineIndex,
+				label.lines.length,
+				lineHeight,
+				label.tangentialLineDirection,
+			);
 			const radius = textRadiusBase + lineOffset;
 			const glyphWidths = Array.from(line, estimateGlyphWidth).map((width) => width * exportFontSize);
 			const totalWidth = glyphWidths.reduce((sum, width) => sum + width, 0);
@@ -156,7 +166,12 @@ export function renderSunburstToCanvas(
 			const lineHeight = label.fontSize * 1.05;
 			const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
 			for (const [index, line] of label.lines.entries()) {
-				const lineOffset = (index - (label.lines.length - 1) / 2) * lineHeight;
+				const lineOffset = getTangentialLineOffset(
+					index,
+					label.lines.length,
+					lineHeight,
+					label.tangentialLineDirection,
+				);
 				drawTextOnArc(ctx, line, textRadiusBase + lineOffset, segment);
 			}
 		} else {

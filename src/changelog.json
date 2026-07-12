@@ -16,7 +16,9 @@
 				"PDF-Sunburst-Exporte enthalten jetzt auch die tangentialen Segmentbeschriftungen.",
 				"Ohne Startgruppe werden auch verwaiste Gruppen als eigene Ring-1-Wurzeln direkt am Donut-Loch angezeigt.",
 				"Ein deutschsprachiges Benutzerhandbuch in docs/ dokumentiert Filter, Layouts, Sunburst-Interaktionen und Exporte.",
-				"Sunburst-Gruppentypfarben werden für SVG- und PDF-Exporte in ein kompatibles Hex-Farbformat umgewandelt."
+				"Sunburst-Gruppentypfarben werden für SVG- und PDF-Exporte in ein kompatibles Hex-Farbformat umgewandelt.",
+				"Tangentiale Mehrzeilenbeschriftungen werden von außen nach innen angeordnet.",
+				"Sunburst-Beschriftungen bevorzugen bei gleicher Schriftgröße weniger Zeilen; Gruppentyp-Kürzel und erstes Titelwort bleiben beim Umbruch zusammen."
 			]
 		},
 		{

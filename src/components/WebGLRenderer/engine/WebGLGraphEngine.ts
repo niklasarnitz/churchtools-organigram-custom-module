@@ -7,7 +7,7 @@ import type { Edge, Node } from '../../../types/GraphTypes';
 import type { SunburstInteractionMeta, SunburstRenderData, SunburstSegmentLayout } from '../../../types/Sunburst';
 
 import { oklchToHex } from '../../../globals/Colors';
-import { calculateTextOrientation } from '../../../helpers/sunburstTextOrientation';
+import { calculateTextOrientation, getTangentialLineOffset } from '../../../helpers/sunburstTextOrientation';
 import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
 
 export interface Camera {
@@ -794,7 +794,12 @@ export class WebGLGraphEngine {
 				const lineHeight = label.fontSize * 1.05;
 				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
 				for (const [index, line] of label.lines.entries()) {
-					const lineOffset = (index - (label.lines.length - 1) / 2) * lineHeight;
+					const lineOffset = getTangentialLineOffset(
+						index,
+						label.lines.length,
+						lineHeight,
+						label.tangentialLineDirection,
+					);
 					drawTextOnArc(ctx, line, textRadiusBase + lineOffset, segment);
 				}
 			} else {

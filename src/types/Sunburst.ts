@@ -57,6 +57,7 @@ export interface SunburstLabelLayout {
 	text: string;
 	textAnchor: 'end' | 'middle' | 'start';
 	textAlign: CanvasTextAlign;
+	tangentialLineDirection: 'inside-out' | 'outside-in';
 	x: number;
 	y: number;
 }

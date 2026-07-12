@@ -22,7 +22,12 @@ import type {
 } from '../types/Sunburst';
 
 import { getColorForGroupType, oklchToHex } from '../globals/Colors';
-import { calculateTextOrientation } from './sunburstTextOrientation';
+import {
+	calculateTextOrientation,
+	getTangentialLineDirection,
+	toScreenAngle,
+	toScreenAngleDegrees,
+} from './sunburstTextOrientation';
 
 interface BuildSunburstLayoutArgs {
 	centerNodeId?: number;
@@ -265,8 +270,9 @@ export function buildSunburstLayout({
 		const innerRadius = holeRadius + Math.max(depth - 1, 0) * (radialRingDistance + ringGap);
 		const outerRadius = holeRadius + depth * radialRingDistance;
 		const centerRadius = (innerRadius + outerRadius) / 2;
-		const x = centerRadius * Math.cos(midAngle - Math.PI / 2);
-		const y = centerRadius * Math.sin(midAngle - Math.PI / 2);
+		const screenMidAngle = toScreenAngle(midAngle);
+		const x = centerRadius * Math.cos(screenMidAngle);
+		const y = centerRadius * Math.sin(screenMidAngle);
 		const nodeData = nodeDataById.get(nodeId);
 		if (!nodeData) continue;
 
@@ -562,9 +568,10 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 	const angleSpan = segment.endAngle - segment.startAngle;
 	const radius = (segment.innerRadius + segment.outerRadius) / 2;
 	const arcLength = radius * angleSpan;
-	const angleForText = segment.midAngle - Math.PI / 2;
+	const angleForText = toScreenAngle(segment.midAngle);
 	const orientation = angleSpan >= Math.PI / 9 && arcLength >= ringHeight * 1.25 ? 'tangential' : 'radial';
 	const textOrientation = calculateTextOrientation((angleForText * 180) / Math.PI, orientation);
+	const tangentialLineDirection = getTangentialLineDirection(toScreenAngleDegrees(segment.midAngle));
 	if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_SUNBURST_LABELS === 'true') {
 		// eslint-disable-next-line no-console
 		console.debug('[sunburst-label]', {
@@ -601,6 +608,7 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 		text: segment.title,
 		textAlign: textOrientation.textAnchor === 'middle' ? 'center' : textOrientation.textAnchor,
 		textAnchor: textOrientation.textAnchor,
+		tangentialLineDirection,
 		x,
 		y,
 	};
@@ -704,7 +712,12 @@ function fitLabelText(
 ): { fontSize: number; lines: string[] } {
 	const minFontSize = 5;
 	const lineHeightFactor = 1.05;
-	const words = title.trim().split(/\s+/).filter(Boolean);
+	const rawWords = title.trim().split(/\s+/).filter(Boolean);
+	const groupTypeIndex = rawWords.findIndex((word) => /^\[[^\]]+\]$/.test(word));
+	const words =
+		groupTypeIndex >= 0 && rawWords.length > 1
+			? combineGroupTypeWithAdjacentWord(rawWords, groupTypeIndex)
+			: rawWords;
 	if (words.length === 0) return { fontSize: minFontSize, lines: [] };
 
 	const maxLines = Math.max(1, Math.min(words.length, Math.floor(crossSpace / (minFontSize * lineHeightFactor))));
@@ -724,7 +737,7 @@ function fitLabelText(
 
 		if (
 			fontSize > bestFontSize + 0.01 ||
-			(Math.abs(fontSize - bestFontSize) <= 0.01 && lines.length > bestLines.length)
+			(Math.abs(fontSize - bestFontSize) <= 0.01 && lines.length < bestLines.length)
 		) {
 			bestFontSize = fontSize;
 			bestLines = lines;
@@ -737,6 +750,13 @@ function fitLabelText(
 	}
 
 	return { fontSize: bestFontSize, lines: bestLines };
+}
+
+function combineGroupTypeWithAdjacentWord(words: string[], groupTypeIndex: number): string[] {
+	const adjacentIndex = groupTypeIndex === 0 ? 1 : groupTypeIndex - 1;
+	const firstIndex = Math.min(groupTypeIndex, adjacentIndex);
+	const combined = words.slice(firstIndex, firstIndex + 2).join(' ');
+	return [...words.slice(0, firstIndex), combined, ...words.slice(firstIndex + 2)];
 }
 
 function wrapLabel(title: string, maxLineCharacters: number): string[] {

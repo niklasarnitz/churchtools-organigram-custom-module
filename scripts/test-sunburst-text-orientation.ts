@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { calculateTextOrientation } from '../src/helpers/sunburstTextOrientation';
+import { calculateTextOrientation, getTangentialLineDirection } from '../src/helpers/sunburstTextOrientation';
 
 const testAngles = [0, 30, 60, 89, 90, 120, 180, 240, 270, 300, 330, 359];
 
@@ -19,6 +19,13 @@ assert.equal(calculateTextOrientation(94, 'radial').flipped, true);
 assert.equal(calculateTextOrientation(266, 'radial').flipped, true);
 assert.equal(calculateTextOrientation(267, 'radial').flipped, false);
 assert.equal(calculateTextOrientation(270, 'radial').flipped, false);
+assert.equal(getTangentialLineDirection(0), 'outside-in');
+assert.equal(getTangentialLineDirection(60), 'inside-out');
+assert.equal(getTangentialLineDirection(90), 'outside-in');
+assert.equal(getTangentialLineDirection(120), 'inside-out');
+assert.equal(getTangentialLineDirection(180), 'outside-in');
+assert.equal(getTangentialLineDirection(240), 'outside-in');
+assert.equal(getTangentialLineDirection(270), 'outside-in');
 
 // eslint-disable-next-line no-console
 console.log(`Sunburst text orientation tests passed for ${String(testAngles.length)} angles in both modes.`);
