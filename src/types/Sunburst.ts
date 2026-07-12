@@ -2,6 +2,7 @@
 /* eslint-disable perfectionist/sort-modules */
 
 export type PrimaryParentSource = 'churchtools-field' | 'fallback' | 'root';
+export type SunburstColorMode = 'group' | 'groupType' | 'segment';
 
 export interface SunburstColorDebugEntry {
 	ancestorIds: number[];

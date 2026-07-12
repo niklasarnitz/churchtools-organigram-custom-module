@@ -33,6 +33,7 @@ export const PresetManager = React.memo(() => {
 			showGroupTypes: s.showGroupTypes,
 			showLeaders: s.showLeaders,
 			showOnlyDirectChildren: s.showOnlyDirectChildren,
+			sunburstColorMode: s.sunburstColorMode,
 		};
 	}, []);
 

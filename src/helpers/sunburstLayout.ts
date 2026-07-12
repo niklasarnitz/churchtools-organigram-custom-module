@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/array-type */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-/* eslint-disable no-useless-assignment */
 /* eslint-disable perfectionist/sort-modules */
 /* eslint-disable perfectionist/sort-named-imports */
 /* eslint-disable perfectionist/sort-objects */
@@ -17,18 +16,22 @@ import type {
 	SunburstColorDebugEntry,
 	SunburstInteractionMeta,
 	SunburstLabelLayout,
+	SunburstColorMode,
 	SunburstRenderData,
 	SunburstSegmentLayout,
 } from '../types/Sunburst';
 
-import { oklchToHex } from '../globals/Colors';
+import { getColorForGroupType, oklchToHex } from '../globals/Colors';
 import { calculateTextOrientation } from './sunburstTextOrientation';
 
 interface BuildSunburstLayoutArgs {
 	centerNodeId?: number;
+	colorMode: SunburstColorMode;
+	groupTypeShortiesById: Map<number, string>;
 	hierarchiesByGroupId: Record<number, Hierarchy | undefined>;
 	nodeDataById: Map<number, PreviewGraphNodeData>;
 	radialRingDistance: number;
+	showGroupTypes: boolean;
 	visibleNodeIds: Set<number>;
 }
 
@@ -64,9 +67,12 @@ export function extractConfiguredPrimaryParentGroupId(group: Group): number | un
 
 export function buildSunburstLayout({
 	centerNodeId,
+	colorMode,
+	groupTypeShortiesById,
 	hierarchiesByGroupId,
 	nodeDataById,
 	radialRingDistance,
+	showGroupTypes,
 	visibleNodeIds,
 }: BuildSunburstLayoutArgs): {
 	interactionByNodeId: Record<number, SunburstInteractionMeta>;
@@ -195,6 +201,8 @@ export function buildSunburstLayout({
 						nodeDataById,
 						primaryParentByNodeId,
 						primaryParentSourceByNodeId,
+						groupTypeShortiesById,
+						showGroupTypes,
 					)
 				: buildDisplayChildren(
 						VIRTUAL_ROOT_ID,
@@ -202,6 +210,8 @@ export function buildSunburstLayout({
 						nodeDataById,
 						primaryParentByNodeId,
 						primaryParentSourceByNodeId,
+						groupTypeShortiesById,
+						showGroupTypes,
 					),
 		id: VIRTUAL_ROOT_ID,
 		order: 0,
@@ -260,7 +270,12 @@ export function buildSunburstLayout({
 		const nodeData = nodeDataById.get(nodeId);
 		if (!nodeData) continue;
 
-		const fillColor = deriveSegmentColor(branchRootColor, depth - branchRootNode.depth);
+		const fillColor =
+			colorMode === 'segment'
+				? branchRootColor
+				: colorMode === 'groupType'
+					? getGroupTypeColor(nodeData)
+					: deriveBaseNodeColor(nodeId, nodeDataById, sunburstBaseColorDebugEntries);
 		if (sunburstDebugEnabled) {
 			sunburstColorDebugEntries.push({
 				ancestorIds: descendant
@@ -316,7 +331,7 @@ export function buildSunburstLayout({
 			primaryParentSource,
 			startAngle,
 			strokeColor,
-			title: nodeData.title,
+			title: descendant.data.title,
 		};
 
 		const label = buildLabelLayout(segment, radialRingDistance);
@@ -333,7 +348,7 @@ export function buildSunburstLayout({
 			ring: { innerRadius, outerRadius },
 			secondaryParentIds: secondaryParentIdsByNodeId[nodeId],
 			segmentId,
-			title: nodeData.title,
+			title: descendant.data.title,
 		};
 
 		segments.push(segment);
@@ -343,16 +358,15 @@ export function buildSunburstLayout({
 		interactionByNodeId[nodeId] = interactionMeta;
 		layoutNodes.push({ id: nodeId, x, y });
 
-		if (!parentData && rootNodeIds.length === 1 && pathTitles[0] !== nodeDataById.get(rootNodeIds[0])?.title) {
-			interactionMeta.pathTitles.unshift(
-				nodeDataById.get(rootNodeIds[0])?.title ?? pathTitles[0] ?? nodeData.title,
-			);
+		const rootTitle = getSunburstTitle(nodeDataById.get(rootNodeIds[0]), showGroupTypes, groupTypeShortiesById);
+		if (!parentData && rootNodeIds.length === 1 && pathTitles[0] !== rootTitle) {
+			interactionMeta.pathTitles.unshift(rootTitle ?? pathTitles[0] ?? descendant.data.title);
 		}
 	}
 
 	const maxRadius = holeRadius + Math.max(maxDepth - 1, 0) * (radialRingDistance + ringGap) + radialRingDistance;
 	const centerNodeData = effectiveCenterNodeId !== undefined ? nodeDataById.get(effectiveCenterNodeId) : undefined;
-	const centerNodeTitle = centerNodeData?.title;
+	const centerNodeTitle = getSunburstTitle(centerNodeData, showGroupTypes, groupTypeShortiesById);
 	const centerNodeFillColor = centerNodeData?.color.shades[500]
 		? oklchToHex(centerNodeData.color.shades[500])
 		: '#ffffff';
@@ -424,6 +438,8 @@ function buildDisplayChildren(
 	nodeDataById: Map<number, PreviewGraphNodeData>,
 	primaryParentByNodeId: Map<number, number>,
 	primaryParentSourceByNodeId: Map<number, PrimaryParentSource>,
+	groupTypeShortiesById: Map<number, string>,
+	showGroupTypes: boolean,
 ): DisplayTreeNode[] {
 	const childIds = displayChildrenByNodeId.get(parentId) ?? [];
 
@@ -434,12 +450,16 @@ function buildDisplayChildren(
 			nodeDataById,
 			primaryParentByNodeId,
 			primaryParentSourceByNodeId,
+			groupTypeShortiesById,
+			showGroupTypes,
 		),
 		id: childId,
 		order,
 		parentId: primaryParentByNodeId.get(childId),
 		primaryParentSource: primaryParentSourceByNodeId.get(childId) ?? 'fallback',
-		title: nodeDataById.get(childId)?.title ?? `[Group ${String(childId)}]`,
+		title:
+			getSunburstTitle(nodeDataById.get(childId), showGroupTypes, groupTypeShortiesById) ??
+			`[Group ${String(childId)}]`,
 	}));
 }
 
@@ -467,6 +487,21 @@ function computeMinDistanceFromRoots(
 	}
 
 	return distanceByNodeId;
+}
+
+function getSunburstTitle(
+	nodeData: PreviewGraphNodeData | undefined,
+	showGroupTypes: boolean,
+	groupTypeShortiesById: Map<number, string>,
+): string | undefined {
+	if (!nodeData || !showGroupTypes) return nodeData?.title;
+
+	const shorty = groupTypeShortiesById.get(nodeData.group.information.groupTypeId)?.trim();
+	return shorty ? `[${shorty.toUpperCase()}] ${nodeData.title}` : nodeData.title;
+}
+
+function getGroupTypeColor(nodeData: PreviewGraphNodeData): string {
+	return getColorForGroupType(nodeData.group.information.groupTypeId).shades[500];
 }
 
 function breakCycles(
@@ -548,10 +583,6 @@ function findVisibleBranchRootNode(
 		.find((entry) => entry.data.id !== VIRTUAL_ROOT_ID && entry.data.id !== effectiveCenterNodeId);
 }
 
-function deriveSegmentColor(baseColor: string, depthOffset: number): string {
-	return lightenHexColor(baseColor, depthOffset);
-}
-
 function deriveStrokeColor(fillColor: string): string {
 	return adjustHexColor(fillColor, -0.14);
 }
@@ -570,19 +601,6 @@ function adjustHexColor(hexColor: string, amount: number): string {
 	const blue = clampChannel((numeric & 0xff) + Math.round(255 * amount));
 
 	return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
-}
-
-function lightenHexColor(hexColor: string, depthOffset: number): string {
-	if (depthOffset <= 0) return hexColor;
-
-	const { hue, lightness, saturation } = hexToHsl(hexColor);
-	const lightnessShift = depthOffset * 0.075;
-
-	return hslToHex(
-		hue,
-		Math.max(0.12, Math.min(0.9, saturation * 0.96)),
-		Math.max(0.22, Math.min(0.86, lightness + lightnessShift)),
-	);
 }
 
 function deriveBaseNodeColor(
@@ -645,50 +663,6 @@ function deriveBaseNodeColor(
 		shade500,
 	});
 	return normalizedColor;
-}
-
-function hexToHsl(hexColor: string): { hue: number; lightness: number; saturation: number } {
-	const normalized = hexColor.replace('#', '');
-	const red = Number.parseInt(normalized.slice(0, 2), 16) / 255;
-	const green = Number.parseInt(normalized.slice(2, 4), 16) / 255;
-	const blue = Number.parseInt(normalized.slice(4, 6), 16) / 255;
-	const max = Math.max(red, green, blue);
-	const min = Math.min(red, green, blue);
-	const lightness = (max + min) / 2;
-	const delta = max - min;
-	if (delta === 0) return { hue: 0, lightness, saturation: 0 };
-
-	const saturation = delta / (1 - Math.abs(2 * lightness - 1));
-	let hue = 0;
-	if (max === red) hue = 60 * (((green - blue) / delta) % 6);
-	else if (max === green) hue = 60 * ((blue - red) / delta + 2);
-	else hue = 60 * ((red - green) / delta + 4);
-	return { hue: hue < 0 ? hue + 360 : hue, lightness, saturation };
-}
-
-function hslToHex(hue: number, saturation: number, lightness: number): string {
-	const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
-	const intermediate = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
-	const match = lightness - chroma / 2;
-	const [red, green, blue] =
-		hue < 60
-			? [chroma, intermediate, 0]
-			: hue < 120
-				? [intermediate, chroma, 0]
-				: hue < 180
-					? [0, chroma, intermediate]
-					: hue < 240
-						? [0, intermediate, chroma]
-						: hue < 300
-							? [intermediate, 0, chroma]
-							: [chroma, 0, intermediate];
-	return `#${[red, green, blue]
-		.map((channel) =>
-			clampChannel(Math.round((channel + match) * 255))
-				.toString(16)
-				.padStart(2, '0'),
-		)
-		.join('')}`;
 }
 
 function fitLabelText(

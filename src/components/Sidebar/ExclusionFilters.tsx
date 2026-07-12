@@ -1,6 +1,8 @@
 import _ from 'lodash';
 import React, { useCallback, useMemo } from 'react';
 
+import type { SunburstColorMode } from '../../types/Sunburst';
+
 import { cn } from '../../lib/utils';
 import { useGroupRoles } from '../../queries/useGroupRoles';
 import { useGroups } from '../../queries/useGroups';
@@ -10,6 +12,7 @@ import { usePersonMasterData } from '../../queries/usePersonMasterData';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
 import { GroupStatus } from '../../types/GroupStatus';
+import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
 import { Combobox } from '../ui/combobox';
 import { MultiSelect } from '../ui/multi-select';
 import { Switch } from '../ui/switch';
@@ -28,6 +31,12 @@ const groupStatusOptions = [
 	{ label: 'In Gründung', value: String(GroupStatus.PENDING) },
 	{ label: 'Archiviert', value: String(GroupStatus.ARCHIVED) },
 	{ label: 'Beendet', value: String(GroupStatus.FINISHED) },
+];
+
+const sunburstColorOptions: { label: string; value: SunburstColorMode }[] = [
+	{ label: 'Segment', value: 'segment' },
+	{ label: 'Gruppe', value: 'group' },
+	{ label: 'Gruppentyp', value: 'groupType' },
 ];
 
 export const ExclusionFilters = React.memo(() => {
@@ -69,6 +78,11 @@ export const ExclusionFilters = React.memo(() => {
 	const setShowParentGroups = useAppStore((s) => s.setShowParentGroups);
 	const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
 	const setHideIndirectSubgroups = useAppStore((s) => s.setHideIndirectSubgroups);
+	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
+	const sunburstColorMode = useAppStore((s) => s.sunburstColorMode);
+	const setSunburstColorMode = useAppStore((s) => s.setSunburstColorMode);
+	const isSunburstLayout =
+		layoutAlgorithm === LayoutAlgorithm.FLAT_RADIAL || layoutAlgorithm === LayoutAlgorithm.SUNBURST;
 
 	const handleMaxDepthChange = useCallback(
 		(value: string) => {
@@ -273,6 +287,20 @@ export const ExclusionFilters = React.memo(() => {
 					Darstellungsoptionen
 				</h5>
 				<div className="flex flex-col gap-y-3 pt-1">
+					{isSunburstLayout ? (
+						<div className="flex flex-col gap-y-1">
+							<span className="text-sm font-medium">Sunburst-Farbe</span>
+							<Combobox
+								onValueChange={(value) => {
+									if (value) setSunburstColorMode(value as SunburstColorMode);
+								}}
+								options={sunburstColorOptions}
+								placeholder="Farbquelle wählen"
+								value={sunburstColorMode}
+							/>
+						</div>
+					) : null}
+
 					<div className="flex flex-row items-center gap-x-2">
 						<Switch checked={showGroupTypes} onCheckedChange={setShowGroupTypes} />
 						<span className="text-sm">Gruppentypen anzeigen</span>

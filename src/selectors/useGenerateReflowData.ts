@@ -45,6 +45,7 @@ export const useGenerateReflowData = () => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 	const showParentGroups = committedFilters?.showParentGroups ?? false;
+	const sunburstColorMode = committedFilters?.sunburstColorMode ?? 'segment';
 	const layoutAlgorithm = committedFilters?.layoutAlgorithm ?? LayoutAlgorithm.elkLayeredTB;
 	const effectiveLayoutAlgorithm =
 		layoutAlgorithm === LayoutAlgorithm.elkRadial ? LayoutAlgorithm.FLAT_RADIAL : layoutAlgorithm;
@@ -230,9 +231,16 @@ export const useGenerateReflowData = () => {
 
 						const sunburstLayout = buildSunburstLayout({
 							centerNodeId: sunburstCenterNodeId,
+							colorMode: sunburstColorMode,
+							groupTypeShortiesById: new Map(
+								Object.values(groupTypesById).flatMap((groupType) =>
+									groupType ? [[groupType.id, groupType.shorty] as const] : [],
+								),
+							),
 							hierarchiesByGroupId,
 							nodeDataById,
 							radialRingDistance,
+							showGroupTypes,
 							visibleNodeIds,
 						});
 						const layoutNodeById = new Map(sunburstLayout.layoutNodes.map((entry) => [entry.id, entry]));
@@ -540,10 +548,12 @@ export const useGenerateReflowData = () => {
 		radialRingDistance,
 		showParentGroups,
 		showGroupTypes,
+		sunburstColorMode,
 		beginLayoutCalculation,
 		endLayoutCalculation,
 		relations,
 		hierarchiesByGroupId,
+		groupTypesById,
 	]);
 
 	return { ...layoutedData, isCalculating };

@@ -2,6 +2,7 @@ import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
 
 import type { UserSettings } from '../hooks/useUserSettings';
+import type { SunburstColorMode } from '../types/Sunburst';
 
 import { GroupStatus } from '../types/GroupStatus';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
@@ -25,6 +26,7 @@ export interface CommittedFilters {
 	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
 	showParentGroups: boolean;
+	sunburstColorMode: SunburstColorMode;
 }
 
 export interface PendingExport {
@@ -91,11 +93,13 @@ interface GroupState {
 	setShowLeaders: (show: boolean) => void;
 	setShowOnlyDirectChildren: (show: boolean) => void;
 	setShowParentGroups: (show: boolean) => void;
+	setSunburstColorMode: (mode: SunburstColorMode) => void;
 	// Display Options
 	showGroupTypes: boolean;
 	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
 	showParentGroups: boolean;
+	sunburstColorMode: SunburstColorMode;
 	toggleCollapsedNodeId: (nodeId: string) => void;
 }
 
@@ -118,6 +122,7 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 		showLeaders: state.showLeaders,
 		showOnlyDirectChildren: state.showOnlyDirectChildren,
 		showParentGroups: state.showParentGroups,
+		sunburstColorMode: state.sunburstColorMode,
 	};
 }
 
@@ -285,10 +290,15 @@ export const useAppStore = create<GroupState>((set) => {
 			setAndCommit({ showParentGroups });
 		},
 
+		setSunburstColorMode: (sunburstColorMode: SunburstColorMode) => {
+			setAndCommit({ sunburstColorMode });
+		},
+
 		showGroupTypes: true,
 		showLeaders: true,
 		showOnlyDirectChildren: false,
 		showParentGroups: false,
+		sunburstColorMode: 'segment',
 		toggleCollapsedNodeId: (nodeId: string) => {
 			set((state) => ({
 				collapsedNodeIds: state.collapsedNodeIds.includes(nodeId)
