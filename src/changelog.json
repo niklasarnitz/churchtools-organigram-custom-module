@@ -1,6 +1,21 @@
 {
 	"versions": [
 		{
+			"version": "1.6.1-bwl21",
+			"date": "2026-07-12",
+			"changes": [
+				"Neuer Sunburst-/DAG- und Flat-Radial-Layoutmodus fuer grosse Hierarchien mit Ringbreiten- und Tiefensteuerung.",
+				"Sunburst unterstuetzt Mehrfach-Obergruppen, sichtbare Elternpfade, Startgruppen im Donut-Zentrum und konfigurierbare Primaergruppen.",
+				"Darstellungsoptionen fuer Gruppentypen, Leiter, direkte Kinder, Obergruppen, maximale Tiefe und Sunburst-Farbquelle (Segment, Gruppe, Gruppentyp).",
+				"Sunburst-Segmente und Beschriftungen werden im WebGL-Renderer mit Hover, Hit-Testing, Minimap und einheitlicher lesbarer Rotation dargestellt.",
+				"Hover-Popups und Kontextmenues zeigen Obergruppen mit Primaer-/Fallback-Markierung und erlauben die Auswahl einer Obergruppe als Startgruppe.",
+				"SVG-, PDF- und eigenstaendige HTML-Exporte wurden um Vektor-Sunburst, Hover-Informationen und direkte ChurchTools-Verknuepfungen erweitert.",
+				"Gruppenfarben, Gruppentypfarben und ChurchTools-Farbfelder werden robust auf Segment- und Ring-1-Farben abgebildet.",
+				"Fehlende Berechtigungen fuer Personendaten werden ohne unnoetige API-Abfragen behandelt; Mitglieder koennen unabhaengig ein-/ausgeblendet werden.",
+				"Automatisierte Tests fuer Sunburst-Textorientierung sowie einheitliche Bun-/TypeScript- und Vite-Build-Ablaufe ergaenzt."
+			]
+		},
+		{
 			"version": "1.6.0-bwl23",
 			"date": "2026-07-12",
 			"changes": [
