@@ -6,7 +6,8 @@
 			"changes": [
 				"CI lint errors fixed: removed debug console.log blocks, fixed type issues and unused code in radialLayout.ts, treeTransformer.ts, elkDslExport.ts, and index.tsx.",
 				"Sunburst-Beschriftungen verwenden jetzt eine gemeinsame, winkelbasierte Orientierung ohne kopfstehende Texte in Ansicht, SVG und PDF.",
-				"Die Sunburst-Darstellung bietet jetzt die getrennte Farbwahl Segment, Gruppe oder Gruppentyp; fehlende Gruppenfarben fallen auf die Gruppentyp-Farbe zurück."
+				"Die Sunburst-Darstellung bietet jetzt die getrennte Farbwahl Segment, Gruppe oder Gruppentyp; fehlende Gruppenfarben fallen auf die Gruppentyp-Farbe zurück.",
+				"Die maximale Tiefe begrenzt jetzt auch die sichtbaren Sunburst-Ringe korrekt; Ebene 1 entspricht Ring 1."
 			]
 		},
 		{

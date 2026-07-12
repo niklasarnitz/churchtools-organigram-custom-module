@@ -47,10 +47,26 @@ export const useFilteredGroupIds = (): number[] => {
 
 		const startGroupId = groupIdToStartWith ? Number(groupIdToStartWith) : undefined;
 		const collapsedNodeIdSet = new Set(collapsedNodeIds.map(Number));
-		const rootNodes = startGroupId ? [startGroupId] : (hierarchies ?? []).map((h) => h.groupId);
+		const rootNodes = startGroupId
+			? [startGroupId]
+			: (hierarchies ?? [])
+					.filter((hierarchy) => {
+						const group = groupsById[hierarchy.groupId];
+						if (!group || !shouldIncludeGroup(group)) return false;
+
+						return hierarchy.parents.every((parentId) => {
+							const parent = groupsById[parentId];
+							return !parent || !shouldIncludeGroup(parent);
+						});
+					})
+					.map((hierarchy) => hierarchy.groupId);
+		const traversalRootNodes =
+			rootNodes.length > 0
+				? rootNodes
+				: Object.values(groupsById).flatMap((group) => (group && shouldIncludeGroup(group) ? [group.id] : []));
 
 		const addedNodeIds = new Set<number>();
-		const queue: { depth: number; direction: 'down' | 'up'; groupId: number }[] = rootNodes.map((id) => ({
+		const queue: { depth: number; direction: 'down' | 'up'; groupId: number }[] = traversalRootNodes.map((id) => ({
 			depth: 0,
 			direction: 'down',
 			groupId: id,
@@ -72,8 +88,8 @@ export const useFilteredGroupIds = (): number[] => {
 			addedNodeIds.add(groupId);
 			const isCollapsed = collapsedNodeIdSet.has(groupId);
 
-			// Only traverse downward if maxDepth not reached
-			if (!isCollapsed && (maxDepth === undefined || depth < maxDepth)) {
+			// The root is ring 1, so maxDepth 1 must not traverse to ring 2.
+			if (!isCollapsed && (maxDepth === undefined || depth + 1 < maxDepth)) {
 				const hierarchy = hierarchiesByGroupId[groupId];
 				if (hierarchy) {
 					// Add children (downward traversal)
