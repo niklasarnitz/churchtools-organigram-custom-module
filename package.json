@@ -45,6 +45,7 @@
 		"preview": "vite preview",
 		"deploy": "bun scripts/deploy.ts",
 		"seed": "bun scripts/seed-testdata.ts",
+		"test": "bun scripts/test-sunburst-text-orientation.ts",
 		"changelog": "bun scripts/generate-changelog.ts",
 		"lint": "eslint src/",
 		"ci": "bun run lint && bun run typecheck",

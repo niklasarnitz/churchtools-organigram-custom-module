@@ -46,6 +46,7 @@ export interface SunburstSegmentLayout {
 }
 
 export interface SunburstLabelLayout {
+	flipped: boolean;
 	fontSize: number;
 	isVisible: boolean;
 	lines: string[];
@@ -53,6 +54,7 @@ export interface SunburstLabelLayout {
 	orientation: 'radial' | 'tangential';
 	rotation: number;
 	text: string;
+	textAnchor: 'end' | 'middle' | 'start';
 	textAlign: CanvasTextAlign;
 	x: number;
 	y: number;

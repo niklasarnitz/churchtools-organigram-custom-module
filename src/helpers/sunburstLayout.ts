@@ -22,6 +22,7 @@ import type {
 } from '../types/Sunburst';
 
 import { oklchToHex } from '../globals/Colors';
+import { calculateTextOrientation } from './sunburstTextOrientation';
 
 interface BuildSunburstLayoutArgs {
 	centerNodeId?: number;
@@ -495,9 +496,20 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 	const arcLength = radius * angleSpan;
 	const angleForText = segment.midAngle - Math.PI / 2;
 	const orientation = angleSpan >= Math.PI / 9 && arcLength >= ringHeight * 1.25 ? 'tangential' : 'radial';
-	let rotationInRadians = orientation === 'tangential' ? angleForText + Math.PI / 2 : angleForText;
-	if (Math.cos(rotationInRadians) < 0) rotationInRadians += Math.PI;
-	const rotation = (rotationInRadians * 180) / Math.PI;
+	const textOrientation = calculateTextOrientation((angleForText * 180) / Math.PI, orientation);
+	if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_SUNBURST_LABELS === 'true') {
+		// eslint-disable-next-line no-console
+		console.debug('[sunburst-label]', {
+			endAngle: (segment.endAngle * 180) / Math.PI,
+			flipped: textOrientation.flipped,
+			midAngle: (segment.midAngle * 180) / Math.PI,
+			mode: orientation,
+			rotationDeg: textOrientation.rotationDeg,
+			segmentId: segment.id,
+			startAngle: (segment.startAngle * 180) / Math.PI,
+			textAnchor: textOrientation.textAnchor,
+		});
+	}
 
 	const x = radius * Math.cos(angleForText);
 	const y = radius * Math.sin(angleForText);
@@ -511,14 +523,16 @@ function buildLabelLayout(segment: SunburstSegmentLayout, ringHeight: number): S
 	});
 
 	return {
+		flipped: textOrientation.flipped,
 		fontSize,
 		isVisible: true,
 		lines,
 		nodeId: segment.nodeId,
 		orientation,
-		rotation,
+		rotation: textOrientation.rotationDeg,
 		text: segment.title,
-		textAlign: 'center',
+		textAlign: textOrientation.textAnchor === 'middle' ? 'center' : textOrientation.textAnchor,
+		textAnchor: textOrientation.textAnchor,
 		x,
 		y,
 	};

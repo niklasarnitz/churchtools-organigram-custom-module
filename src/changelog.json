@@ -2,9 +2,10 @@
 	"versions": [
 		{
 			"version": "1.6.0-bwl23",
-			"date": "2026-07-11",
+			"date": "2026-07-12",
 			"changes": [
-				"CI lint errors fixed: removed debug console.log blocks, fixed type issues and unused code in radialLayout.ts, treeTransformer.ts, elkDslExport.ts, and index.tsx."
+				"CI lint errors fixed: removed debug console.log blocks, fixed type issues and unused code in radialLayout.ts, treeTransformer.ts, elkDslExport.ts, and index.tsx.",
+				"Sunburst-Beschriftungen verwenden jetzt eine gemeinsame, winkelbasierte Orientierung ohne kopfstehende Texte in Ansicht, SVG und PDF."
 			]
 		},
 		{

@@ -2,6 +2,8 @@
 
 import type { SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
 
+import { calculateTextOrientation } from './sunburstTextOrientation';
+
 const EXPORT_PADDING = 80;
 const DEFAULT_EXPORT_OPTIONS: Required<SunburstSvgExportOptions> = {
 	fontFamily: 'Lato, sans-serif',
@@ -53,7 +55,7 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 						`<tspan x="0" dy="${String(index === 0 ? -((label.lines.length - 1) * exportFontSize * 1.05) / 2 : exportFontSize * 1.05)}">${escapeXml(line)}</tspan>`,
 				)
 				.join('');
-			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="middle" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}">${lines}</text></g>`;
+			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="${label.textAnchor}" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}">${lines}</text></g>`;
 		})
 		.join('');
 	const centerLabel = renderData.centerLabel
@@ -227,7 +229,8 @@ function readableTextColor(hex: string): string {
 }
 
 function textArcPath(segment: SunburstSegmentLayout, center: number, radius: number): string {
-	const useReversedDirection = Math.sin(segment.midAngle - Math.PI / 2) > 0;
+	const centerAngle = segment.midAngle - Math.PI / 2;
+	const useReversedDirection = calculateTextOrientation((centerAngle * 180) / Math.PI, 'tangential').flipped;
 	const start = useReversedDirection ? segment.endAngle - Math.PI / 2 : segment.startAngle - Math.PI / 2;
 	const end = useReversedDirection ? segment.startAngle - Math.PI / 2 : segment.endAngle - Math.PI / 2;
 	const largeArc = Math.abs(segment.endAngle - segment.startAngle) > Math.PI ? 1 : 0;

@@ -7,6 +7,7 @@ import type { Edge, Node } from '../../../types/GraphTypes';
 import type { SunburstInteractionMeta, SunburstRenderData, SunburstSegmentLayout } from '../../../types/Sunburst';
 
 import { oklchToHex } from '../../../globals/Colors';
+import { calculateTextOrientation } from '../../../helpers/sunburstTextOrientation';
 import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
 
 export interface Camera {
@@ -938,7 +939,7 @@ function drawTextOnArc(
 	if (totalWidth <= 0 || radius <= 0) return;
 
 	const centerAngle = segment.midAngle - Math.PI / 2;
-	const useReversedDirection = Math.sin(centerAngle) > 0;
+	const useReversedDirection = calculateTextOrientation((centerAngle * 180) / Math.PI, 'tangential').flipped;
 	const direction = useReversedDirection ? -1 : 1;
 	let currentAngle = centerAngle - direction * (totalWidth / (2 * radius));
 
