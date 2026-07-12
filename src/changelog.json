@@ -12,7 +12,10 @@
 				"SVG-, PDF- und eigenstaendige HTML-Exporte wurden um Vektor-Sunburst, Hover-Informationen und direkte ChurchTools-Verknuepfungen erweitert.",
 				"Gruppenfarben, Gruppentypfarben und ChurchTools-Farbfelder werden robust auf Segment- und Ring-1-Farben abgebildet.",
 				"Fehlende Berechtigungen fuer Personendaten werden ohne unnoetige API-Abfragen behandelt; Mitglieder koennen unabhaengig ein-/ausgeblendet werden.",
-				"Automatisierte Tests fuer Sunburst-Textorientierung sowie einheitliche Bun-/TypeScript- und Vite-Build-Ablaufe ergaenzt."
+				"Automatisierte Tests fuer Sunburst-Textorientierung sowie einheitliche Bun-/TypeScript- und Vite-Build-Ablaufe ergaenzt.",
+				"PDF-Sunburst-Exporte enthalten jetzt auch die tangentialen Segmentbeschriftungen.",
+				"Ohne Startgruppe werden auch verwaiste Gruppen als eigene Ring-1-Wurzeln direkt am Donut-Loch angezeigt.",
+				"Ein deutschsprachiges Benutzerhandbuch in docs/ dokumentiert Filter, Layouts, Sunburst-Interaktionen und Exporte."
 			]
 		},
 		{

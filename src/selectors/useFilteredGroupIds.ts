@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 
 import type { Group } from '../types/Group';
 
-import { useHierarchies } from '../queries/useHierarchies';
 import { useAppStore } from '../state/useAppStore';
 import { useGroupsById } from './useGroupsById';
 import { useHierarchiesByGroupId } from './useHierarchiesByGroupId';
@@ -11,7 +10,6 @@ export const useFilteredGroupIds = (): number[] => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const collapsedNodeIds = useAppStore((s) => s.collapsedNodeIds);
 
-	const { data: hierarchies } = useHierarchies();
 	const groupsById = useGroupsById();
 	const hierarchiesByGroupId = useHierarchiesByGroupId();
 
@@ -49,17 +47,18 @@ export const useFilteredGroupIds = (): number[] => {
 		const collapsedNodeIdSet = new Set(collapsedNodeIds.map(Number));
 		const rootNodes = startGroupId
 			? [startGroupId]
-			: (hierarchies ?? [])
-					.filter((hierarchy) => {
-						const group = groupsById[hierarchy.groupId];
+			: Object.keys(groupsById)
+					.filter((groupId) => {
+						const group = groupsById[Number(groupId)];
 						if (!group || !shouldIncludeGroup(group)) return false;
 
-						return hierarchy.parents.every((parentId) => {
+						const hierarchy = hierarchiesByGroupId[group.id];
+						return (hierarchy?.parents ?? []).every((parentId) => {
 							const parent = groupsById[parentId];
 							return !parent || !shouldIncludeGroup(parent);
 						});
 					})
-					.map((hierarchy) => hierarchy.groupId);
+					.map(Number);
 		const traversalRootNodes =
 			rootNodes.length > 0
 				? rootNodes
@@ -127,5 +126,5 @@ export const useFilteredGroupIds = (): number[] => {
 		}
 
 		return Array.from(addedNodeIds);
-	}, [collapsedNodeIds, committedFilters, hierarchies, groupsById, hierarchiesByGroupId]);
+	}, [collapsedNodeIds, committedFilters, groupsById, hierarchiesByGroupId]);
 };

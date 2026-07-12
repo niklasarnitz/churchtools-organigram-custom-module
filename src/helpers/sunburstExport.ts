@@ -1,6 +1,6 @@
 /* eslint-disable perfectionist/sort-modules */
 
-import type { SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
+import type { SunburstLabelLayout, SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
 
 import { calculateTextOrientation } from './sunburstTextOrientation';
 
@@ -35,6 +35,10 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 			const segment = renderData.segmentByNodeId[label.nodeId];
 			const exportFontSize = label.fontSize * exportOptions.fontScale;
 			if (label.orientation === 'tangential') {
+				if (exportOptions.target === 'pdf') {
+					return createCurvedLabelSvg(label, segment, center, exportOptions);
+				}
+
 				const lineHeight = exportFontSize * 1.05;
 				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
 				const textPaths = label.lines
@@ -63,6 +67,48 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 		: '';
 
 	return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${String(diameter)}" height="${String(diameter)}" viewBox="0 0 ${String(diameter)} ${String(diameter)}"><rect width="100%" height="100%" fill="#ffffff"/>${segments}${centerLabel}${labels}</svg>`;
+}
+
+function createCurvedLabelSvg(
+	label: SunburstLabelLayout,
+	segment: SunburstSegmentLayout,
+	center: number,
+	exportOptions: Required<SunburstSvgExportOptions>,
+): string {
+	const exportFontSize = label.fontSize * exportOptions.fontScale;
+	const lineHeight = exportFontSize * 1.05;
+	const centerAngle = segment.midAngle - Math.PI / 2;
+	const orientation = calculateTextOrientation((centerAngle * 180) / Math.PI, 'tangential');
+	const direction = orientation.flipped ? -1 : 1;
+	const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
+	const lines = label.lines
+		.map((line, lineIndex) => {
+			const lineOffset = (lineIndex - (label.lines.length - 1) / 2) * lineHeight;
+			const radius = textRadiusBase + lineOffset;
+			const glyphWidths = Array.from(line, estimateGlyphWidth).map((width) => width * exportFontSize);
+			const totalWidth = glyphWidths.reduce((sum, width) => sum + width, 0);
+			let currentAngle = centerAngle - direction * (totalWidth / (2 * radius));
+
+			return Array.from(line)
+				.map((character, index) => {
+					const glyphAngle = (glyphWidths[index] ?? 0) / radius;
+					const angle = currentAngle + direction * (glyphAngle / 2);
+					const point = pointAt(radius, angle, center);
+					const rotation = (angle * 180) / Math.PI + 90 + (orientation.flipped ? 180 : 0);
+					currentAngle += direction * glyphAngle;
+					return `<text x="${String(point.x)}" y="${String(point.y)}" transform="rotate(${String(rotation)} ${String(point.x)} ${String(point.y)})" text-anchor="middle" dominant-baseline="middle" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}">${escapeXml(character)}</text>`;
+				})
+				.join('');
+		})
+		.join('');
+	return `<g>${lines}</g>`;
+}
+
+function estimateGlyphWidth(character: string): number {
+	if (/\s/.test(character)) return 0.28;
+	if (/['.,:;!|ijlrtf]/i.test(character)) return 0.32;
+	if (/[mwqog]/i.test(character)) return 0.72;
+	return 0.55;
 }
 
 export function renderSunburstToCanvas(
