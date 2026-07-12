@@ -16,5 +16,5 @@
 		"noEmit": true,
 		"jsx": "react-jsx"
 	},
-	"include": ["src", "scripts/test-sunburst-text-orientation.ts"]
+	"include": ["src", "scripts/test-sunburst-export.ts", "scripts/test-sunburst-text-orientation.ts"]
 }

@@ -533,7 +533,8 @@ function getSunburstTitle(
 }
 
 function getGroupTypeColor(nodeData: PreviewGraphNodeData): string {
-	return getColorForGroupType(nodeData.group.information.groupTypeId).shades[500];
+	const shade500 = getColorForGroupType(nodeData.group.information.groupTypeId).shades[500];
+	return shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
 }
 
 function breakCycles(

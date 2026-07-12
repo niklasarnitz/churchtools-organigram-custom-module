@@ -15,7 +15,8 @@
 				"Automatisierte Tests fuer Sunburst-Textorientierung sowie einheitliche Bun-/TypeScript- und Vite-Build-Ablaufe ergaenzt.",
 				"PDF-Sunburst-Exporte enthalten jetzt auch die tangentialen Segmentbeschriftungen.",
 				"Ohne Startgruppe werden auch verwaiste Gruppen als eigene Ring-1-Wurzeln direkt am Donut-Loch angezeigt.",
-				"Ein deutschsprachiges Benutzerhandbuch in docs/ dokumentiert Filter, Layouts, Sunburst-Interaktionen und Exporte."
+				"Ein deutschsprachiges Benutzerhandbuch in docs/ dokumentiert Filter, Layouts, Sunburst-Interaktionen und Exporte.",
+				"Sunburst-Gruppentypfarben werden für SVG- und PDF-Exporte in ein kompatibles Hex-Farbformat umgewandelt."
 			]
 		},
 		{

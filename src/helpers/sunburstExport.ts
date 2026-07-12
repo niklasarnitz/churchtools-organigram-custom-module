@@ -2,6 +2,7 @@
 
 import type { SunburstLabelLayout, SunburstRenderData, SunburstSegmentLayout } from '../types/Sunburst';
 
+import { oklchToHex } from '../globals/Colors';
 import { calculateTextOrientation } from './sunburstTextOrientation';
 
 const EXPORT_PADDING = 80;
@@ -24,10 +25,10 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 	const diameter = renderData.maxRadius * 2 + EXPORT_PADDING * 2;
 	const center = renderData.maxRadius + EXPORT_PADDING;
 	const segments = renderData.segments
-		.map(
-			(segment) =>
-				`<g class="export-node export-node--sunburst" data-node-id="${String(segment.nodeId)}"><title>${escapeXml(segment.pathTitles.join(' -> '))}</title><path d="${arcPath(segment, center)}" fill="${segment.fillColor}" stroke="${segment.strokeColor}" stroke-width="1"/></g>`,
-		)
+		.map((segment) => {
+			const fillColor = normalizeExportColor(segment.fillColor);
+			return `<g class="export-node export-node--sunburst" data-node-id="${String(segment.nodeId)}"><title>${escapeXml(segment.pathTitles.join(' -> '))}</title><path d="${arcPath(segment, center)}" fill="${fillColor}" stroke="${segment.strokeColor}" stroke-width="1"/></g>`;
+		})
 		.join('');
 	const labels = renderData.labels
 		.filter((label) => label.isVisible)
@@ -47,7 +48,7 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 						const textRadius = textRadiusBase + lineOffset;
 						const pathId = `sunburst-label-${String(label.nodeId)}-${String(index)}`;
 						const pathData = textArcPath(segment, center, textRadius);
-						return `<path id="${pathId}" d="${pathData}" fill="none"/><text font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}"><textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXml(line)}</textPath></text>`;
+						return `<path id="${pathId}" d="${pathData}" fill="none"/><text font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(normalizeExportColor(segment.fillColor))}"><textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXml(line)}</textPath></text>`;
 					})
 					.join('');
 				return `<g>${textPaths}</g>`;
@@ -59,7 +60,7 @@ export function createSunburstSvg(renderData: SunburstRenderData, options: Sunbu
 						`<tspan x="0" dy="${String(index === 0 ? -((label.lines.length - 1) * exportFontSize * 1.05) / 2 : exportFontSize * 1.05)}">${escapeXml(line)}</tspan>`,
 				)
 				.join('');
-			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="${label.textAnchor}" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}">${lines}</text></g>`;
+			return `<g transform="translate(${String(center + label.x)} ${String(center + label.y)}) rotate(${String(label.rotation)})"><text text-anchor="${label.textAnchor}" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(normalizeExportColor(segment.fillColor))}">${lines}</text></g>`;
 		})
 		.join('');
 	const centerLabel = renderData.centerLabel
@@ -96,7 +97,7 @@ function createCurvedLabelSvg(
 					const point = pointAt(radius, angle, center);
 					const rotation = (angle * 180) / Math.PI + 90 + (orientation.flipped ? 180 : 0);
 					currentAngle += direction * glyphAngle;
-					return `<text x="${String(point.x)}" y="${String(point.y)}" transform="rotate(${String(rotation)} ${String(point.x)} ${String(point.y)})" text-anchor="middle" dominant-baseline="middle" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(segment.fillColor)}">${escapeXml(character)}</text>`;
+					return `<text x="${String(point.x)}" y="${String(point.y)}" transform="rotate(${String(rotation)} ${String(point.x)} ${String(point.y)})" text-anchor="middle" dominant-baseline="middle" font-family="${exportOptions.fontFamily}" font-size="${String(exportFontSize)}" font-weight="${exportOptions.fontWeight}" fill="${readableTextColor(normalizeExportColor(segment.fillColor))}">${escapeXml(character)}</text>`;
 				})
 				.join('');
 		})
@@ -109,6 +110,16 @@ function estimateGlyphWidth(character: string): number {
 	if (/['.,:;!|ijlrtf]/i.test(character)) return 0.32;
 	if (/[mwqog]/i.test(character)) return 0.72;
 	return 0.55;
+}
+
+function normalizeExportColor(color: string): string {
+	if (color.startsWith('#')) return color;
+
+	try {
+		return oklchToHex(color);
+	} catch {
+		return '#94a3b8';
+	}
 }
 
 export function renderSunburstToCanvas(
@@ -171,11 +182,17 @@ export function renderSunburstToCanvas(
 function arcPath(segment: SunburstSegmentLayout, center: number): string {
 	const start = segment.startAngle - Math.PI / 2;
 	const end = segment.endAngle - Math.PI / 2;
+	const span = segment.endAngle - segment.startAngle;
 	const largeArc = segment.endAngle - segment.startAngle > Math.PI ? 1 : 0;
 	const outerStart = pointAt(segment.outerRadius, start, center);
 	const outerEnd = pointAt(segment.outerRadius, end, center);
 	const innerEnd = pointAt(segment.innerRadius, end, center);
 	const innerStart = pointAt(segment.innerRadius, start, center);
+	if (span >= Math.PI * 2 - 0.000001) {
+		const outerHalf = pointAt(segment.outerRadius, start + Math.PI, center);
+		const innerHalf = pointAt(segment.innerRadius, start + Math.PI, center);
+		return `M ${String(outerStart.x)} ${String(outerStart.y)} A ${String(segment.outerRadius)} ${String(segment.outerRadius)} 0 1 1 ${String(outerHalf.x)} ${String(outerHalf.y)} A ${String(segment.outerRadius)} ${String(segment.outerRadius)} 0 1 1 ${String(outerStart.x)} ${String(outerStart.y)} L ${String(innerStart.x)} ${String(innerStart.y)} A ${String(segment.innerRadius)} ${String(segment.innerRadius)} 0 1 0 ${String(innerHalf.x)} ${String(innerHalf.y)} A ${String(segment.innerRadius)} ${String(segment.innerRadius)} 0 1 0 ${String(innerStart.x)} ${String(innerStart.y)} Z`;
+	}
 	return `M ${String(outerStart.x)} ${String(outerStart.y)} A ${String(segment.outerRadius)} ${String(segment.outerRadius)} 0 ${String(largeArc)} 1 ${String(outerEnd.x)} ${String(outerEnd.y)} L ${String(innerEnd.x)} ${String(innerEnd.y)} A ${String(segment.innerRadius)} ${String(segment.innerRadius)} 0 ${String(largeArc)} 0 ${String(innerStart.x)} ${String(innerStart.y)} Z`;
 }
 
