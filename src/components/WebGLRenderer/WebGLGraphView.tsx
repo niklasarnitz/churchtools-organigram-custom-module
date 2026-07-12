@@ -67,6 +67,7 @@ export const WebGLGraphView = React.memo(() => {
 	const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
+	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
 	const sunburstDebugEntries = data.sunburstRenderData?.debug?.baseColors
 		? getSunburstDebugEntries(data.sunburstRenderData.debug.baseColors)
 		: [];
@@ -342,7 +343,10 @@ export const WebGLGraphView = React.memo(() => {
 		}
 	}, []);
 
-	const handlePointerLeave = useCallback(() => {
+	const handlePointerLeave = useCallback((e: React.PointerEvent) => {
+		const relatedTarget = e.relatedTarget;
+		if (relatedTarget instanceof HTMLElement && canvasRef.current?.contains(relatedTarget)) return;
+
 		const engine = engineRef.current;
 		engine?.setHoveredNodeId(null);
 		setHoverTooltip(null);
@@ -361,6 +365,7 @@ export const WebGLGraphView = React.memo(() => {
 
 			const hit = engine.hitTest(x, y);
 			if (hit) {
+				setContextParentGroups(hit.interactionMeta?.parentGroups ?? []);
 				show({
 					event: e.nativeEvent,
 					props: { groupId: Number(hit.node.id) },
@@ -520,9 +525,17 @@ export const WebGLGraphView = React.memo(() => {
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
-				setShowParentGroupsAction(false);
+				setShowParentGroupsAction(true);
 				setGroupIdToStartWith(String(groupId));
 			}
+		},
+		[setGroupIdToStartWith, setShowParentGroupsAction],
+	);
+
+	const didClickSetParentAsStartGroup = useCallback(
+		(groupId: number) => {
+			setShowParentGroupsAction(true);
+			setGroupIdToStartWith(String(groupId));
 		},
 		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
@@ -535,17 +548,6 @@ export const WebGLGraphView = React.memo(() => {
 			}
 		},
 		[toggleCollapsedNodeId],
-	);
-
-	const didClickShowParentGroups = useCallback(
-		(params: ItemParams<ContextMenuProps>) => {
-			const groupId = params.props?.groupId;
-			if (groupId) {
-				setShowParentGroupsAction(true);
-				setGroupIdToStartWith(String(groupId));
-			}
-		},
-		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
 
 	return (
@@ -568,18 +570,36 @@ export const WebGLGraphView = React.memo(() => {
 
 			{hoverTooltip ? (
 				<div
-					className="pointer-events-none fixed z-20 max-w-sm rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200"
+					className="pointer-events-auto fixed z-20 max-w-sm rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200"
+					onPointerLeave={handlePointerLeave}
 					style={{
 						left: hoverTooltip.clientX + 14,
 						top: hoverTooltip.clientY + 14,
 					}}
 				>
-					<div className="font-semibold text-slate-900 dark:text-slate-50">{hoverTooltip.meta.title}</div>
+					<div className="flex items-start justify-between gap-3">
+						<div className="font-semibold text-slate-900 dark:text-slate-50">{hoverTooltip.meta.title}</div>
+					</div>
 					<div className="mt-1">{hoverTooltip.meta.pathTitles.join(' -> ')}</div>
 					<div className="mt-1 text-slate-500 dark:text-slate-400">
 						Primärobergruppe:{' '}
 						{hoverTooltip.meta.primaryParentSource === 'churchtools-field' ? 'Feld' : 'Fallback'}
 					</div>
+					{hoverTooltip.meta.parentGroups.length > 0 ? (
+						<div className="mt-2 border-t border-slate-200 pt-2 dark:border-slate-700">
+							<div className="mb-1 text-slate-500 dark:text-slate-400">Obergruppen:</div>
+							<div className="flex flex-col items-start gap-1">
+								{hoverTooltip.meta.parentGroups.map((parent) => (
+									<div key={parent.id}>
+										{parent.title}
+										{parent.isPrimary
+											? ` ${parent.primarySource === 'churchtools-field' ? '✓' : '↻'}`
+											: ''}
+									</div>
+								))}
+							</div>
+						</div>
+					) : null}
 					{hoverTooltip.meta.alternateParentTitles.length > 0 ? (
 						<div className="mt-1 text-slate-500 dark:text-slate-400">
 							Weitere Obergruppen: {hoverTooltip.meta.alternateParentTitles.join(', ')}
@@ -653,7 +673,17 @@ export const WebGLGraphView = React.memo(() => {
 			<Menu animation="scale" id={Constants.contextMenuId}>
 				<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
 				<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
-				<Item onClick={didClickShowParentGroups}>Gruppe als Startgruppe mit Obergruppe setzen</Item>
+				{contextParentGroups.map((parent) => (
+					<Item
+						key={parent.id}
+						onClick={() => {
+							didClickSetParentAsStartGroup(parent.id);
+						}}
+					>
+						{parent.title} als Startgruppe setzen
+						{parent.isPrimary ? ` ${parent.primarySource === 'churchtools-field' ? '✓' : '↻'}` : ''}
+					</Item>
+				))}
 				<Item onClick={didClickToggleCollapse}>Untergruppen ein-/ausklappen</Item>
 			</Menu>
 

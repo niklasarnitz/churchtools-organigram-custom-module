@@ -67,6 +67,12 @@ export interface SunburstInteractionMeta {
 	center: { x: number; y: number };
 	hasMultipleParents: boolean;
 	nodeId: number;
+	parentGroups: {
+		id: number;
+		isPrimary: boolean;
+		primarySource?: 'churchtools-field' | 'fallback';
+		title: string;
+	}[];
 	pathIds: number[];
 	pathTitles: string[];
 	primaryParentId?: number;

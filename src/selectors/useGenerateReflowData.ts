@@ -222,12 +222,7 @@ export const useGenerateReflowData = () => {
 					}
 
 					if (effectiveLayoutAlgorithm === LayoutAlgorithm.SUNBURST) {
-						const sunburstCenterNodeId =
-							showParentGroups && centerNodeId !== undefined
-								? (hierarchiesByGroupId[centerNodeId]?.parents.find((parentId) =>
-										visibleNodeIds.has(parentId),
-									) ?? centerNodeId)
-								: centerNodeId;
+						const sunburstCenterNodeId = centerNodeId;
 
 						const sunburstLayout = buildSunburstLayout({
 							centerNodeId: sunburstCenterNodeId,

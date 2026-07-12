@@ -313,6 +313,19 @@ export function buildSunburstLayout({
 			.reverse();
 		const segmentId = `sunburst-${String(nodeId)}`;
 		const allParentIds = visibleParentsByNodeId.get(nodeId) ?? [];
+		const parentGroups = [...allParentIds]
+			.sort((left, right) => Number(right === parentId) - Number(left === parentId))
+			.map((parentId) => ({
+				id: parentId,
+				isPrimary: parentId === primaryParentByNodeId.get(nodeId),
+				primarySource:
+					parentId === primaryParentByNodeId.get(nodeId) && primaryParentSource !== 'root'
+						? primaryParentSource
+						: undefined,
+				title:
+					getSunburstTitle(nodeDataById.get(parentId), showGroupTypes, groupTypeShortiesById) ??
+					`[Group ${String(parentId)}]`,
+			}));
 		const alternateParentTitles = secondaryParentIdsByNodeId[nodeId]
 			.map((secondaryParentId) => nodeDataById.get(secondaryParentId)?.title)
 			.filter((title): title is string => Boolean(title));
@@ -341,6 +354,7 @@ export function buildSunburstLayout({
 			center: { x, y },
 			hasMultipleParents: isMultiParent,
 			nodeId,
+			parentGroups,
 			pathIds: pathNodeIds,
 			pathTitles,
 			primaryParentId: parentId,
@@ -373,15 +387,33 @@ export function buildSunburstLayout({
 	const centerNodeStrokeColor = deriveStrokeColor(centerNodeFillColor);
 
 	if (effectiveCenterNodeId !== undefined && centerNodeData) {
+		const centerParentIds = visibleParentsByNodeId.get(effectiveCenterNodeId) ?? [];
+		const centerPrimaryParentId = primaryParentByNodeId.get(effectiveCenterNodeId);
+		const centerPrimaryParentSource = primaryParentSourceByNodeId.get(effectiveCenterNodeId) ?? 'fallback';
+		const centerParentGroups = [...centerParentIds]
+			.sort((left, right) => Number(right === centerPrimaryParentId) - Number(left === centerPrimaryParentId))
+			.map((parentId) => ({
+				id: parentId,
+				isPrimary: parentId === centerPrimaryParentId,
+				primarySource:
+					parentId === centerPrimaryParentId && centerPrimaryParentSource !== 'root'
+						? centerPrimaryParentSource
+						: undefined,
+				title:
+					getSunburstTitle(nodeDataById.get(parentId), showGroupTypes, groupTypeShortiesById) ??
+					`[Group ${String(parentId)}]`,
+			}));
+
 		interactionByNodeId[effectiveCenterNodeId] = {
 			alternateParentTitles: [],
-			allParentIds: visibleParentsByNodeId.get(effectiveCenterNodeId) ?? [],
+			allParentIds: centerParentIds,
 			center: { x: 0, y: 0 },
 			hasMultipleParents: false,
 			nodeId: effectiveCenterNodeId,
+			parentGroups: centerParentGroups,
 			pathIds: [effectiveCenterNodeId],
 			pathTitles: [centerNodeData.title],
-			primaryParentId: primaryParentByNodeId.get(effectiveCenterNodeId),
+			primaryParentId: centerPrimaryParentId,
 			primaryParentSource: primaryParentSourceByNodeId.get(effectiveCenterNodeId) ?? 'root',
 			ring: { innerRadius: 0, outerRadius: holeRadius },
 			secondaryParentIds: secondaryParentIdsByNodeId[effectiveCenterNodeId] ?? [],
