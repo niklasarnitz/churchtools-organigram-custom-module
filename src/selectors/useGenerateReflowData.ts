@@ -13,7 +13,7 @@
 /* eslint-disable perfectionist/sort-objects */
 /* eslint-disable perfectionist/sort-union-types */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 
@@ -62,15 +62,6 @@ export const useGenerateReflowData = () => {
 		nodes: [],
 	});
 	const [isCalculating, setIsCalculating] = useState(false);
-
-	const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
-	if (measureCanvasRef.current == null) {
-		const c = document.createElement('canvas');
-		c.width = 1;
-		c.height = 1;
-		measureCanvasRef.current = c;
-	}
 
 	const isVertical =
 		effectiveLayoutAlgorithm === LayoutAlgorithm.elkLayeredTB ||
@@ -154,10 +145,9 @@ export const useGenerateReflowData = () => {
 			try {
 				await document.fonts.ready;
 
-				const measureCanvas = measureCanvasRef.current;
-				if (!measureCanvas) {
-					return;
-				}
+				const measureCanvas = document.createElement('canvas');
+				measureCanvas.width = 1;
+				measureCanvas.height = 1;
 				const measureCtx = measureCanvas.getContext('2d');
 				if (!measureCtx) {
 					return;
@@ -488,8 +478,7 @@ export const useGenerateReflowData = () => {
 									console.log(`  Edge: ${edge.source} -> ${edge.target}`);
 								}
 
-								// Export ray structure for debugging
-								console.log('\n' + exportRayStructure(nodePolarMap, childrenMap, nodeDataById));
+								console.log('\n' + exportRayStructure(nodePolarMap, nodeDataById));
 
 								// Export ELK DSL for analysis
 								const elkDsl = exportToElkDsl(positionedReflowNodes, rayEdges);
@@ -497,11 +486,7 @@ export const useGenerateReflowData = () => {
 
 								// Make available on window for manual inspection
 								(window as any).__ELK_DSL = elkDsl;
-								(window as any).__RAY_STRUCTURE = exportRayStructure(
-									nodePolarMap,
-									childrenMap,
-									nodeDataById,
-								);
+								(window as any).__RAY_STRUCTURE = exportRayStructure(nodePolarMap, nodeDataById);
 							}
 
 							result = { edges: rayEdges, nodes: positionedReflowNodes };

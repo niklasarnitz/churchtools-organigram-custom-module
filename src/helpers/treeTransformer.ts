@@ -109,5 +109,7 @@ export class TreeVisitor {
 		for (const child of children) {
 			this.visitNodeInRay(child, childrenMap, rayNodes, depthCounter, visitedInRay, visibleNodeIds);
 		}
+
+		visitedInRay.delete(node.id);
 	}
 }

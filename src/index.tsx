@@ -5,12 +5,9 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { Logger } from './globals/Logger';
 import './index.css';
-import { fetchPermissions } from './queries/usePermissions';
 import { useAppStore } from './state/useAppStore';
 
-const start = async () => {
-	await fetchPermissions();
-
+const start = () => {
 	const rootElement = document.querySelector('#root');
 
 	if (!rootElement) {
@@ -51,7 +48,7 @@ if (import.meta.env.DEV) {
 	});
 
 	try {
-		await start();
+		start();
 	} catch (error) {
 		Logger.error('Failed to start in development mode:', error);
 	}
@@ -63,7 +60,7 @@ if (import.meta.env.DEV) {
 	useAppStore.getState().setBaseUrl(baseUrl);
 
 	try {
-		await start();
+		start();
 	} catch (error) {
 		Logger.error('Failed to start in production mode:', error);
 	}

@@ -16,6 +16,7 @@ export type { Camera, NodeHit };
  * drawing/hit-testing to the currently active `GraphRenderer` (node graph or sunburst).
  */
 export class WebGLGraphEngine {
+	private _needsRender = true;
 	private activeRenderer: GraphRenderer<unknown>;
 	private animationId: null | number = null;
 	private animationTime = 0;
@@ -33,10 +34,18 @@ export class WebGLGraphEngine {
 	// Measuring canvas (offscreen)
 	private readonly measureCanvas: HTMLCanvasElement;
 	private readonly measureCtx: CanvasRenderingContext2D;
-	private needsRender = true;
 	private readonly nodeGraphRenderer: NodeGraphRenderer;
 	private nodes: Node<PreviewGraphNodeData>[] = [];
 	private readonly sunburstGraphRenderer: SunburstGraphRenderer;
+	private get needsRender() {
+		return this._needsRender;
+	}
+	private set needsRender(val: boolean) {
+		this._needsRender = val;
+		if (val && this.animationId === null) {
+			this.animationId = requestAnimationFrame(this.loop);
+		}
+	}
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
@@ -227,7 +236,7 @@ export class WebGLGraphEngine {
 
 	start() {
 		this.lastFrameTime = performance.now();
-		this.loop(this.lastFrameTime);
+		this.needsRender = true;
 	}
 
 	stop() {
@@ -247,16 +256,15 @@ export class WebGLGraphEngine {
 	}
 
 	private loop = (time: number) => {
+		this.animationId = null;
 		const dt = (time - this.lastFrameTime) / 1000;
 		this.lastFrameTime = time;
 		this.animationTime += dt;
 
-		// Re-render for edge dash animation every ~100ms, or immediately if dirty
-		if (this.needsRender || dt > 0.1) {
+		if (this._needsRender) {
 			this.render();
-			this.needsRender = false;
+			this._needsRender = false;
 		}
-		this.animationId = requestAnimationFrame(this.loop);
 	};
 
 	private render() {

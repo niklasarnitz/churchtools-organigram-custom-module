@@ -3,7 +3,17 @@
 		{
 			"version": "1.7.3",
 			"date": "2026-07-13",
-			"changes": ["ESLint-Fehler behoben: unnötige Typ-Assertions und ungenutzte Importe entfernt."]
+			"changes": [
+				"ESLint-Fehler behoben: unnötige Typ-Assertions und ungenutzte Importe entfernt.",
+				"DAG-Pfadübersprünge im Radial-Layout behoben (TreeVisitor)",
+				"Vollständige Obergruppen-Ancestors-Traversierung bei 'Obergruppen anzeigen' implementiert",
+				"Stabiler committedFilters Zustand zur Vermeidung doppelter Gruppen-API-Abfragen auf App-Start",
+				"Redundante Permission-Abfrage beim App-Start entfernt",
+				"On-Demand Rendering-Schleife in WebGLGraphEngine zur Batterieeinsparung",
+				"PDF-Export vereinfacht durch direkte Vektor-SVG-Konvertierung (Beseitigung von Layout-Abweichungen)",
+				"Kollisionsfreie Query-Keys für Personen-Abfragen ohne H2/32-Bit-Hashing",
+				"Blob-URLs für Speicher-effizienten Dateidownload implementiert"
+			]
 		},
 		{
 			"version": "1.7.2",

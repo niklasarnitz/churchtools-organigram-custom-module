@@ -6,7 +6,6 @@ import type { Edge, Node } from '../types/GraphTypes';
  */
 export function exportRayStructure(
 	nodePolarMap: Map<number, { angle: number; radius: number }>,
-	childrenMap: Map<number, PreviewGraphNodeData[]>,
 	nodeDataById: Map<number, PreviewGraphNodeData>,
 ): string {
 	let output = '=== RAY STRUCTURE ===\n\n';

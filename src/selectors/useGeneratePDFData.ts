@@ -2,34 +2,13 @@ import jsPDF from 'jspdf';
 import { useCallback } from 'react';
 import 'svg2pdf.js';
 
-import type { PreviewGraphNodeData } from '../types/GraphNode';
-import type { Edge, Node } from '../types/GraphTypes';
 import type { SunburstRenderData } from '../types/Sunburst';
 
-import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
-import { oklchToHex } from '../globals/Colors';
 import { createSunburstSvg } from '../helpers/sunburstExport';
-import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
-
-// === Card Layout ===
-const NODE_PADDING = 16; // Inner padding inside card
-const HEADER_PADDING_Y = -2; // Vertical padding in header (negative = tighter)
-
-// === Font Sizes ===
-const TITLE_FONT_SIZE = 40; // Card title (e.g. "Tobias und Kim Maier")
-const GROUP_TYPE_FONT_SIZE = 40; // Group type (e.g. "KG KLEINGRUPPE")
-const ROLE_FONT_SIZE = 20; // Role label (e.g. "LEITER")
-const MEMBER_FONT_SIZE = 20; // Member names (e.g. "Unknown Person")
-const TITLE_GROUP_TYPE_GAP = 0; // Spacing between title and group type
-
-// === Card Styling ===
-const BORDER_RADIUS = 12; // Rounded corner radius
-// const BORDER_WIDTH = 2; // Border line thickness (currently unused)
+import { useGenerateSVGData } from './useGenerateSVGData';
 
 // === PDF Layout ===
-const PDF_PADDING = 0; // Padding around entire diagram in PDF
-const PDF_SCALE = 2.0; // Zoom factor (1.0 = normal, 2.0 = 2x larger)
 const LANDSCAPE_THRESHOLD = 1.15; // Aspect ratio threshold for landscape orientation
 const SUNBURST_PDF_MARGIN = 10;
 
@@ -71,84 +50,34 @@ function createInfoPDF(message: string): jsPDF {
 
 export const useGeneratePDFData = () => {
 	const data = useGenerateReflowData();
-	const committedFilters = useAppStore((s) => s.committedFilters);
-	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
+	const generateSVGData = useGenerateSVGData();
 
 	return useCallback(async () => {
 		if (data.sunburstRenderData) {
 			return createSunburstPDF(data.sunburstRenderData);
 		}
 
-		const nodes = data.nodes as Node<PreviewGraphNodeData>[];
-		const edges = data.edges;
-
-		if (nodes.length === 0) {
+		if (data.nodes.length === 0) {
 			return createInfoPDF(
 				'Es gibt keine sichtbaren Gruppen zum Export. Bitte passe die Filter an und versuche es erneut.',
 			);
 		}
 
-		// Measurement canvas
-		const measureCanvas = document.createElement('canvas');
-		measureCanvas.width = 1;
-		measureCanvas.height = 1;
-		const measureCtx = measureCanvas.getContext('2d');
-		if (!measureCtx) throw new Error('Failed to get canvas context');
-
-		// Node metrics
-		const metricsMap = new Map<string, ReturnType<typeof measureNodeCard>>();
-		for (const node of nodes) {
-			const result = measureNodeCard(measureCtx, node.data, showGroupTypes);
-			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-			if (result) {
-				metricsMap.set(node.id, result);
-			}
+		const svgMarkup = generateSVGData();
+		const svgDocument = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
+		const svg = svgDocument.documentElement;
+		if (svg.nodeName.toLowerCase() === 'parsererror') {
+			return createInfoPDF('Die Organigramm-SVG konnte nicht fuer den PDF-Export vorbereitet werden.');
 		}
 
-		// Bounds calculation
-		let minX = Infinity;
-		let minY = Infinity;
-		let maxX = -Infinity;
-		let maxY = -Infinity;
+		// Read dimensions from viewBox or width/height attributes
+		const viewBox = svg.getAttribute('viewBox')?.split(' ').map(Number);
+		const boundsWidth = viewBox ? viewBox[2] : Number.parseFloat(svg.getAttribute('width') ?? '') || 1;
+		const boundsHeight = viewBox ? viewBox[3] : Number.parseFloat(svg.getAttribute('height') ?? '') || 1;
 
-		for (const node of nodes) {
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-			const metrics = metricsMap.get(node.id)!;
-			minX = Math.min(minX, node.position.x);
-			minY = Math.min(minY, node.position.y);
-			maxX = Math.max(maxX, node.position.x + metrics.width);
-			maxY = Math.max(maxY, node.position.y + metrics.height);
-		}
-
-		for (const edge of edges) {
-			if (!edge.sections) continue;
-			for (const section of edge.sections) {
-				const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint];
-				for (const point of points) {
-					minX = Math.min(minX, point.x);
-					minY = Math.min(minY, point.y);
-					maxX = Math.max(maxX, point.x);
-					maxY = Math.max(maxY, point.y);
-				}
-			}
-		}
-
-		const boundsWidth = maxX - minX;
-		const boundsHeight = maxY - minY;
-		if (!Number.isFinite(boundsWidth) || !Number.isFinite(boundsHeight) || boundsWidth <= 0 || boundsHeight <= 0) {
-			return createInfoPDF(
-				'Die Grafik konnte nicht korrekt skaliert werden, weil keine gueltigen Abmessungen ermittelt wurden.',
-			);
-		}
-
-		// PDF height calculated but kept for reference/future use
-		// const pdfHeight = boundsHeight * PDF_SCALE + PDF_PADDING * 2;
-
-		// Calculate optimal orientation based on aspect ratio
 		const orientation = calculatePDFOrientation(boundsWidth, boundsHeight);
-
-		// jsPDF mit korrekter Konfiguration
 		const doc = new jsPDF({
+			compress: true,
 			format: 'a4',
 			orientation: orientation,
 			unit: 'mm',
@@ -156,30 +85,22 @@ export const useGeneratePDFData = () => {
 
 		const pageWidth = doc.internal.pageSize.getWidth();
 		const pageHeight = doc.internal.pageSize.getHeight();
-		const scaleX = (pageWidth - PDF_PADDING * 2) / boundsWidth;
-		const scaleY = (pageHeight - PDF_PADDING * 2) / boundsHeight;
-		const finalScale = Math.min(scaleX, scaleY, PDF_SCALE);
+		const availableWidth = pageWidth - 20; // 10mm margin on each side
+		const availableHeight = pageHeight - 20;
 
-		const offsetX = (pageWidth - boundsWidth * finalScale) / 2;
-		const offsetY = (pageHeight - boundsHeight * finalScale) / 2;
+		const scale = Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight);
+		const width = boundsWidth * scale;
+		const height = boundsHeight * scale;
 
-		// Lato Font setzen (falls verfügbar, sonst Helvetica)
-		doc.setFont('helvetica');
+		await doc.svg(svg, {
+			height,
+			width,
+			x: (pageWidth - width) / 2,
+			y: (pageHeight - height) / 2,
+		});
 
-		// Edges zuerst zeichnen (hinten)
-		for (const edge of edges) {
-			drawEdgePDF(doc, edge, minX, minY, finalScale, offsetX, offsetY);
-		}
-
-		// Nodes zeichnen (vorne)
-		for (const node of nodes) {
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-			const metrics = metricsMap.get(node.id)!;
-			drawNodePDF(doc, node, metrics, showGroupTypes, minX, minY, finalScale, offsetX, offsetY);
-		}
-
-		return Promise.resolve(doc);
-	}, [data, showGroupTypes]);
+		return doc;
+	}, [data, generateSVGData]);
 };
 
 async function createSunburstPDF(renderData: SunburstRenderData): Promise<jsPDF> {
@@ -214,168 +135,4 @@ async function createSunburstPDF(renderData: SunburstRenderData): Promise<jsPDF>
 	});
 
 	return doc;
-}
-
-// Edge rendering for PDF
-function drawEdgePDF(
-	doc: jsPDF,
-	edge: Edge,
-	minX: number,
-	minY: number,
-	scale: number,
-	offsetX: number,
-	offsetY: number,
-): void {
-	if (!edge.sections) return;
-
-	doc.setDrawColor(100, 116, 139); // #64748b
-	doc.setLineWidth(0.1);
-
-	for (const section of edge.sections) {
-		const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint];
-		const pdfPoints = points.map((p) => [offsetX + (p.x - minX) * scale, offsetY + (p.y - minY) * scale]);
-
-		if (pdfPoints.length > 1) {
-			const [startX, startY] = pdfPoints[0];
-			doc.moveTo(startX, startY);
-
-			for (let i = 1; i < pdfPoints.length; i++) {
-				const [x, y] = pdfPoints[i];
-				doc.lineTo(x, y);
-			}
-			doc.stroke();
-
-			// Draw arrowhead at the end
-			const [endX, endY] = pdfPoints[pdfPoints.length - 1];
-			const [prevX, prevY] = pdfPoints[pdfPoints.length - 2];
-
-			const dx = endX - prevX;
-			const dy = endY - prevY;
-			const dist = Math.sqrt(dx * dx + dy * dy);
-
-			if (dist > 0) {
-				const angle = Math.atan2(dy, dx);
-				const arrowSize = 0.8;
-
-				const arrowX1 = endX - arrowSize * Math.cos(angle - Math.PI / 6);
-				const arrowY1 = endY - arrowSize * Math.sin(angle - Math.PI / 6);
-				const arrowX2 = endX - arrowSize * Math.cos(angle + Math.PI / 6);
-				const arrowY2 = endY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-				// Draw filled arrow triangle
-				doc.setFillColor(100, 116, 139);
-				doc.moveTo(endX, endY);
-				doc.lineTo(arrowX1, arrowY1);
-				doc.lineTo(arrowX2, arrowY2);
-				doc.fill();
-			}
-		}
-	}
-}
-
-// Node rendering for PDF
-function drawNodePDF(
-	doc: jsPDF,
-	node: Node<PreviewGraphNodeData>,
-	metrics: ReturnType<typeof measureNodeCard>,
-	showGroupTypes: boolean,
-	minX: number,
-	minY: number,
-	scale: number,
-	offsetX: number,
-	offsetY: number,
-): void {
-	const d = node.data;
-	const x = offsetX + (node.position.x - minX) * scale;
-	const y = offsetY + (node.position.y - minY) * scale;
-	const w = metrics.width * scale;
-	const h = metrics.height * scale;
-
-	const borderColor = oklchToHex(d.color.shades[300]);
-	const headerBg = oklchToHex(d.color.shades[100]);
-
-	let headerHeight = ((HEADER_PADDING_Y * 2 + TITLE_FONT_SIZE) * scale) / 3;
-	if (showGroupTypes) {
-		headerHeight += (GROUP_TYPE_FONT_SIZE + TITLE_GROUP_TYPE_GAP) * scale;
-	}
-
-	const rolesWithMembers = d.roles.filter((role) => d.memberNamesByRoleId.has(role.id));
-	const hasMembers = rolesWithMembers.length > 0;
-
-	// Card background
-	doc.setDrawColor(borderColor);
-	doc.setLineWidth(0.15);
-	doc.setFillColor(255, 255, 255);
-	doc.roundedRect(x, y, w, h, BORDER_RADIUS * scale, BORDER_RADIUS * scale, 'FD');
-
-	// Header background with rounded top corners
-	doc.setFillColor(headerBg);
-	doc.roundedRect(x, y, w, headerHeight, BORDER_RADIUS * scale, BORDER_RADIUS * scale, 'F');
-
-	// Header border (very thin)
-	if (hasMembers) {
-		doc.setDrawColor(borderColor);
-		doc.setLineWidth(0.08);
-		doc.line(x, y + headerHeight, x + w, y + headerHeight);
-	}
-
-	// Title
-	doc.setFont('helvetica', 'bold');
-	doc.setFontSize(TITLE_FONT_SIZE * scale);
-	doc.setTextColor(15, 23, 42);
-	doc.text(d.title, x + w / 2, y + (HEADER_PADDING_Y + TITLE_FONT_SIZE / 2) * scale, { align: 'center' });
-
-	// Group type
-	if (showGroupTypes) {
-		doc.setFontSize(GROUP_TYPE_FONT_SIZE * scale);
-		doc.setTextColor(100, 116, 139);
-		doc.text(
-			d.groupTypeName.toUpperCase(),
-			x + w / 2,
-			y + (HEADER_PADDING_Y + TITLE_FONT_SIZE / 2 + TITLE_GROUP_TYPE_GAP + GROUP_TYPE_FONT_SIZE / 2) * scale,
-			{ align: 'center' },
-		);
-	}
-
-	// Body: roles and member badges
-	if (hasMembers) {
-		doc.setFont('helvetica', 'normal');
-		let cursorY = y + headerHeight + NODE_PADDING * scale;
-
-		for (const role of rolesWithMembers) {
-			const names = d.memberNamesByRoleId.get(role.id) ?? [];
-			if (names.length === 0) continue;
-
-			// Role label
-			doc.setFontSize(ROLE_FONT_SIZE * scale);
-			doc.setTextColor(100, 116, 139);
-			doc.setFont('helvetica', 'bold');
-			doc.text(role.name.toUpperCase(), x + NODE_PADDING * scale, cursorY + (ROLE_FONT_SIZE / 2) * scale);
-			cursorY += (ROLE_FONT_SIZE + 6) * scale;
-
-			// Member names (text only, no badges)
-			doc.setFont('helvetica', 'normal');
-			doc.setFontSize(MEMBER_FONT_SIZE * scale);
-			doc.setTextColor(51, 65, 85);
-
-			let nameX = x + NODE_PADDING * scale;
-			const contentWidth = w - NODE_PADDING * 2 * scale;
-			const spacing = 12 * scale; // Fixed spacing between names
-
-			for (const name of names) {
-				const textWidth = doc.getTextWidth(name);
-
-				// Wrap to next line if doesn't fit
-				if (nameX + textWidth > x + contentWidth && nameX > x + NODE_PADDING * scale) {
-					nameX = x + NODE_PADDING * scale;
-					cursorY += MEMBER_FONT_SIZE * 0.6 * scale;
-				}
-
-				// Draw name text only
-				doc.text(name, nameX, cursorY);
-				nameX += textWidth + spacing;
-			}
-			cursorY += MEMBER_FONT_SIZE * 1.2 * scale;
-		}
-	}
 }

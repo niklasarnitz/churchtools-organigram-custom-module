@@ -148,7 +148,26 @@ export const useAppStore = create<GroupState>((set) => {
 		commitFilters: () => {
 			set((state) => ({ committedFilters: snapshotFilters(state) }));
 		},
-		committedFilters: undefined,
+		committedFilters: {
+			excludedGroups: [],
+			excludedGroupTypes: [],
+			excludedRoles: [],
+			filteredAgeGroupIds: [],
+			filteredCampusIds: [],
+			filteredGroupCategoryIds: [],
+			groupIdToStartWith: undefined,
+			hideIndirectSubgroups: false,
+			includedGroups: [],
+			includedGroupStatuses: [GroupStatus.ACTIVE],
+			layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+			maxDepth: undefined,
+			renderer: 'webgl' as RendererType,
+			showGroupTypes: true,
+			showLeaders: true,
+			showOnlyDirectChildren: false,
+			showParentGroups: false,
+			sunburstColorMode: 'segment' as SunburstColorMode,
+		},
 		endLayoutCalculation: () => {
 			activeLayoutCalculations = Math.max(0, activeLayoutCalculations - 1);
 			if (activeLayoutCalculations === 0) {

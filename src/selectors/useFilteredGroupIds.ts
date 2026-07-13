@@ -111,14 +111,16 @@ export const useFilteredGroupIds = (): number[] => {
 						}
 					}
 
-					// Add parents (upward traversal) only from start group if showParentGroups is enabled
-					if (startGroupId && groupId === startGroupId && direction === 'down' && showParentGroups) {
-						for (const parentId of hierarchy.parents) {
-							const parentGroup = groupsById[parentId];
-							if (!parentGroup || !shouldIncludeGroup(parentGroup)) continue;
+					// Add parents (upward traversal) if showParentGroups is enabled
+					if (showParentGroups) {
+						if (direction === 'up' || (startGroupId && groupId === startGroupId)) {
+							for (const parentId of hierarchy.parents) {
+								const parentGroup = groupsById[parentId];
+								if (!parentGroup || !shouldIncludeGroup(parentGroup)) continue;
 
-							addedNodeIds.add(parentId);
-							queue.push({ depth: depth + 1, direction: 'up', groupId: parentId });
+								addedNodeIds.add(parentId);
+								queue.push({ depth: depth + 1, direction: 'up', groupId: parentId });
+							}
 						}
 					}
 				}

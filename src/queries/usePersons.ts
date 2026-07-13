@@ -28,14 +28,9 @@ export const usePersons = () => {
 		return Array.from(new Set(filteredMembers.map((m) => m.personId)));
 	}, [members, committedFilters?.excludedRoles]);
 
-	const personIdHash = useMemo(() => {
+	const personIdsKey = useMemo(() => {
 		if (personIds.length === 0) return '';
-		const sorted = [...personIds].sort((a, b) => a - b);
-		let hash = 5381;
-		for (const id of sorted) {
-			hash = ((hash << 5) + hash + id) | 0;
-		}
-		return `${String(sorted.length)}:${String(hash)}`;
+		return [...personIds].sort((a, b) => a - b).join(',');
 	}, [personIds]);
 
 	return useQuery({
@@ -67,6 +62,6 @@ export const usePersons = () => {
 			Logger.log(`API: Finished fetching ${String(result.length)} persons`);
 			return result;
 		},
-		queryKey: ['persons', personIdHash],
+		queryKey: ['persons', personIdsKey],
 	});
 };
