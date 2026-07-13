@@ -79,12 +79,12 @@ export const ExclusionFilters = React.memo(() => {
 	const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
 	const setHideIndirectSubgroups = useAppStore((s) => s.setHideIndirectSubgroups);
 	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
-	const effectiveLayoutAlgorithm =
-		layoutAlgorithm === LayoutAlgorithm.elkRadial ? LayoutAlgorithm.FLAT_RADIAL : layoutAlgorithm;
 	const sunburstColorMode = useAppStore((s) => s.sunburstColorMode);
 	const setSunburstColorMode = useAppStore((s) => s.setSunburstColorMode);
 	const isSunburstLayout =
-		effectiveLayoutAlgorithm === LayoutAlgorithm.FLAT_RADIAL || effectiveLayoutAlgorithm === LayoutAlgorithm.SUNBURST;
+		layoutAlgorithm === LayoutAlgorithm.FLAT_RADIAL ||
+		layoutAlgorithm === LayoutAlgorithm.SUNBURST ||
+		layoutAlgorithm === LayoutAlgorithm.elkRadial;
 
 	const handleMaxDepthChange = useCallback(
 		(value: string) => {
