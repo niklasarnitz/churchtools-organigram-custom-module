@@ -1,105 +1,201 @@
-import { $ } from 'bun';
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable perfectionist/sort-modules */
+/* eslint-disable perfectionist/sort-object-types */
+/* eslint-disable perfectionist/sort-objects */
+
+import { spawn } from 'node:child_process';
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+
+import { Logger } from '../src/globals/Logger';
+
+type DeployContext = {
+	baseUrl: string;
+	headers: {
+		Authorization: string;
+		Accept: string;
+	};
+	loginToken: string;
+};
+
+type WhoAmIResponse = {
+	data?: {
+		firstName?: string;
+		lastName?: string;
+	};
+};
+
+type CustomModule = {
+	id?: number;
+	shorty?: string;
+};
+
+type CustomModulesResponse = {
+	data?: CustomModule[];
+};
+
+function sanitizeFileNamePart(value: string) {
+	return value.replace(/[^a-zA-Z0-9._-]/g, '-');
+}
+
+function getErrorMessage(error: unknown) {
+	return error instanceof Error ? error.message : String(error);
+}
+
+async function createInstallKit(zipName: string, version: string, reason: string) {
+	const releaseDir = `releases/${sanitizeFileNamePart(version)}`;
+	const releaseZipPath = `${releaseDir}/${zipName}`;
+	const readmePath = `${releaseDir}/README.txt`;
+
+	Logger.log(`Creating install kit in ${releaseDir}...`);
+	await mkdir(releaseDir, { recursive: true });
+	await copyFile(zipName, releaseZipPath);
+
+	const readmeContent = [
+		'ChurchTools Organigram Install Kit',
+		`Version: ${version}`,
+		`Created: ${new Date().toISOString()}`,
+		'',
+		'Direct deploy was not possible.',
+		`Reason: ${reason}`,
+		'',
+		'Installation steps:',
+		'1. Open ChurchTools and navigate to custom modules.',
+		'2. Edit or create the custom module with shorty "organigram".',
+		`3. Upload the file "${zipName}" from this folder.`,
+	].join('\n');
+
+	await writeFile(readmePath, `${readmeContent}\n`, 'utf8');
+	Logger.log(`Install kit created: ${releaseZipPath}`);
+	Logger.log(`Instructions written to: ${readmePath}`);
+}
+
+async function runCommand(command: string, args: string[], options?: { cwd?: string }) {
+	await new Promise<void>((resolve, reject) => {
+		const child = spawn(command, args, {
+			cwd: options?.cwd,
+			stdio: 'inherit',
+		});
+
+		child.on('error', reject);
+		child.on('exit', (code) => {
+			if (code === 0) {
+				resolve();
+				return;
+			}
+
+			reject(new Error(`Command failed: ${command} ${args.join(' ')}`));
+		});
+	});
+}
+
+async function authenticate(context: DeployContext) {
+	const response = await fetch(`${context.baseUrl}/api/whoami`, { headers: context.headers });
+	if (!response.ok) {
+		const text = await response.text();
+		throw new Error(`Authentication failed with status ${response.status}: ${text}`);
+	}
+
+	const result = (await response.json()) as WhoAmIResponse;
+	return result.data;
+}
+
+async function fetchModuleId(context: DeployContext) {
+	const response = await fetch(`${context.baseUrl}/api/custommodules`, { headers: context.headers });
+	if (!response.ok) {
+		const text = await response.text();
+		throw new Error(`Fetching custom modules failed with status ${response.status}: ${text}`);
+	}
+
+	const result = (await response.json()) as CustomModulesResponse;
+	const modules = result.data;
+	const organigramModule = modules?.find((module_) => module_.shorty === 'organigram');
+
+	if (!organigramModule?.id) {
+		throw new Error("Could not find custom module with shorty 'organigram'.");
+	}
+
+	return organigramModule.id;
+}
+
+async function uploadZip(context: DeployContext, moduleId: number, zipName: string) {
+	const file = new File([await readFile(zipName)], zipName, { type: 'application/zip' });
+	const formData = new FormData();
+	formData.append('files[]', file, zipName);
+	formData.append('customModuleId', String(moduleId));
+
+	const response = await fetch(`${context.baseUrl}/api/files/custom_module/${moduleId}`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Login ${context.loginToken}`,
+			Accept: 'application/json',
+		},
+		body: formData,
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+	}
+}
 
 async function deploy() {
 	const loginToken = process.env.VITE_CT_LOGIN_TOKEN;
 	const ctUrl = process.env.VITE_CT_URL;
 
-	if (!ctUrl || !loginToken) {
-		console.error('Missing environment variables. Please check your .env file.');
-		process.exit(1);
-	}
+	Logger.log('Building project...');
+	await runCommand('bun', ['run', 'build']);
 
-	const baseUrl = ctUrl.endsWith('/') ? ctUrl.slice(0, -1) : ctUrl;
-	const headers = {
-		Authorization: `Login ${loginToken}`,
-		Accept: 'application/json',
-	};
-
-	console.log(`Connecting to ${baseUrl}...`);
-
-	try {
-		const response = await fetch(`${baseUrl}/api/whoami`, { headers });
-		if (!response.ok) {
-			console.error(`Authentication failed with status: ${response.status}`);
-			const text = await response.text();
-			console.error(text);
-			process.exit(1);
-		}
-		const result = (await response.json()) as any;
-		const whoami = result.data;
-		console.log(`Logged in as: ${whoami.firstName} ${whoami.lastName}`);
-	} catch (error) {
-		console.error('Authentication failed:', error);
-		process.exit(1);
-	}
-
-	// 1. Get custom modules to find the one with shorty "organigram"
-	let moduleId: number | undefined;
-	try {
-		const response = await fetch(`${baseUrl}/api/custommodules`, { headers });
-		if (!response.ok) throw new Error(`Status ${response.status}`);
-		const result = (await response.json()) as any;
-		const modules = result.data;
-
-		const organigramModule = Array.isArray(modules)
-			? modules.find((m: any) => m.shorty === 'organigram')
-			: undefined;
-
-		if (!organigramModule) {
-			console.log("Could not find custom module with shorty 'organigram'.");
-			process.exit(1);
-		}
-
-		moduleId = organigramModule.id;
-		console.log(`Found module 'organigram' with ID: ${moduleId}`);
-	} catch (error) {
-		console.error('Failed to fetch custom modules:', error);
-		process.exit(1);
-	}
-
-	// 2. Build the project
-	console.log('Building project...');
-	await $`bun run build`;
-
-	// 3. Create zip file
-	const packageJson = await Bun.file('package.json').json();
+	const packageJson = JSON.parse(await readFile('package.json', 'utf8')) as { version: string };
 	const version = packageJson.version;
 	const zipName = `organigram-${version}.zip`;
-	console.log(`Creating zip file ${zipName}...`);
-	await $`rm -f ${zipName}`;
-	await $`cd build && zip -r ../${zipName} .`;
+	Logger.log(`Creating zip file ${zipName}...`);
+	await rm(zipName, { force: true });
+	await runCommand('zip', ['-r', `../${zipName}`, '.'], { cwd: 'build' });
 
-	// 4. Upload the zip file
-	console.log(`Uploading ${zipName} to module ${moduleId}...`);
-	const file = Bun.file(zipName);
-	const formData = new FormData();
-	// In Bun, we can append the file directly
-	formData.append('files[]', file, zipName);
-	formData.append('customModuleId', String(moduleId));
+	let fallbackReason: string | undefined;
+	let directDeploySucceeded = false;
 
-	try {
-		const response = await fetch(`${baseUrl}/api/files/custom_module/${moduleId}`, {
-			method: 'POST',
+	if (!ctUrl || !loginToken) {
+		fallbackReason = 'Missing VITE_CT_URL or VITE_CT_LOGIN_TOKEN environment variables.';
+	} else {
+		const context: DeployContext = {
+			baseUrl: ctUrl.endsWith('/') ? ctUrl.slice(0, -1) : ctUrl,
 			headers: {
 				Authorization: `Login ${loginToken}`,
 				Accept: 'application/json',
 			},
-			body: formData,
-		});
+			loginToken,
+		};
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+		Logger.log(`Connecting to ${context.baseUrl}...`);
+
+		try {
+			const whoami = await authenticate(context);
+			const firstName = whoami?.firstName ?? 'Unknown';
+			const lastName = whoami?.lastName ?? 'User';
+			Logger.log(`Logged in as: ${firstName} ${lastName}`);
+
+			const moduleId = await fetchModuleId(context);
+			Logger.log(`Found module 'organigram' with ID: ${String(moduleId)}`);
+
+			Logger.log(`Uploading ${zipName} to module ${String(moduleId)}...`);
+			await uploadZip(context, moduleId, zipName);
+			directDeploySucceeded = true;
+			Logger.log('Deployment successful!');
+		} catch (error) {
+			fallbackReason = getErrorMessage(error);
+			Logger.error(`Direct deployment failed: ${fallbackReason}`);
 		}
+	}
 
-		console.log('Deployment successful!');
-	} catch (error) {
-		console.error('Upload failed:', error);
-		process.exit(1);
+	try {
+		if (!directDeploySucceeded) {
+			await createInstallKit(zipName, version, fallbackReason ?? 'Unknown deployment error.');
+		}
 	} finally {
-		// Clean up
-		await $`rm -f ${zipName}`;
+		await rm(zipName, { force: true });
 	}
 }
 
-deploy();
+void deploy();
