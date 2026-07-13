@@ -620,7 +620,7 @@ function findVisibleBranchRootNode(
 ): HierarchyRectangularNode<DisplayTreeNode> | undefined {
 	return descendant
 		.ancestors()
-		.toReversed()
+		.reverse()
 		.find((entry) => entry.data.id !== VIRTUAL_ROOT_ID && entry.data.id !== effectiveCenterNodeId);
 }
 
