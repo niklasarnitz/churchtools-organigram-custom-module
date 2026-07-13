@@ -1,6 +1,11 @@
 {
 	"versions": [
 		{
+			"version": "1.6.2-bwl21",
+			"date": "2026-07-13",
+			"changes": ["ESLint-Fehler behoben: unnötige Typ-Assertions und ungenutzte Importe entfernt."]
+		},
+		{
 			"version": "1.6.1-bwl21",
 			"date": "2026-07-12",
 			"changes": [

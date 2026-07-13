@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+ 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
@@ -92,7 +92,7 @@ export const useGenerateReflowData = () => {
 				style: { stroke: '#64748b', strokeWidth: 2 },
 				target: relation.target.id.toString(),
 				type: 'smoothstep',
-			} as Edge;
+			};
 		});
 
 		const nodesList = nodes.map((node) => {
@@ -130,7 +130,7 @@ export const useGenerateReflowData = () => {
 				sourcePosition: isVertical ? Position.Bottom : Position.Right,
 				targetPosition: isVertical ? Position.Top : Position.Left,
 				type: 'previewGraphNode',
-			} as Node;
+			};
 		});
 
 		return { reflowEdges: edges, reflowNodes: nodesList };
@@ -164,7 +164,7 @@ export const useGenerateReflowData = () => {
 				}
 				const nodeSizes = new Map<string, { height: number; width: number }>();
 				for (const node of reflowNodes) {
-					const metrics = measureNodeCard(measureCtx, node.data as PreviewGraphNodeData, showGroupTypes);
+					const metrics = measureNodeCard(measureCtx, node.data, showGroupTypes);
 					nodeSizes.set(node.id, { height: metrics.height, width: metrics.width });
 				}
 
@@ -174,16 +174,16 @@ export const useGenerateReflowData = () => {
 				if (reflowNodes.length === 0) {
 					result = { edges: reflowEdges, nodes: reflowNodes };
 				} else {
-					const rootNode = reflowNodes[0].data as PreviewGraphNodeData;
+					const rootNode = reflowNodes[0].data;
 					const nodeDataById = new Map<number, PreviewGraphNodeData>();
 					for (const reflowNode of reflowNodes) {
-						const nodeData = reflowNode.data as PreviewGraphNodeData;
+						const nodeData = reflowNode.data;
 						nodeDataById.set(nodeData.id, nodeData);
 					}
 
 					const childrenMap = new Map<number, PreviewGraphNodeData[]>();
 					const parentMap = new Map<number, PreviewGraphNodeData>();
-					const visibleNodeIds = new Set(reflowNodes.map((n) => (n.data as PreviewGraphNodeData).id));
+					const visibleNodeIds = new Set(reflowNodes.map((n) => (n.data).id));
 
 					const getOrCreateNodeData = (nodeId: number): PreviewGraphNodeData | null => {
 						const visible = nodeDataById.get(nodeId);
@@ -241,7 +241,7 @@ export const useGenerateReflowData = () => {
 						const layoutNodeById = new Map(sunburstLayout.layoutNodes.map((entry) => [entry.id, entry]));
 
 						const positionedReflowNodes = reflowNodes.map((node) => {
-							const nodeData = node.data as PreviewGraphNodeData;
+							const nodeData = node.data;
 							const layoutNode = layoutNodeById.get(nodeData.id);
 
 							return {
@@ -383,7 +383,7 @@ export const useGenerateReflowData = () => {
 
 							// Update node positions and adjust edge handles for radial layout
 							const positionedReflowNodes = reflowNodes.map((node) => {
-								const nodeData = node.data as PreviewGraphNodeData;
+								const nodeData = node.data;
 								const positioned = positionedMap.get(nodeData.id);
 
 								if (positioned) {
@@ -477,7 +477,7 @@ export const useGenerateReflowData = () => {
 										style: { stroke: '#64748b', strokeWidth: 2 },
 										target: childNodeId.toString(),
 										type: 'smoothstep',
-									} as Edge);
+									});
 								}
 							}
 
@@ -492,7 +492,7 @@ export const useGenerateReflowData = () => {
 								console.log('\n' + exportRayStructure(nodePolarMap, childrenMap, nodeDataById));
 
 								// Export ELK DSL for analysis
-								const elkDsl = exportToElkDsl(positionedReflowNodes as any, rayEdges);
+								const elkDsl = exportToElkDsl(positionedReflowNodes, rayEdges);
 								console.log('\n=== ELK DSL EXPORT ===\n' + elkDsl);
 
 								// Make available on window for manual inspection

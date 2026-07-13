@@ -4,9 +4,7 @@ import type {
 	CustomModule,
 	CustomModuleCreate,
 	CustomModuleDataCategory,
-	CustomModuleDataCategoryCreate,
 	CustomModuleDataValue,
-	CustomModuleDataValueCreate,
 } from '../types/CustomModule';
 
 const EXTENSION_KEY = import.meta.env.VITE_KEY ?? 'organigram';
@@ -40,9 +38,7 @@ export async function getOrCreateCustomDataCategory(
 
 	const newCategory = await churchtoolsClient.post<CustomModuleDataCategory>(
 		`/custommodules/${String(mId)}/customdatacategories`,
-		{ customModuleId: mId, data: '{}', name, shorty } as CustomModuleDataCategoryCreate & {
-			customModuleId: number;
-		},
+		{ customModuleId: mId, data: '{}', name, shorty },
 	);
 
 	return { ...newCategory, moduleId: mId };
@@ -87,7 +83,7 @@ export async function saveUserSettings(categoryShorty: string, categoryName: str
 	if (userValue) {
 		await churchtoolsClient.put(
 			`/custommodules/${String(mId)}/customdatacategories/${String(category.id)}/customdatavalues/${String(userValue.id)}`,
-			{ customModuleId: mId, value: valueStr } as { customModuleId: number; value: string },
+			{ customModuleId: mId, value: valueStr },
 		);
 	} else {
 		await churchtoolsClient.post(
@@ -96,7 +92,7 @@ export async function saveUserSettings(categoryShorty: string, categoryName: str
 				customModuleId: mId,
 				dataCategoryId: category.id,
 				value: valueStr,
-			} as CustomModuleDataValueCreate & { customModuleId: number },
+			},
 		);
 	}
 }

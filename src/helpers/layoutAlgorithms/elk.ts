@@ -13,7 +13,7 @@ let elkInstance: ELK | null = null;
 function getElk(): ELK {
 	elkInstance ??= new ElkApi({
 		workerUrl: ElkWorkerUrl,
-	}) as unknown as ELK;
+	});
 	return elkInstance;
 }
 

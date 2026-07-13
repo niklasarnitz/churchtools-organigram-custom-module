@@ -149,7 +149,7 @@ export const ExclusionFilters = React.memo(() => {
 
 	const handleGroupStatusChange = useCallback(
 		(values: string[]) => {
-			setIncludedGroupStatuses(values.length > 0 ? (values.map(Number) as GroupStatus[]) : []);
+			setIncludedGroupStatuses(values.length > 0 ? (values.map(Number)) : []);
 		},
 		[setIncludedGroupStatuses],
 	);

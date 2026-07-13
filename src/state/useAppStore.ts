@@ -132,7 +132,7 @@ export const useAppStore = create<GroupState>((set) => {
 	const setAndCommit = (updates: Partial<GroupState>) => {
 		set((state) => {
 			const newState = { ...state, ...updates };
-			return { ...updates, committedFilters: snapshotFilters(newState as GroupState) };
+			return { ...updates, committedFilters: snapshotFilters(newState) };
 		});
 	};
 
@@ -182,7 +182,7 @@ export const useAppStore = create<GroupState>((set) => {
 
 		radialRingDistance: 350,
 
-		renderer: 'webgl' as RendererType,
+		renderer: 'webgl',
 
 		setAllSettings: (settings: Partial<UserSettings>) => {
 			setAndCommit(settings);
