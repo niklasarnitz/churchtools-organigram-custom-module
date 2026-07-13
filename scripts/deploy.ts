@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 /* eslint-disable perfectionist/sort-modules */
@@ -7,6 +6,8 @@
 
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+
+import { Logger } from '../src/globals/Logger';
 
 type DeployContext = {
 	baseUrl: string;
@@ -46,7 +47,7 @@ async function createInstallKit(zipName: string, version: string, reason: string
 	const releaseZipPath = `${releaseDir}/${zipName}`;
 	const readmePath = `${releaseDir}/README.txt`;
 
-	console.warn(`Creating install kit in ${releaseDir}...`);
+	Logger.log(`Creating install kit in ${releaseDir}...`);
 	await mkdir(releaseDir, { recursive: true });
 	await copyFile(zipName, releaseZipPath);
 
@@ -65,8 +66,8 @@ async function createInstallKit(zipName: string, version: string, reason: string
 	].join('\n');
 
 	await writeFile(readmePath, `${readmeContent}\n`, 'utf8');
-	console.log(`Install kit created: ${releaseZipPath}`);
-	console.log(`Instructions written to: ${readmePath}`);
+	Logger.log(`Install kit created: ${releaseZipPath}`);
+	Logger.log(`Instructions written to: ${readmePath}`);
 }
 
 async function runCommand(command: string, args: string[], options?: { cwd?: string }) {
@@ -142,13 +143,13 @@ async function deploy() {
 	const loginToken = process.env.VITE_CT_LOGIN_TOKEN;
 	const ctUrl = process.env.VITE_CT_URL;
 
-	console.log('Building project...');
+	Logger.log('Building project...');
 	await runCommand('bun', ['run', 'build']);
 
 	const packageJson = JSON.parse(await readFile('package.json', 'utf8')) as { version: string };
 	const version = packageJson.version;
 	const zipName = `organigram-${version}.zip`;
-	console.log(`Creating zip file ${zipName}...`);
+	Logger.log(`Creating zip file ${zipName}...`);
 	await rm(zipName, { force: true });
 	await runCommand('zip', ['-r', `../${zipName}`, '.'], { cwd: 'build' });
 
@@ -167,24 +168,24 @@ async function deploy() {
 			loginToken,
 		};
 
-		console.log(`Connecting to ${context.baseUrl}...`);
+		Logger.log(`Connecting to ${context.baseUrl}...`);
 
 		try {
 			const whoami = await authenticate(context);
 			const firstName = whoami?.firstName ?? 'Unknown';
 			const lastName = whoami?.lastName ?? 'User';
-			console.log(`Logged in as: ${firstName} ${lastName}`);
+			Logger.log(`Logged in as: ${firstName} ${lastName}`);
 
 			const moduleId = await fetchModuleId(context);
-			console.log(`Found module 'organigram' with ID: ${String(moduleId)}`);
+			Logger.log(`Found module 'organigram' with ID: ${String(moduleId)}`);
 
-			console.log(`Uploading ${zipName} to module ${String(moduleId)}...`);
+			Logger.log(`Uploading ${zipName} to module ${String(moduleId)}...`);
 			await uploadZip(context, moduleId, zipName);
 			directDeploySucceeded = true;
-			console.log('Deployment successful!');
+			Logger.log('Deployment successful!');
 		} catch (error) {
 			fallbackReason = getErrorMessage(error);
-			console.error(`Direct deployment failed: ${fallbackReason}`);
+			Logger.error(`Direct deployment failed: ${fallbackReason}`);
 		}
 	}
 
