@@ -1,59 +1,42 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable perfectionist/sort-classes */
-/* eslint-disable perfectionist/sort-modules */
-
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
 import type { Edge, Node } from '../../../types/GraphTypes';
-import type { SunburstInteractionMeta, SunburstRenderData, SunburstSegmentLayout } from '../../../types/Sunburst';
+import type { SunburstInteractionMeta, SunburstRenderData } from '../../../types/Sunburst';
+import type { NodeCardMetrics } from './drawNodeCard2D';
+import type { GraphRenderer } from './renderers/GraphRenderer';
+import type { Bounds, Camera, NodeHit } from './types';
 
-import { oklchToHex } from '../../../globals/Colors';
-import { calculateTextOrientation, getTangentialLineOffset } from '../../../helpers/sunburstTextOrientation';
-import { drawNodeCard, drawNodeCardHeaderOnly, measureNodeCard, type NodeCardMetrics } from './drawNodeCard2D';
+import { screenToWorld, worldToScreen } from './cameraMath';
+import { NodeGraphRenderer } from './renderers/NodeGraphRenderer';
+import { SunburstGraphRenderer } from './renderers/SunburstGraphRenderer';
 
-export interface Camera {
-	x: number;
-	y: number;
-	zoom: number;
-}
+export type { Camera, NodeHit };
 
-export interface NodeHit {
-	height: number;
-	interactionMeta?: SunburstInteractionMeta;
-	node: Node<PreviewGraphNodeData>;
-	width: number;
-}
-
+/**
+ * Owns the canvas, camera and animation loop, and delegates all algorithm-specific
+ * drawing/hit-testing to the currently active `GraphRenderer` (node graph or sunburst).
+ */
 export class WebGLGraphEngine {
+	private activeRenderer: GraphRenderer<unknown>;
 	private animationId: null | number = null;
 	private animationTime = 0;
 	private camera: Camera = { x: 0, y: 0, zoom: 1 };
-	private canvas: HTMLCanvasElement;
-	private collapsedNodeIds = new Set<string>();
-	private ctx: CanvasRenderingContext2D;
+	private readonly canvas: HTMLCanvasElement;
+	private readonly ctx: CanvasRenderingContext2D;
 	private dpr = 1;
-	private edges: Edge[] = [];
 	private fps = 0;
 	private frameCount = 0;
-	private highlightedEdgeId: null | string = null;
-	private highlightedNodeIds = new Set<string>();
+	private readonly highlightedNodeIds = new Set<string>();
+	private hoveredNodeId: null | string = null;
 	private isDarkMode = false;
 	private lastFpsUpdate = 0;
 	private lastFrameTime = 0;
 	// Measuring canvas (offscreen)
-	private measureCanvas: HTMLCanvasElement;
-	private measureCtx: CanvasRenderingContext2D;
+	private readonly measureCanvas: HTMLCanvasElement;
+	private readonly measureCtx: CanvasRenderingContext2D;
 	private needsRender = true;
-	private nodeMap = new Map<string, Node<PreviewGraphNodeData>>();
-	private nodeMetrics = new Map<string, NodeCardMetrics>();
+	private readonly nodeGraphRenderer: NodeGraphRenderer;
 	private nodes: Node<PreviewGraphNodeData>[] = [];
-	private hoveredNodeId: null | string = null;
-	private sunburstChildrenByNodeId = new Map<string, string[]>();
-	private sunburstRenderData: SunburstRenderData | undefined;
-
-	private showGroupTypes = true;
-
-	private spatialCellSize = 200;
-	private spatialGrid = new Map<string, Node<PreviewGraphNodeData>[]>();
+	private readonly sunburstGraphRenderer: SunburstGraphRenderer;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
@@ -68,42 +51,19 @@ export class WebGLGraphEngine {
 		const measureCtx = this.measureCanvas.getContext('2d');
 		if (!measureCtx) throw new Error('Failed to get measure 2D context');
 		this.measureCtx = measureCtx;
+
+		this.nodeGraphRenderer = new NodeGraphRenderer(this.measureCtx);
+		this.sunburstGraphRenderer = new SunburstGraphRenderer();
+		// Both renderers share the same mutable Set so highlighting survives a mode switch.
+		this.nodeGraphRenderer.setHighlightedNodeIds(this.highlightedNodeIds);
+		this.sunburstGraphRenderer.setHighlightedNodeIds(this.highlightedNodeIds);
+		this.activeRenderer = this.nodeGraphRenderer;
 	}
 
 	edgeHitTest(screenX: number, screenY: number): Edge | null {
-		if (this.sunburstRenderData) {
-			return null;
-		}
-
+		if (this.activeRenderer !== this.nodeGraphRenderer) return null;
 		const world = this.screenToWorld(screenX, screenY);
-		const threshold = 6 / this.camera.zoom;
-
-		for (const edge of this.edges) {
-			if (!edge.sections) continue;
-			for (const section of edge.sections) {
-				const points: { x: number; y: number }[] = [section.startPoint];
-				if (section.bendPoints) {
-					for (const bp of section.bendPoints) points.push(bp);
-				}
-				points.push(section.endPoint);
-
-				for (let i = 0; i < points.length - 1; i++) {
-					if (
-						pointToSegmentDist(
-							world.x,
-							world.y,
-							points[i].x,
-							points[i].y,
-							points[i + 1].x,
-							points[i + 1].y,
-						) < threshold
-					) {
-						return edge;
-					}
-				}
-			}
-		}
-		return null;
+		return this.nodeGraphRenderer.edgeHitTest(world, this.camera);
 	}
 
 	fitView(padding = 0.05) {
@@ -132,70 +92,23 @@ export class WebGLGraphEngine {
 	}
 
 	focusNode(nodeId: string, canvasRect: DOMRect) {
-		if (this.sunburstRenderData) {
-			const interactionMeta = this.sunburstRenderData.interactionByNodeId[Number(nodeId)];
-			if (!interactionMeta) return;
-
-			const zoom = 1.15;
-			this.camera = {
-				x: interactionMeta.center.x - canvasRect.width / 2 / zoom,
-				y: interactionMeta.center.y - canvasRect.height / 2 / zoom,
-				zoom,
-			};
-			this.needsRender = true;
-			return;
-		}
-
-		const node = this.nodeMap.get(nodeId);
-		if (!node) return;
-
-		const metrics = this.nodeMetrics.get(nodeId);
-		const w = metrics?.width ?? 250;
-		const h = metrics?.height ?? 80;
-
-		const zoom = 1.2;
-		const cx = node.position.x + w / 2;
-		const cy = node.position.y + h / 2;
+		const target = this.activeRenderer.getFocusTarget(nodeId);
+		if (!target) return;
 
 		this.camera = {
-			x: cx - canvasRect.width / 2 / zoom,
-			y: cy - canvasRect.height / 2 / zoom,
-			zoom,
+			x: target.x - canvasRect.width / 2 / target.zoom,
+			y: target.y - canvasRect.height / 2 / target.zoom,
+			zoom: target.zoom,
 		};
 		this.needsRender = true;
 	}
 
 	getAllNodeMetrics(): Map<string, NodeCardMetrics> {
-		return this.nodeMetrics;
+		return this.nodeGraphRenderer.getAllNodeMetrics();
 	}
 
-	getBounds(): null | { maxX: number; maxY: number; minX: number; minY: number } {
-		if (this.sunburstRenderData) {
-			const maxRadius = this.sunburstRenderData.maxRadius;
-			return {
-				maxX: maxRadius,
-				maxY: maxRadius,
-				minX: -maxRadius,
-				minY: -maxRadius,
-			};
-		}
-
-		if (this.nodes.length === 0) return null;
-
-		let maxX = -Infinity,
-			maxY = -Infinity,
-			minX = Infinity,
-			minY = Infinity;
-		for (const node of this.nodes) {
-			const metrics = this.nodeMetrics.get(node.id);
-			const w = metrics?.width ?? 250;
-			const h = metrics?.height ?? 80;
-			minX = Math.min(minX, node.position.x);
-			minY = Math.min(minY, node.position.y);
-			maxX = Math.max(maxX, node.position.x + w);
-			maxY = Math.max(maxY, node.position.y + h);
-		}
-		return { maxX, maxY, minX, minY };
+	getBounds(): Bounds | null {
+		return this.activeRenderer.getBounds();
 	}
 
 	getCamera(): Camera {
@@ -207,11 +120,11 @@ export class WebGLGraphEngine {
 	}
 
 	getCollapsedNodeIds(): Set<string> {
-		return this.collapsedNodeIds;
+		return this.nodeGraphRenderer.getCollapsedNodeIds();
 	}
 
 	getHighlightedEdgeId(): null | string {
-		return this.highlightedEdgeId;
+		return this.nodeGraphRenderer.getHighlightedEdgeId();
 	}
 
 	getHighlightedNodeIds(): Set<string> {
@@ -219,46 +132,27 @@ export class WebGLGraphEngine {
 	}
 
 	getNodeMetrics(nodeId: string): NodeCardMetrics | undefined {
-		return this.nodeMetrics.get(nodeId);
+		return this.nodeGraphRenderer.getNodeMetrics(nodeId);
 	}
 
 	getNodes(): Node<PreviewGraphNodeData>[] {
 		return this.nodes;
 	}
 
-	getSunburstRenderData(): SunburstRenderData | undefined {
-		return this.sunburstRenderData;
+	getSunburstInteractionMeta(nodeId: string): SunburstInteractionMeta | undefined {
+		if (this.activeRenderer !== this.sunburstGraphRenderer) return undefined;
+		return this.sunburstGraphRenderer.getInteractionMeta(nodeId);
 	}
 
-	getSunburstInteractionMeta(nodeId: string): SunburstInteractionMeta | undefined {
-		if (!this.sunburstRenderData) return undefined;
-		return this.sunburstRenderData.interactionByNodeId[Number(nodeId)];
+	getSunburstRenderData(): SunburstRenderData | undefined {
+		return this.activeRenderer === this.sunburstGraphRenderer
+			? this.sunburstGraphRenderer.getRenderData()
+			: undefined;
 	}
 
 	hitTest(screenX: number, screenY: number): NodeHit | null {
-		if (this.sunburstRenderData) {
-			return this.hitTestSunburst(screenX, screenY);
-		}
-
 		const world = this.screenToWorld(screenX, screenY);
-
-		// Iterate in reverse to get top-most node first
-		for (let i = this.nodes.length - 1; i >= 0; i--) {
-			const node = this.nodes[i];
-			const metrics = this.nodeMetrics.get(node.id);
-			const w = metrics?.width ?? 250;
-			const h = metrics?.height ?? 80;
-
-			if (
-				world.x >= node.position.x &&
-				world.x <= node.position.x + w &&
-				world.y >= node.position.y &&
-				world.y <= node.position.y + h
-			) {
-				return { height: h, node, width: w };
-			}
-		}
-		return null;
+		return this.activeRenderer.hitTest(world);
 	}
 
 	markDirty() {
@@ -274,10 +168,7 @@ export class WebGLGraphEngine {
 	}
 
 	screenToWorld(sx: number, sy: number): { x: number; y: number } {
-		return {
-			x: sx / this.camera.zoom + this.camera.x,
-			y: sy / this.camera.zoom + this.camera.y,
-		};
+		return screenToWorld(this.camera, sx, sy);
 	}
 
 	setCamera(camera: Camera) {
@@ -293,44 +184,27 @@ export class WebGLGraphEngine {
 		sunburstRenderData?: SunburstRenderData,
 	) {
 		this.nodes = nodes;
-		this.edges = edges;
-		this.showGroupTypes = showGroupTypes;
 		this.isDarkMode = isDarkMode;
-		this.sunburstRenderData = sunburstRenderData;
+		this.nodeGraphRenderer.setDarkMode(isDarkMode);
+		this.sunburstGraphRenderer.setDarkMode(isDarkMode);
+		this.nodeGraphRenderer.setHoveredNodeId(null);
+		this.sunburstGraphRenderer.setHoveredNodeId(null);
 		this.hoveredNodeId = null;
-		this.sunburstChildrenByNodeId.clear();
-
-		this.nodeMap.clear();
-		for (const node of nodes) {
-			this.nodeMap.set(node.id, node);
-		}
 
 		if (sunburstRenderData) {
-			for (const interaction of Object.values(sunburstRenderData.interactionByNodeId)) {
-				if (interaction.primaryParentId === undefined) continue;
-				const parentId = String(interaction.primaryParentId);
-				const children = this.sunburstChildrenByNodeId.get(parentId) ?? [];
-				children.push(String(interaction.nodeId));
-				this.sunburstChildrenByNodeId.set(parentId, children);
-			}
+			this.activeRenderer = this.sunburstGraphRenderer;
+			this.sunburstGraphRenderer.setData({ nodes, sunburstRenderData });
+		} else {
+			this.activeRenderer = this.nodeGraphRenderer;
+			this.nodeGraphRenderer.setData({ edges, nodes, showGroupTypes });
 		}
-
-		// Recalculate metrics
-		this.nodeMetrics.clear();
-
-		for (const node of nodes) {
-			const metrics = measureNodeCard(this.measureCtx, node.data, showGroupTypes);
-			this.nodeMetrics.set(node.id, metrics);
-		}
-
-		this.buildSpatialGrid();
 
 		this.needsRender = true;
 	}
 
 	setHighlightedEdge(edgeId: null | string) {
-		if (this.highlightedEdgeId !== edgeId) {
-			this.highlightedEdgeId = edgeId;
+		if (this.nodeGraphRenderer.getHighlightedEdgeId() !== edgeId) {
+			this.nodeGraphRenderer.setHighlightedEdgeId(edgeId);
 			this.needsRender = true;
 		}
 	}
@@ -338,7 +212,7 @@ export class WebGLGraphEngine {
 	setHighlightedSubgraph(nodeId: null | string) {
 		this.highlightedNodeIds.clear();
 		if (nodeId !== null) {
-			this.collectSubgraphNodes(nodeId, this.highlightedNodeIds);
+			this.activeRenderer.collectSubgraphNodes(nodeId, this.highlightedNodeIds);
 		}
 		this.needsRender = true;
 	}
@@ -346,6 +220,8 @@ export class WebGLGraphEngine {
 	setHoveredNodeId(nodeId: null | string) {
 		if (this.hoveredNodeId === nodeId) return;
 		this.hoveredNodeId = nodeId;
+		this.nodeGraphRenderer.setHoveredNodeId(nodeId);
+		this.sunburstGraphRenderer.setHoveredNodeId(nodeId);
 		this.needsRender = true;
 	}
 
@@ -362,500 +238,12 @@ export class WebGLGraphEngine {
 	}
 
 	toggleCollapsedNode(nodeId: string) {
-		if (this.collapsedNodeIds.has(nodeId)) {
-			this.collapsedNodeIds.delete(nodeId);
-		} else {
-			this.collapsedNodeIds.add(nodeId);
-		}
+		this.nodeGraphRenderer.toggleCollapsedNode(nodeId);
 		this.needsRender = true;
 	}
 
 	worldToScreen(wx: number, wy: number): { x: number; y: number } {
-		return {
-			x: (wx - this.camera.x) * this.camera.zoom,
-			y: (wy - this.camera.y) * this.camera.zoom,
-		};
-	}
-
-	private buildSpatialGrid() {
-		if (this.sunburstRenderData) {
-			this.spatialGrid.clear();
-			return;
-		}
-
-		this.spatialGrid.clear();
-		for (const node of this.nodes) {
-			const m = this.nodeMetrics.get(node.id);
-			const w = m?.width ?? 250;
-			const h = m?.height ?? 80;
-			const minCellX = Math.floor(node.position.x / this.spatialCellSize);
-			const maxCellX = Math.floor((node.position.x + w) / this.spatialCellSize);
-			const minCellY = Math.floor(node.position.y / this.spatialCellSize);
-			const maxCellY = Math.floor((node.position.y + h) / this.spatialCellSize);
-			for (let cx = minCellX; cx <= maxCellX; cx++) {
-				for (let cy = minCellY; cy <= maxCellY; cy++) {
-					const key = `${String(cx)},${String(cy)}`;
-					let cell = this.spatialGrid.get(key);
-					if (!cell) {
-						cell = [];
-						this.spatialGrid.set(key, cell);
-					}
-					cell.push(node);
-				}
-			}
-		}
-	}
-
-	private collectSubgraphNodes(nodeId: string, result: Set<string>) {
-		result.add(nodeId);
-		if (this.sunburstRenderData) {
-			for (const childId of this.sunburstChildrenByNodeId.get(nodeId) ?? []) {
-				if (!result.has(childId)) {
-					this.collectSubgraphNodes(childId, result);
-				}
-			}
-			return;
-		}
-
-		for (const edge of this.edges) {
-			if (edge.source === nodeId && !result.has(edge.target)) {
-				this.collectSubgraphNodes(edge.target, result);
-			}
-		}
-	}
-
-	private drawArrowHead(
-		ctx: CanvasRenderingContext2D,
-		toX: number,
-		toY: number,
-		fromX: number,
-		fromY: number,
-		size: number,
-	) {
-		const dx = toX - fromX;
-		const dy = toY - fromY;
-		const len = Math.sqrt(dx * dx + dy * dy);
-		if (len === 0) return;
-		const ux = dx / len;
-		const uy = dy / len;
-		ctx.beginPath();
-		ctx.moveTo(toX, toY);
-		ctx.lineTo(toX - ux * size + uy * size * 0.5, toY - uy * size - ux * size * 0.5);
-		ctx.lineTo(toX - ux * size - uy * size * 0.5, toY - uy * size + ux * size * 0.5);
-		ctx.closePath();
-		ctx.fill();
-	}
-
-	private drawEdges(ctx: CanvasRenderingContext2D) {
-		const zoom = this.camera.zoom;
-		const rect = this.canvas.getBoundingClientRect();
-		const viewW = rect.width;
-		const viewH = rect.height;
-		const arrowSize = 8;
-		const hiddenIds = this.getHiddenNodeIds();
-		const hasNodeHighlight = this.highlightedNodeIds.size > 0;
-
-		const edgeColor = this.isDarkMode ? '#94a3b8' : '#64748b';
-		const highlightColor = this.isDarkMode ? '#60a5fa' : '#3b82f6';
-		ctx.lineJoin = 'round';
-
-		for (const edge of this.edges) {
-			const sections = edge.sections;
-			if (!sections || sections.length === 0) continue;
-
-			// Skip edges connected to hidden nodes
-			if (hiddenIds.has(edge.source) || hiddenIds.has(edge.target)) continue;
-
-			const isHighlighted = edge.id === this.highlightedEdgeId;
-			const isInSubgraph =
-				hasNodeHighlight &&
-				this.highlightedNodeIds.has(edge.source) &&
-				this.highlightedNodeIds.has(edge.target);
-
-			// Dim edges not in the highlighted subgraph
-			if (hasNodeHighlight && !isInSubgraph) {
-				ctx.globalAlpha = 0.15;
-			}
-
-			for (const section of sections) {
-				const points: { x: number; y: number }[] = [];
-				points.push(section.startPoint);
-				if (section.bendPoints) {
-					for (const bp of section.bendPoints) {
-						points.push(bp);
-					}
-				}
-				points.push(section.endPoint);
-
-				// Frustum culling
-				let maxX = -Infinity,
-					maxY = -Infinity,
-					minX = Infinity,
-					minY = Infinity;
-				for (const p of points) {
-					minX = Math.min(minX, p.x);
-					minY = Math.min(minY, p.y);
-					maxX = Math.max(maxX, p.x);
-					maxY = Math.max(maxY, p.y);
-				}
-				const sMinX = (minX - this.camera.x) * zoom;
-				const sMaxX = (maxX - this.camera.x) * zoom;
-				const sMinY = (minY - this.camera.y) * zoom;
-				const sMaxY = (maxY - this.camera.y) * zoom;
-				if (sMaxX < 0 || sMaxY < 0 || sMinX > viewW || sMinY > viewH) continue;
-
-				// Build path once
-				const buildPath = () => {
-					ctx.beginPath();
-					ctx.moveTo(points[0].x, points[0].y);
-					for (let i = 1; i < points.length; i++) {
-						ctx.lineTo(points[i].x, points[i].y);
-					}
-				};
-
-				if (isHighlighted) {
-					// Glow pass
-					ctx.save();
-					ctx.shadowColor = highlightColor;
-					ctx.shadowBlur = 12 / zoom;
-					ctx.strokeStyle = highlightColor;
-					ctx.lineWidth = 4;
-					buildPath();
-					ctx.stroke();
-					ctx.restore();
-				}
-
-				// Normal pass
-				ctx.strokeStyle = isHighlighted ? highlightColor : edgeColor;
-				ctx.lineWidth = isHighlighted ? 3 : 2;
-				buildPath();
-				ctx.stroke();
-
-				// Arrow head
-				const last = points[points.length - 1];
-				const prev = points[points.length - 2];
-				ctx.fillStyle = isHighlighted ? highlightColor : edgeColor;
-				this.drawArrowHead(ctx, last.x, last.y, prev.x, prev.y, arrowSize);
-			}
-
-			// Reset alpha
-			ctx.globalAlpha = 1;
-		}
-	}
-
-	private drawGrid(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
-		if (this.sunburstRenderData) return;
-		if (this.nodes.length === 0) return;
-
-		const zoom = this.camera.zoom;
-
-		// Only draw grid when zoomed in enough
-		if (zoom < 0.3) return;
-
-		const baseGridSize = 20;
-		const worldW = viewW / zoom;
-		const worldH = viewH / zoom;
-		const maxDots = 2500;
-		const gridSize = Math.max(baseGridSize, Math.ceil(Math.sqrt((worldW * worldH) / maxDots)));
-
-		const opacity = Math.min(1, (zoom - 0.3) / 0.7) * (this.isDarkMode ? 0.2 : 0.3);
-		ctx.fillStyle = this.isDarkMode
-			? `rgba(51, 65, 85, ${String(opacity)})`
-			: `rgba(148, 163, 184, ${String(opacity)})`;
-
-		const startX = Math.floor(this.camera.x / gridSize) * gridSize;
-		const startY = Math.floor(this.camera.y / gridSize) * gridSize;
-		const endX = this.camera.x + worldW;
-		const endY = this.camera.y + worldH;
-
-		const dotSize = Math.max(1, 1.5 / zoom);
-
-		for (let x = startX; x < endX; x += gridSize) {
-			for (let y = startY; y < endY; y += gridSize) {
-				const sx = (x - this.camera.x) * zoom;
-				const sy = (y - this.camera.y) * zoom;
-				ctx.fillRect(sx - dotSize / 2, sy - dotSize / 2, dotSize, dotSize);
-			}
-		}
-	}
-
-	private drawNodes(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
-		if (this.sunburstRenderData) return;
-		const zoom = this.camera.zoom;
-		const hiddenIds = this.getHiddenNodeIds();
-		const hasHighlight = this.highlightedNodeIds.size > 0;
-		const highlightColor = this.isDarkMode ? '#60a5fa' : '#3b82f6';
-
-		// Use spatial grid to only check nodes that are in or near the viewport
-		const viewportMin = this.screenToWorld(0, 0);
-		const viewportMax = this.screenToWorld(viewW, viewH);
-
-		const candidates = this.getSpatialCandidates(viewportMin.x, viewportMin.y, viewportMax.x, viewportMax.y);
-
-		for (const node of candidates) {
-			if (hiddenIds.has(node.id)) continue;
-
-			const metrics = this.nodeMetrics.get(node.id) ?? { headerHeight: 38, height: 80, width: 250 };
-			const w = metrics.width;
-			const h = metrics.height;
-
-			// Frustum culling (more precise than spatial grid)
-			const screenPos = this.worldToScreen(node.position.x, node.position.y);
-			const screenW = w * zoom;
-			const screenH = h * zoom;
-			if (screenPos.x + screenW < 0 || screenPos.y + screenH < 0 || screenPos.x > viewW || screenPos.y > viewH) {
-				continue;
-			}
-
-			// Dim non-highlighted nodes when a subgraph is highlighted
-			if (hasHighlight && !this.highlightedNodeIds.has(node.id)) {
-				ctx.globalAlpha = 0.25;
-			}
-
-			// Draw highlight glow for highlighted nodes
-			if (hasHighlight && this.highlightedNodeIds.has(node.id)) {
-				ctx.save();
-				ctx.shadowColor = highlightColor;
-				ctx.shadowBlur = 16 / zoom;
-				ctx.strokeStyle = highlightColor;
-				ctx.lineWidth = 3;
-				roundRect(ctx, node.position.x, node.position.y, w, h, 12);
-				ctx.stroke();
-				ctx.restore();
-			}
-
-			if (zoom >= 0.4) {
-				// Full node card drawn directly (vectorized)
-				drawNodeCard(
-					ctx,
-					node.data,
-					this.showGroupTypes,
-					node.position.x,
-					node.position.y,
-					w,
-					h,
-					this.isDarkMode,
-				);
-			} else if (zoom >= 0.15) {
-				// Header-only
-				drawNodeCardHeaderOnly(
-					ctx,
-					node.data,
-					this.showGroupTypes,
-					node.position.x,
-					node.position.y,
-					w,
-					h,
-					metrics.headerHeight,
-					this.isDarkMode,
-				);
-			} else {
-				// Minimal LOD
-				const borderColor = oklchToHex(node.data.color.shades[this.isDarkMode ? 700 : 300]);
-				const headerBg = oklchToHex(node.data.color.shades[this.isDarkMode ? 900 : 100]);
-
-				ctx.fillStyle = headerBg;
-				roundRect(ctx, node.position.x, node.position.y, w, h, 6);
-				ctx.fill();
-				ctx.strokeStyle = borderColor;
-				ctx.lineWidth = 2;
-				ctx.stroke();
-			}
-
-			// Reset alpha
-			ctx.globalAlpha = 1;
-		}
-	}
-
-	private getHiddenNodeIds(): Set<string> {
-		if (this.sunburstRenderData) {
-			return new Set();
-		}
-
-		const hidden = new Set<string>();
-		for (const collapsedId of this.collapsedNodeIds) {
-			// Hide all descendants of the collapsed node (but not the collapsed node itself)
-			for (const edge of this.edges) {
-				if (edge.source === collapsedId) {
-					this.collectSubgraphNodes(edge.target, hidden);
-				}
-			}
-		}
-		return hidden;
-	}
-
-	private getSpatialCandidates(
-		minX: number,
-		minY: number,
-		maxX: number,
-		maxY: number,
-	): Set<Node<PreviewGraphNodeData>> {
-		const result = new Set<Node<PreviewGraphNodeData>>();
-		const minCellX = Math.floor(minX / this.spatialCellSize);
-		const maxCellX = Math.floor(maxX / this.spatialCellSize);
-		const minCellY = Math.floor(minY / this.spatialCellSize);
-		const maxCellY = Math.floor(maxY / this.spatialCellSize);
-		for (let cx = minCellX; cx <= maxCellX; cx++) {
-			for (let cy = minCellY; cy <= maxCellY; cy++) {
-				const cell = this.spatialGrid.get(`${String(cx)},${String(cy)}`);
-				if (cell) {
-					for (const node of cell) {
-						result.add(node);
-					}
-				}
-			}
-		}
-		return result;
-	}
-
-	private drawSunburst(ctx: CanvasRenderingContext2D, viewW: number, viewH: number) {
-		const renderData = this.sunburstRenderData;
-		if (!renderData) return;
-
-		const hasHighlight = this.highlightedNodeIds.size > 0;
-
-		for (const segment of renderData.segments) {
-			const boundsMin = this.worldToScreen(-segment.outerRadius, -segment.outerRadius);
-			const boundsMax = this.worldToScreen(segment.outerRadius, segment.outerRadius);
-			if (boundsMax.x < 0 || boundsMax.y < 0 || boundsMin.x > viewW || boundsMin.y > viewH) continue;
-
-			const isHighlighted = this.highlightedNodeIds.has(String(segment.nodeId));
-			const isHovered = this.hoveredNodeId === String(segment.nodeId);
-			const opacity = hasHighlight && !isHighlighted ? 0.25 : 1;
-
-			ctx.save();
-			ctx.globalAlpha = opacity;
-			ctx.beginPath();
-			ctx.arc(0, 0, segment.outerRadius, segment.startAngle - Math.PI / 2, segment.endAngle - Math.PI / 2);
-			ctx.arc(0, 0, segment.innerRadius, segment.endAngle - Math.PI / 2, segment.startAngle - Math.PI / 2, true);
-			ctx.closePath();
-			ctx.fillStyle = segment.fillColor;
-			ctx.fill();
-			ctx.strokeStyle = isHovered ? '#0f172a' : isHighlighted ? '#1d4ed8' : segment.strokeColor;
-			ctx.lineWidth = isHovered
-				? 5 / this.camera.zoom
-				: isHighlighted
-					? 4 / this.camera.zoom
-					: 1 / this.camera.zoom;
-			ctx.stroke();
-			ctx.restore();
-		}
-
-		if (this.camera.zoom < 0.12) return;
-
-		if (renderData.centerLabel) {
-			const isHighlighted =
-				renderData.centerLabel.nodeId !== undefined &&
-				this.highlightedNodeIds.has(String(renderData.centerLabel.nodeId));
-			const isHovered =
-				renderData.centerLabel.nodeId !== undefined &&
-				this.hoveredNodeId === String(renderData.centerLabel.nodeId);
-			ctx.save();
-			ctx.fillStyle = renderData.centerLabel.fillColor;
-			ctx.beginPath();
-			ctx.arc(0, 0, renderData.centerLabel.radius, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.strokeStyle = isHovered ? '#0f172a' : isHighlighted ? '#1d4ed8' : renderData.centerLabel.strokeColor;
-			ctx.lineWidth = isHovered
-				? 5 / this.camera.zoom
-				: isHighlighted
-					? 4 / this.camera.zoom
-					: 1 / this.camera.zoom;
-			ctx.stroke();
-			ctx.fillStyle = getReadableTextColor(renderData.centerLabel.fillColor, this.isDarkMode);
-			ctx.font = `${isHighlighted ? '600' : '500'} ${String(renderData.centerLabel.fontSize)}px Lato, sans-serif`;
-			ctx.textAlign = 'center';
-			ctx.textBaseline = 'middle';
-			const lineHeight = renderData.centerLabel.fontSize * 1.05;
-			const firstLineY = -((renderData.centerLabel.lines.length - 1) * lineHeight) / 2;
-			for (const [index, line] of renderData.centerLabel.lines.entries()) {
-				ctx.fillText(line, 0, firstLineY + index * lineHeight);
-			}
-			ctx.restore();
-		}
-
-		for (const label of renderData.labels) {
-			if (!label.isVisible) continue;
-
-			const segment = renderData.segmentByNodeId[label.nodeId];
-			if (!segment) continue;
-			const isHighlighted = this.highlightedNodeIds.has(String(label.nodeId));
-
-			ctx.save();
-			ctx.beginPath();
-			ctx.arc(0, 0, segment.outerRadius, segment.startAngle - Math.PI / 2, segment.endAngle - Math.PI / 2);
-			ctx.arc(0, 0, segment.innerRadius, segment.endAngle - Math.PI / 2, segment.startAngle - Math.PI / 2, true);
-			ctx.closePath();
-			ctx.clip();
-			ctx.font = `${isHighlighted ? '600' : '500'} ${String(label.fontSize)}px Lato, sans-serif`;
-			ctx.fillStyle = getReadableTextColor(segment.fillColor, this.isDarkMode);
-
-			if (label.orientation === 'tangential') {
-				const lineHeight = label.fontSize * 1.05;
-				const textRadiusBase = (segment.innerRadius + segment.outerRadius) / 2;
-				for (const [index, line] of label.lines.entries()) {
-					const lineOffset = getTangentialLineOffset(
-						index,
-						label.lines.length,
-						lineHeight,
-						label.tangentialLineDirection,
-					);
-					drawTextOnArc(ctx, line, textRadiusBase + lineOffset, segment);
-				}
-			} else {
-				ctx.translate(label.x, label.y);
-				ctx.rotate((label.rotation * Math.PI) / 180);
-				ctx.textAlign = label.textAlign;
-				ctx.textBaseline = 'middle';
-				const lineHeight = label.fontSize * 1.05;
-				const firstLineY = -((label.lines.length - 1) * lineHeight) / 2;
-				for (const [index, line] of label.lines.entries()) {
-					ctx.fillText(line, 0, firstLineY + index * lineHeight);
-				}
-			}
-			ctx.restore();
-		}
-	}
-
-	private hitTestSunburst(screenX: number, screenY: number): NodeHit | null {
-		const renderData = this.sunburstRenderData;
-		if (!renderData) return null;
-
-		const world = this.screenToWorld(screenX, screenY);
-		const radius = Math.hypot(world.x, world.y);
-
-		if (renderData.centerLabel?.nodeId !== undefined && radius <= renderData.centerLabel.radius) {
-			const node = this.nodeMap.get(String(renderData.centerLabel.nodeId));
-			if (node) {
-				return {
-					height: renderData.centerLabel.radius * 2,
-					interactionMeta: renderData.interactionByNodeId[renderData.centerLabel.nodeId],
-					node,
-					width: renderData.centerLabel.radius * 2,
-				};
-			}
-		}
-
-		let angle = Math.atan2(world.y, world.x) + Math.PI / 2;
-		if (angle < 0) angle += Math.PI * 2;
-
-		for (let index = renderData.segments.length - 1; index >= 0; index--) {
-			const segment = renderData.segments[index];
-			if (radius < segment.innerRadius || radius > segment.outerRadius) continue;
-			if (angle < segment.startAngle || angle > segment.endAngle) continue;
-
-			const node = this.nodeMap.get(String(segment.nodeId));
-			if (!node) continue;
-
-			return {
-				height: segment.outerRadius - segment.innerRadius,
-				interactionMeta: renderData.interactionByNodeId[segment.nodeId],
-				node,
-				width: segment.outerRadius - segment.innerRadius,
-			};
-		}
-
-		return null;
+		return worldToScreen(this.camera, wx, wy);
 	}
 
 	private loop = (time: number) => {
@@ -872,7 +260,7 @@ export class WebGLGraphEngine {
 	};
 
 	private render() {
-		if (this.nodes.length === 0 && !this.sunburstRenderData) return;
+		if (!this.activeRenderer.hasData()) return;
 
 		const ctx = this.ctx;
 		const rect = this.canvas.getBoundingClientRect();
@@ -890,18 +278,7 @@ export class WebGLGraphEngine {
 		ctx.translate(-this.camera.x * this.camera.zoom, -this.camera.y * this.camera.zoom);
 		ctx.scale(this.camera.zoom, this.camera.zoom);
 
-		if (this.sunburstRenderData) {
-			this.drawSunburst(ctx, viewW, viewH);
-		} else {
-			// Draw grid
-			this.drawGrid(ctx, viewW, viewH);
-
-			// Draw edges
-			this.drawEdges(ctx);
-
-			// Draw nodes
-			this.drawNodes(ctx, viewW, viewH);
-		}
+		this.activeRenderer.render(ctx, this.camera, viewW, viewH);
 
 		ctx.restore();
 
@@ -929,80 +306,4 @@ export class WebGLGraphEngine {
 			ctx.fillText(`${String(this.fps)} FPS`, viewW - 40, 23);
 		}
 	}
-}
-
-function drawTextOnArc(
-	ctx: CanvasRenderingContext2D,
-	text: string,
-	radius: number,
-	segment: SunburstSegmentLayout,
-): void {
-	if (!text) return;
-
-	const glyphWidths = Array.from(text, (character) => ctx.measureText(character).width);
-	const totalWidth = glyphWidths.reduce((sum, width) => sum + width, 0);
-	if (totalWidth <= 0 || radius <= 0) return;
-
-	const centerAngle = segment.midAngle - Math.PI / 2;
-	const useReversedDirection = calculateTextOrientation((centerAngle * 180) / Math.PI, 'tangential').flipped;
-	const direction = useReversedDirection ? -1 : 1;
-	let currentAngle = centerAngle - direction * (totalWidth / (2 * radius));
-
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-
-	const characters = Array.from(text);
-	for (const [index, character] of characters.entries()) {
-		const glyphWidth = glyphWidths[index] ?? 0;
-		const glyphAngle = glyphWidth / radius;
-		const angle = currentAngle + direction * (glyphAngle / 2);
-		const point = { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
-		let tangentAngle = angle + Math.PI / 2;
-		if (useReversedDirection) tangentAngle += Math.PI;
-
-		ctx.save();
-		ctx.translate(point.x, point.y);
-		ctx.rotate(tangentAngle);
-		ctx.fillText(character, 0, 0);
-		ctx.restore();
-
-		currentAngle += direction * glyphAngle;
-	}
-}
-
-function pointToSegmentDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
-	const dx = bx - ax;
-	const dy = by - ay;
-	const lenSq = dx * dx + dy * dy;
-	if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-	const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-	return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-	ctx.beginPath();
-	ctx.moveTo(x + r, y);
-	ctx.lineTo(x + w - r, y);
-	ctx.arcTo(x + w, y, x + w, y + r, r);
-	ctx.lineTo(x + w, y + h - r);
-	ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-	ctx.lineTo(x + r, y + h);
-	ctx.arcTo(x, y + h, x, y + h - r, r);
-	ctx.lineTo(x, y + r);
-	ctx.arcTo(x, y, x + r, y, r);
-	ctx.closePath();
-}
-
-function getReadableTextColor(backgroundHex: string, isDarkMode: boolean): string {
-	const hex = backgroundHex.replace('#', '');
-	if (hex.length !== 6) {
-		return isDarkMode ? '#f8fafc' : '#0f172a';
-	}
-
-	const red = Number.parseInt(hex.slice(0, 2), 16);
-	const green = Number.parseInt(hex.slice(2, 4), 16);
-	const blue = Number.parseInt(hex.slice(4, 6), 16);
-	const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
-
-	return luminance > 0.62 ? '#0f172a' : '#f8fafc';
 }
