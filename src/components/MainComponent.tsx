@@ -1,4 +1,4 @@
-import { Loader2, Menu, X } from 'lucide-react';
+import { Loader2, Menu, ShieldAlert, X } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 
 import { Logger } from '../globals/Logger';
@@ -7,6 +7,7 @@ import { useGroupRoles } from '../queries/useGroupRoles';
 import { useGroups } from '../queries/useGroups';
 import { useGroupTypes } from '../queries/useGroupTypes';
 import { useHierarchies } from '../queries/useHierarchies';
+import { usePermissions } from '../queries/usePermissions';
 import { usePersonMasterData } from '../queries/usePersonMasterData';
 import { usePersons } from '../queries/usePersons';
 import { useAppStore } from '../state/useAppStore';
@@ -18,6 +19,7 @@ export const MainComponent = React.memo(() => {
 	// Zustand
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const committedFilters = useAppStore((s) => s.committedFilters);
+	const isLayoutCalculating = useAppStore((s) => s.isLayoutCalculating);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const setIsSidebarOpen = useAppStore((s) => s.setIsSidebarOpen);
 
@@ -38,6 +40,9 @@ export const MainComponent = React.memo(() => {
 	// Queries - these only load after render is requested
 	const groupMembersQuery = useGroupMembers();
 	const personsQuery = usePersons();
+	const { data: permissions } = usePermissions();
+	const canAdministerPersons = permissions?.churchcore['administer persons'] ?? false;
+	const showLeaders = useAppStore((s) => s.showLeaders);
 
 	const groupRoles = groupRolesQuery.data;
 	const hasAppliedDefaultRoles = useRef(false);
@@ -57,7 +62,7 @@ export const MainComponent = React.memo(() => {
 	useEffect(() => {
 		if (hasAppliedDefaultRoles.current) return;
 
-		if (groupRoles && groupRoles.length > 0) {
+		if (showLeaders && groupRoles && groupRoles.length > 0) {
 			const newExcluded = groupRoles.filter((role) => !role.isLeader).map((role) => String(role.id));
 			Logger.log(
 				`[MainComponent] Setting default excludedRoles to ${String(newExcluded.length)} items:`,
@@ -65,10 +70,10 @@ export const MainComponent = React.memo(() => {
 			);
 			setExcludedRoles(newExcluded);
 			hasAppliedDefaultRoles.current = true;
-		} else if (groupRolesQuery.isFetched) {
+		} else if (!showLeaders || groupRolesQuery.isFetched) {
 			hasAppliedDefaultRoles.current = true;
 		}
-	}, [groupRoles, groupRolesQuery.isFetched, setExcludedRoles]);
+	}, [groupRoles, groupRolesQuery.isFetched, setExcludedRoles, showLeaders]);
 
 	useEffect(() => {
 		Logger.log('[MainComponent] MOUNTED');
@@ -82,6 +87,17 @@ export const MainComponent = React.memo(() => {
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50">
 			<div className="relative w-full grow">
+				{showGraph && showLeaders && !canAdministerPersons && (
+					<div className="pointer-events-none absolute top-4 left-1/2 z-40 flex -translate-x-1/2 justify-center">
+						<div className="flex max-w-lg items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 shadow-md dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+							<ShieldAlert className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+							<span>
+								Personendaten konnten nicht geladen werden (Berechtigung &bdquo;Personen
+								verwalten&ldquo; fehlt). Das Organigramm wird ohne Leiter-Namen angezeigt.
+							</span>
+						</div>
+					</div>
+				)}
 				{/* Dim Overlay for Mobile */}
 				<div
 					className={`absolute inset-0 z-20 bg-slate-950/20 backdrop-blur-sm transition-opacity duration-300 sm:hidden ${
@@ -123,7 +139,17 @@ export const MainComponent = React.memo(() => {
 						</div>
 					</div>
 				) : showGraph ? (
-					<GraphView />
+					<>
+						<GraphView />
+						{isLayoutCalculating && (
+							<div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-950/40">
+								<div className="flex flex-col items-center gap-3 rounded-md border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
+									<Loader2 className="size-6 animate-spin text-blue-600" />
+									<span>Layout wird berechnet...</span>
+								</div>
+							</div>
+						)}
+					</>
 				) : null}
 			</div>
 		</div>

@@ -34,11 +34,20 @@ if (import.meta.env.DEV) {
 	Logger.log('Running in development mode.');
 
 	// These environment variables are only available during local development
-	useAppStore.getState().setBaseUrl(import.meta.env.VITE_CT_URL as string);
+	// eslint-disable-next-line @typescript-eslint/no-deprecated
+	const churchToolsUrl = import.meta.env.VITE_CT_URL ?? import.meta.env.VITE_CTURL ?? import.meta.env.REACT_APP_CTURL;
+
+	if (!churchToolsUrl) {
+		throw new Error('VITE_CT_URL is required for local ChurchTools development.');
+	}
+
+	useAppStore.getState().setBaseUrl(churchToolsUrl);
 
 	await churchtoolsClient.post('/login', {
-		password: import.meta.env.VITE_CT_PASSWORD as string,
-		username: import.meta.env.VITE_CT_USERNAME as string,
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
+		password: import.meta.env.VITE_CT_PASSWORD ?? import.meta.env.REACT_APP_PASSWORD ?? '',
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
+		username: import.meta.env.VITE_CT_USERNAME ?? import.meta.env.REACT_APP_USERNAME ?? '',
 	});
 
 	try {

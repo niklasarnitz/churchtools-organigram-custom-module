@@ -7,6 +7,8 @@ import { Combobox } from '../ui/combobox';
 export const LayoutSelect = React.memo(() => {
 	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
 	const setLayoutAlgorithm = useAppStore((s) => s.setLayoutAlgorithm);
+	const selectedLayoutAlgorithm =
+		layoutAlgorithm === LayoutAlgorithm.elkRadial ? LayoutAlgorithm.FLAT_RADIAL : layoutAlgorithm;
 
 	const handleSelectChange = useCallback(
 		(val: string) => {
@@ -19,7 +21,8 @@ export const LayoutSelect = React.memo(() => {
 		{ label: 'ELK: Layered (Horizontal)', value: LayoutAlgorithm.elkLayeredLR },
 		{ label: 'ELK: Layered (Vertikal)', value: LayoutAlgorithm.elkLayeredTB },
 		{ label: 'ELK: MR-Tree', value: LayoutAlgorithm.elkMrTree },
-		{ label: 'ELK: Radial', value: LayoutAlgorithm.elkRadial },
+		{ label: 'Flat Radial (Sunburst)', value: LayoutAlgorithm.FLAT_RADIAL },
+		{ label: 'Sunburst (DAG)', value: LayoutAlgorithm.SUNBURST },
 	];
 
 	return (
@@ -30,7 +33,7 @@ export const LayoutSelect = React.memo(() => {
 				onValueChange={handleSelectChange}
 				options={options}
 				placeholder="Layout auswählen"
-				value={layoutAlgorithm}
+				value={selectedLayoutAlgorithm}
 			/>
 		</div>
 	);

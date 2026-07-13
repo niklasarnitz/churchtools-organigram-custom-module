@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { GroupStatus } from '../types/GroupStatus';
 import type { LayoutAlgorithm } from '../types/LayoutAlgorithm';
+import type { SunburstColorMode } from '../types/Sunburst';
 
 import { getUserSettings, saveUserSettings } from '../helpers/kvStore';
 
@@ -24,7 +25,9 @@ export interface UserSettings {
 	layoutAlgorithm: LayoutAlgorithm;
 	maxDepth: number | undefined;
 	showGroupTypes: boolean;
+	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
+	sunburstColorMode: SunburstColorMode;
 }
 
 interface PresetStorage {

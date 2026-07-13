@@ -5,6 +5,7 @@ import type { Edge, Node } from '../types/GraphTypes';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { oklchToHex } from '../globals/Colors';
+import { createSunburstSvg } from '../helpers/sunburstExport';
 import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
 
@@ -29,6 +30,10 @@ export const useGenerateSVGData = () => {
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 
 	return useCallback(() => {
+		if (data.sunburstRenderData) {
+			return createSunburstSvg(data.sunburstRenderData);
+		}
+
 		const nodes = data.nodes as Node<PreviewGraphNodeData>[];
 		const edges = data.edges;
 
@@ -46,10 +51,10 @@ export const useGenerateSVGData = () => {
 		}
 
 		// Compute SVG viewBox bounds
-		let maxX = -Infinity,
-			maxY = -Infinity,
-			minX = Infinity,
-			minY = Infinity;
+		let minX = Infinity;
+		let minY = Infinity;
+		let maxX = -Infinity;
+		let maxY = -Infinity;
 		for (const node of nodes) {
 			const m = metricsMap.get(node.id);
 			if (!m) continue;
@@ -97,9 +102,8 @@ export const useGenerateSVGData = () => {
 		// Draw nodes
 		for (const node of nodes) {
 			const m = metricsMap.get(node.id);
-			if (m) {
-				svg += renderNodeSVG(node, m, showGroupTypes, measureCtx);
-			}
+			if (!m) continue;
+			svg += renderNodeSVG(node, m, showGroupTypes, measureCtx);
 		}
 
 		svg += '</svg>';
@@ -153,7 +157,7 @@ function renderNodeSVG(
 	const rolesWithMembers = d.roles.filter((role) => d.memberNamesByRoleId.has(role.id));
 	const hasMembers = rolesWithMembers.length > 0;
 
-	let svg = `  <g>\n`;
+	let svg = `  <g class="export-node" data-node-id="${String(d.id)}">\n`;
 
 	// Card background
 	svg += `    <rect x="${String(x)}" y="${String(y)}" width="${String(w)}" height="${String(h)}" rx="${String(BORDER_RADIUS)}" fill="#ffffff" stroke="${esc(borderColor)}" stroke-width="${String(BORDER_WIDTH)}"/>\n`;

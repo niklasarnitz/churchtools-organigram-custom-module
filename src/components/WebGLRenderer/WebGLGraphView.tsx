@@ -6,6 +6,7 @@ import { Item, Menu, useContextMenu } from 'react-contexify';
 
 import type { PreviewGraphNodeData } from '../../types/GraphNode';
 import type { Node } from '../../types/GraphTypes';
+import type { SunburstBaseColorDebugEntry, SunburstInteractionMeta } from '../../types/Sunburst';
 
 import { Constants } from '../../globals/Constants';
 import { Logger } from '../../globals/Logger';
@@ -20,9 +21,28 @@ interface ContextMenuProps {
 	groupId: number;
 }
 
+interface HoverTooltipState {
+	clientX: number;
+	clientY: number;
+	meta: SunburstInteractionMeta;
+}
+
+const DRAG_SUPPRESS_CLICK_THRESHOLD = 4;
+
+function getSunburstDebugEntries(entries: SunburstBaseColorDebugEntry[]): SunburstBaseColorDebugEntry[] {
+	return [...entries].sort((left, right) => {
+		if (left.reason !== right.reason) {
+			return left.reason === 'converted' ? 1 : -1;
+		}
+
+		return (left.nodeTitle ?? '').localeCompare(right.nodeTitle ?? '');
+	});
+}
+
 export const WebGLGraphView = React.memo(() => {
 	const data = useGenerateReflowData();
 	const setGroupIdToStartWith = useAppStore((s) => s.setGroupIdToStartWith);
+	const toggleCollapsedNodeId = useAppStore((s) => s.toggleCollapsedNodeId);
 	const baseUrl = useAppStore((s) => s.baseUrl);
 	const showGroupTypes = useAppStore((s) => s.committedFilters?.showGroupTypes ?? true);
 	const focusNodeId = useAppStore((s) => s.focusNodeId);
@@ -36,13 +56,21 @@ export const WebGLGraphView = React.memo(() => {
 
 	// Pointer state
 	const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+	const pointerDownPositions = useRef<Map<number, { x: number; y: number }>>(new Map());
+	const suppressNextClick = useRef(false);
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
 	const isPanning = useRef(false);
+	const previousSunburstRenderRingWidth = useRef<number | undefined>(undefined);
 
 	// Camera state for minimap reactivity
 	const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
+	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
+	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
+	const sunburstDebugEntries = data.sunburstRenderData?.debug?.baseColors
+		? getSunburstDebugEntries(data.sunburstRenderData.debug.baseColors)
+		: [];
 
 	const { show } = useContextMenu({
 		id: Constants.contextMenuId,
@@ -77,13 +105,29 @@ export const WebGLGraphView = React.memo(() => {
 		const engine = engineRef.current;
 		if (!engine || data.nodes.length === 0) return;
 
-		engine.setData(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes, isDarkMode);
+		engine.setData(
+			data.nodes as Node<PreviewGraphNodeData>[],
+			data.edges,
+			showGroupTypes,
+			isDarkMode,
+			data.sunburstRenderData,
+		);
 
-		// Fit view immediately after data is set
-		engine.fitView(0.05);
+		const renderedRingWidth = data.sunburstRenderData?.ringWidth;
+		const changedOnlyRingWidth =
+			renderedRingWidth !== undefined &&
+			previousSunburstRenderRingWidth.current !== undefined &&
+			previousSunburstRenderRingWidth.current !== renderedRingWidth;
+
+		// Preserve the current zoom when the Sunburst ring width changes. Otherwise
+		// auto-fitting would scale the wider rings straight back to the same screen size.
+		if (!changedOnlyRingWidth) {
+			engine.fitView(0.05);
+		}
+		previousSunburstRenderRingWidth.current = renderedRingWidth;
 		const cam = engine.getCamera();
 		setCameraState(cam);
-	}, [data.nodes, data.edges, showGroupTypes, isDarkMode]);
+	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
@@ -141,6 +185,7 @@ export const WebGLGraphView = React.memo(() => {
 			lastTapTime.current = now;
 
 			activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+			pointerDownPositions.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 			canvas.setPointerCapture(e.pointerId);
 
 			if (activePointers.current.size === 1) {
@@ -156,11 +201,25 @@ export const WebGLGraphView = React.memo(() => {
 
 	const handlePointerMove = useCallback(
 		(e: React.PointerEvent) => {
-			if (activePointers.current.size === 0) return;
-
 			const engine = engineRef.current;
 			const canvas = canvasRef.current;
 			if (!engine || !canvas) return;
+
+			if (activePointers.current.size === 0) {
+				const rect = canvas.getBoundingClientRect();
+				const hit = engine.hitTest(e.clientX - rect.left, e.clientY - rect.top);
+				engine.setHoveredNodeId(hit?.node.id ?? null);
+				setHoverTooltip(
+					hit?.interactionMeta
+						? {
+								clientX: e.clientX,
+								clientY: e.clientY,
+								meta: hit.interactionMeta,
+							}
+						: null,
+				);
+				return;
+			}
 
 			const prevPointer = activePointers.current.get(e.pointerId);
 			if (!prevPointer) return;
@@ -168,7 +227,17 @@ export const WebGLGraphView = React.memo(() => {
 			// Update current pointer
 			activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+			const downPointer = pointerDownPositions.current.get(e.pointerId);
+			if (downPointer) {
+				const dragDistance = Math.hypot(e.clientX - downPointer.x, e.clientY - downPointer.y);
+				if (dragDistance > DRAG_SUPPRESS_CLICK_THRESHOLD) {
+					suppressNextClick.current = true;
+				}
+			}
+
 			if (activePointers.current.size === 1 && isPanning.current) {
+				engine.setHoveredNodeId(null);
+				setHoverTooltip(null);
 				// Single-finger panning
 				const dx = e.clientX - prevPointer.x;
 				const dy = e.clientY - prevPointer.y;
@@ -181,6 +250,8 @@ export const WebGLGraphView = React.memo(() => {
 				});
 				updateCameraState();
 			} else if (activePointers.current.size === 2) {
+				engine.setHoveredNodeId(null);
+				setHoverTooltip(null);
 				// Two-finger pinch to zoom
 				const pointers = Array.from(activePointers.current.values());
 				const currentDistance = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
@@ -213,6 +284,7 @@ export const WebGLGraphView = React.memo(() => {
 
 	const handlePointerUp = useCallback((e: React.PointerEvent) => {
 		activePointers.current.delete(e.pointerId);
+		pointerDownPositions.current.delete(e.pointerId);
 		const canvas = canvasRef.current;
 		if (canvas) {
 			canvas.releasePointerCapture(e.pointerId);
@@ -234,6 +306,11 @@ export const WebGLGraphView = React.memo(() => {
 	}, []);
 
 	const handleClick = useCallback((e: React.MouseEvent) => {
+		if (suppressNextClick.current) {
+			suppressNextClick.current = false;
+			return;
+		}
+
 		const engine = engineRef.current;
 		const canvas = canvasRef.current;
 		if (!engine || !canvas) return;
@@ -266,6 +343,15 @@ export const WebGLGraphView = React.memo(() => {
 		}
 	}, []);
 
+	const handlePointerLeave = useCallback((e: React.PointerEvent) => {
+		const relatedTarget = e.relatedTarget;
+		if (relatedTarget instanceof HTMLElement && canvasRef.current?.contains(relatedTarget)) return;
+
+		const engine = engineRef.current;
+		engine?.setHoveredNodeId(null);
+		setHoverTooltip(null);
+	}, []);
+
 	const handleContextMenu = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -279,6 +365,7 @@ export const WebGLGraphView = React.memo(() => {
 
 			const hit = engine.hitTest(x, y);
 			if (hit) {
+				setContextParentGroups(hit.interactionMeta?.parentGroups ?? []);
 				show({
 					event: e.nativeEvent,
 					props: { groupId: Number(hit.node.id) },
@@ -297,6 +384,8 @@ export const WebGLGraphView = React.memo(() => {
 			e.preventDefault();
 			const engine = engineRef.current;
 			if (!engine) return;
+			engine.setHoveredNodeId(null);
+			setHoverTooltip(null);
 
 			const rect = canvas.getBoundingClientRect();
 			const mouseX = e.clientX - rect.left;
@@ -420,6 +509,8 @@ export const WebGLGraphView = React.memo(() => {
 	}, [updateCameraState, handleZoomIn, handleZoomOut]);
 
 	// Context menu handlers
+	const setShowParentGroupsAction = useAppStore((s) => s.setShowParentGroups);
+
 	const didClickOpenGroup = useCallback(
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
@@ -434,19 +525,30 @@ export const WebGLGraphView = React.memo(() => {
 		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
+				setShowParentGroupsAction(true);
 				setGroupIdToStartWith(String(groupId));
 			}
 		},
-		[setGroupIdToStartWith],
+		[setGroupIdToStartWith, setShowParentGroupsAction],
 	);
 
-	const didClickToggleCollapse = useCallback((params: ItemParams<ContextMenuProps>) => {
-		const engine = engineRef.current;
-		const groupId = params.props?.groupId;
-		if (engine && groupId) {
-			engine.toggleCollapsedNode(String(groupId));
-		}
-	}, []);
+	const didClickSetParentAsStartGroup = useCallback(
+		(groupId: number) => {
+			setShowParentGroupsAction(true);
+			setGroupIdToStartWith(String(groupId));
+		},
+		[setGroupIdToStartWith, setShowParentGroupsAction],
+	);
+
+	const didClickToggleCollapse = useCallback(
+		(params: ItemParams<ContextMenuProps>) => {
+			const groupId = params.props?.groupId;
+			if (groupId) {
+				toggleCollapsedNodeId(String(groupId));
+			}
+		},
+		[toggleCollapsedNodeId],
+	);
 
 	return (
 		<div className="relative size-full" ref={containerRef}>
@@ -457,17 +559,131 @@ export const WebGLGraphView = React.memo(() => {
 				className="size-full cursor-grab active:cursor-grabbing"
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
+				onPointerCancel={handlePointerUp}
 				onPointerDown={handlePointerDown}
+				onPointerLeave={handlePointerLeave}
 				onPointerMove={handlePointerMove}
 				onPointerUp={handlePointerUp}
 				ref={canvasRef}
 				style={{ display: 'block' }}
 			/>
 
+			{hoverTooltip ? (
+				<div
+					className="pointer-events-auto fixed z-20 max-w-sm rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200"
+					onPointerLeave={handlePointerLeave}
+					style={{
+						left: hoverTooltip.clientX + 14,
+						top: hoverTooltip.clientY + 14,
+					}}
+				>
+					<div className="flex items-start justify-between gap-3">
+						<div className="font-semibold text-slate-900 dark:text-slate-50">{hoverTooltip.meta.title}</div>
+					</div>
+					<div className="mt-1">{hoverTooltip.meta.pathTitles.join(' -> ')}</div>
+					<div className="mt-1 text-slate-500 dark:text-slate-400">
+						Primärobergruppe:{' '}
+						{hoverTooltip.meta.primaryParentSource === 'churchtools-field' ? 'Feld' : 'Fallback'}
+					</div>
+					{hoverTooltip.meta.parentGroups.length > 0 ? (
+						<div className="mt-2 border-t border-slate-200 pt-2 dark:border-slate-700">
+							<div className="mb-1 text-slate-500 dark:text-slate-400">Obergruppen:</div>
+							<div className="flex flex-col items-start gap-1">
+								{hoverTooltip.meta.parentGroups.map((parent) => (
+									<div key={parent.id}>
+										{parent.title}
+										{parent.isPrimary
+											? ` ${parent.primarySource === 'churchtools-field' ? '✓' : '↻'}`
+											: ''}
+									</div>
+								))}
+							</div>
+						</div>
+					) : null}
+					{hoverTooltip.meta.alternateParentTitles.length > 0 ? (
+						<div className="mt-1 text-slate-500 dark:text-slate-400">
+							Weitere Obergruppen: {hoverTooltip.meta.alternateParentTitles.join(', ')}
+						</div>
+					) : null}
+				</div>
+			) : null}
+
+			{import.meta.env.DEV && sunburstDebugEntries.length > 0 ? (
+				<div className="absolute top-16 right-4 z-30 max-h-[55vh] w-[28rem] overflow-auto rounded-xl border border-slate-200 bg-white/95 p-3 text-[11px] text-slate-700 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200">
+					<div className="mb-2 flex items-center justify-between gap-3">
+						<div>
+							<div className="font-semibold text-slate-900 dark:text-slate-50">Sunburst-Farbdebug</div>
+							<div className="text-slate-500 dark:text-slate-400">
+								Ring-1-Farbquellen aus ChurchTools und internem Mapping
+							</div>
+						</div>
+						<div className="text-right text-slate-500 dark:text-slate-400">
+							{sunburstDebugEntries.length} Aeste
+						</div>
+					</div>
+					<div className="space-y-2">
+						{sunburstDebugEntries.map((entry) => (
+							<div
+								className={`rounded-lg border p-2 ${
+									entry.reason === 'converted'
+										? 'border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70'
+										: 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30'
+								}`}
+								key={entry.nodeId}
+							>
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="truncate font-medium text-slate-900 dark:text-slate-50">
+											{entry.nodeTitle ?? `#${String(entry.nodeId)}`}
+										</div>
+										<div className="truncate text-slate-500 dark:text-slate-400">
+											CT: {entry.groupColorName ?? 'keine erkannte CT-Farbe'} | Grund:{' '}
+											{entry.reason}
+										</div>
+									</div>
+									<div
+										className="mt-0.5 h-5 w-5 shrink-0 rounded border border-slate-300 dark:border-slate-600"
+										style={{ backgroundColor: entry.derivedColor }}
+										title={entry.derivedColor}
+									/>
+								</div>
+								<div className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-slate-600 dark:text-slate-300">
+									<span className="font-medium">Pfad</span>
+									<span className="truncate">
+										{entry.resolvedFromPath ?? 'kein Farbpfad erkannt'}
+									</span>
+									<span className="font-medium">Shade500</span>
+									<span className="truncate">{entry.shade500 ?? 'fehlt'}</span>
+									<span className="font-medium">Final</span>
+									<span>{entry.derivedColor}</span>
+									<span className="font-medium">Kandidaten</span>
+									<span className="truncate">
+										{entry.rawColorCandidates && entry.rawColorCandidates.length > 0
+											? entry.rawColorCandidates.join(' | ')
+											: 'keine *color*-Felder im Payload'}
+									</span>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
+
 			{/* Context Menu - reuse same IDs */}
 			<Menu animation="scale" id={Constants.contextMenuId}>
 				<Item onClick={didClickOpenGroup}>Gruppe aufrufen</Item>
 				<Item onClick={didClickSetGroupAsStartGroup}>Gruppe als Startgruppe setzen</Item>
+				{contextParentGroups.map((parent) => (
+					<Item
+						key={parent.id}
+						onClick={() => {
+							didClickSetParentAsStartGroup(parent.id);
+						}}
+					>
+						{parent.title} als Startgruppe setzen
+						{parent.isPrimary ? ` ${parent.primarySource === 'churchtools-field' ? '✓' : '↻'}` : ''}
+					</Item>
+				))}
 				<Item onClick={didClickToggleCollapse}>Untergruppen ein-/ausklappen</Item>
 			</Menu>
 

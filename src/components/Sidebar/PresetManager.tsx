@@ -31,7 +31,9 @@ export const PresetManager = React.memo(() => {
 			layoutAlgorithm: s.layoutAlgorithm,
 			maxDepth: s.maxDepth,
 			showGroupTypes: s.showGroupTypes,
+			showLeaders: s.showLeaders,
 			showOnlyDirectChildren: s.showOnlyDirectChildren,
+			sunburstColorMode: s.sunburstColorMode,
 		};
 	}, []);
 

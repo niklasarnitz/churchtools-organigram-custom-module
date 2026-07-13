@@ -13,7 +13,7 @@ let elkInstance: ELK | null = null;
 function getElk(): ELK {
 	elkInstance ??= new ElkApi({
 		workerUrl: ElkWorkerUrl,
-	}) as unknown as ELK;
+	});
 	return elkInstance;
 }
 
@@ -30,6 +30,8 @@ export const layoutElk = async (
 		[LayoutAlgorithm.elkLayeredTB]: 'layered',
 		[LayoutAlgorithm.elkMrTree]: 'mrtree',
 		[LayoutAlgorithm.elkRadial]: 'radial',
+		[LayoutAlgorithm.FLAT_RADIAL]: 'layered', // Not used for FLAT_RADIAL, but needed for type completeness
+		[LayoutAlgorithm.SUNBURST]: 'layered', // Sunburst uses d3-hierarchy instead of ELK
 	};
 
 	const isVertical =
@@ -38,6 +40,7 @@ export const layoutElk = async (
 		algorithm === LayoutAlgorithm.elkRadial;
 
 	const isLayered = algorithm === LayoutAlgorithm.elkLayeredTB || algorithm === LayoutAlgorithm.elkLayeredLR;
+	const isRadial = algorithm === LayoutAlgorithm.elkRadial;
 
 	const layoutOptions: Record<string, string> = {
 		'elk.algorithm': elkAlgorithmMap[algorithm],
@@ -62,6 +65,11 @@ export const layoutElk = async (
 		layoutOptions['elk.layered.considerModelOrder.strategy'] = 'NODES_AND_EDGES';
 		layoutOptions['elk.layered.spacing.edgeEdgeBetweenLayers'] = '15';
 		layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = '25';
+	}
+
+	if (isRadial) {
+		layoutOptions['elk.radial.radius'] = '300';
+		layoutOptions['elk.radial.compactionSteps'] = '4';
 	}
 
 	const graph: ElkNode = {

@@ -2,6 +2,7 @@ import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
 
 import type { UserSettings } from '../hooks/useUserSettings';
+import type { SunburstColorMode } from '../types/Sunburst';
 
 import { GroupStatus } from '../types/GroupStatus';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
@@ -22,7 +23,10 @@ export interface CommittedFilters {
 	maxDepth: number | undefined;
 	renderer: RendererType;
 	showGroupTypes: boolean;
+	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
+	showParentGroups: boolean;
+	sunburstColorMode: SunburstColorMode;
 }
 
 export interface PendingExport {
@@ -32,56 +36,71 @@ export interface PendingExport {
 
 interface GroupState {
 	baseUrl: string | undefined;
+	beginLayoutCalculation: () => void;
+	collapsedNodeIds: string[];
 	commitFilters: () => void;
 	committedFilters: CommittedFilters | undefined;
+	endLayoutCalculation: () => void;
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
 	excludedRoles: number[];
 	filteredAgeGroupIds: number[];
+
 	filteredCampusIds: number[];
 	filteredGroupCategoryIds: number[];
-
 	focusNodeId: string | undefined;
 	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
 	includedGroups: number[];
 	includedGroupStatuses: GroupStatus[];
 	isExporting: boolean;
-	isSidebarOpen: boolean;
 
+	isLayoutCalculating: boolean;
+	isSidebarOpen: boolean;
 	layoutAlgorithm: LayoutAlgorithm;
+
 	maxDepth: number | undefined;
 	pendingExport: PendingExport | undefined;
-
+	radialRingDistance: number;
 	renderer: RendererType;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
+	setCollapsedNodeIds: (nodeIds: string[]) => void;
 	setExcludedGroups: (groups: string | string[]) => void;
 	setExcludedGroupTypes: (groups: string | string[]) => void;
 	setExcludedRoles: (roles: string | string[]) => void;
 	setFilteredAgeGroupIds: (ids: number[]) => void;
 	setFilteredCampusIds: (ids: number[]) => void;
+
 	setFilteredGroupCategoryIds: (ids: number[]) => void;
+
 	setFocusNodeId: (id: string | undefined) => void;
-
 	setGroupIdToStartWith: (groupId?: number | string) => void;
-
 	setHideIndirectSubgroups: (hide: boolean) => void;
 	setIncludedGroups: (groups: string | string[]) => void;
 	setIncludedGroupStatuses: (statuses: GroupStatus[]) => void;
 	setIsExporting: (isExporting: boolean) => void;
+	setIsLayoutCalculating: (calculating: boolean) => void;
 	setIsSidebarOpen: (isOpen: boolean) => void;
 	setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => void;
 	setMaxDepth: (depth: number | undefined) => void;
 
 	setPendingExport: (pendingExport: PendingExport | undefined) => void;
+	setRadialRingDistance: (distance: number) => void;
 	setRenderer: (renderer: RendererType) => void;
 
 	setShowGroupTypes: (show: boolean) => void;
+	setShowLeaders: (show: boolean) => void;
 	setShowOnlyDirectChildren: (show: boolean) => void;
+	setShowParentGroups: (show: boolean) => void;
+	setSunburstColorMode: (mode: SunburstColorMode) => void;
 	// Display Options
 	showGroupTypes: boolean;
+	showLeaders: boolean;
 	showOnlyDirectChildren: boolean;
+	showParentGroups: boolean;
+	sunburstColorMode: SunburstColorMode;
+	toggleCollapsedNodeId: (nodeId: string) => void;
 }
 
 function snapshotFilters(state: GroupState): CommittedFilters {
@@ -100,47 +119,70 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 		maxDepth: state.maxDepth,
 		renderer: state.renderer,
 		showGroupTypes: state.showGroupTypes,
+		showLeaders: state.showLeaders,
 		showOnlyDirectChildren: state.showOnlyDirectChildren,
+		showParentGroups: state.showParentGroups,
+		sunburstColorMode: state.sunburstColorMode,
 	};
 }
 
 export const useAppStore = create<GroupState>((set) => {
+	let activeLayoutCalculations = 0;
+
 	const setAndCommit = (updates: Partial<GroupState>) => {
 		set((state) => {
 			const newState = { ...state, ...updates };
-			return { ...updates, committedFilters: snapshotFilters(newState as GroupState) };
+			return { ...updates, committedFilters: snapshotFilters(newState) };
 		});
 	};
 
 	return {
 		baseUrl: undefined,
+		beginLayoutCalculation: () => {
+			activeLayoutCalculations += 1;
+			if (activeLayoutCalculations === 1) {
+				set({ isLayoutCalculating: true });
+			}
+		},
+		collapsedNodeIds: [],
 		commitFilters: () => {
 			set((state) => ({ committedFilters: snapshotFilters(state) }));
 		},
 		committedFilters: undefined,
+		endLayoutCalculation: () => {
+			activeLayoutCalculations = Math.max(0, activeLayoutCalculations - 1);
+			if (activeLayoutCalculations === 0) {
+				set({ isLayoutCalculating: false });
+			}
+		},
 		excludedGroups: [] as number[],
 		excludedGroupTypes: [] as number[],
 		excludedRoles: [] as number[],
 		filteredAgeGroupIds: [] as number[],
+
 		filteredCampusIds: [] as number[],
 		filteredGroupCategoryIds: [] as number[],
-
 		focusNodeId: undefined,
+
 		groupIdToStartWith: undefined,
+
 		hideIndirectSubgroups: false,
-
 		includedGroups: [] as number[],
-
 		includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
 		isExporting: false,
+
+		isLayoutCalculating: false,
 		isSidebarOpen: true,
 
 		layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+
 		maxDepth: undefined,
 
 		pendingExport: undefined,
 
-		renderer: 'webgl' as RendererType,
+		radialRingDistance: 350,
+
+		renderer: 'webgl',
 
 		setAllSettings: (settings: Partial<UserSettings>) => {
 			setAndCommit(settings);
@@ -149,6 +191,10 @@ export const useAppStore = create<GroupState>((set) => {
 		setBaseUrl: (url: string | undefined) => {
 			churchtoolsClient.setBaseUrl(url ?? '');
 			set({ baseUrl: url });
+		},
+
+		setCollapsedNodeIds: (collapsedNodeIds: string[]) => {
+			set({ collapsedNodeIds });
 		},
 
 		setExcludedGroups: (groups: string | string[]) => {
@@ -199,6 +245,11 @@ export const useAppStore = create<GroupState>((set) => {
 			set({ isExporting });
 		},
 
+		setIsLayoutCalculating: (isLayoutCalculating: boolean) => {
+			activeLayoutCalculations = isLayoutCalculating ? Math.max(1, activeLayoutCalculations) : 0;
+			set({ isLayoutCalculating });
+		},
+
 		setIsSidebarOpen: (isSidebarOpen: boolean) => {
 			set({ isSidebarOpen });
 		},
@@ -215,6 +266,10 @@ export const useAppStore = create<GroupState>((set) => {
 			set({ pendingExport });
 		},
 
+		setRadialRingDistance: (radialRingDistance: number) => {
+			set({ radialRingDistance });
+		},
+
 		setRenderer: (renderer: RendererType) => {
 			setAndCommit({ renderer });
 		},
@@ -223,11 +278,33 @@ export const useAppStore = create<GroupState>((set) => {
 			setAndCommit({ showGroupTypes: show });
 		},
 
+		setShowLeaders: (show: boolean) => {
+			setAndCommit({ showLeaders: show });
+		},
+
 		setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
 			setAndCommit({ showOnlyDirectChildren });
 		},
 
+		setShowParentGroups: (showParentGroups: boolean) => {
+			setAndCommit({ showParentGroups });
+		},
+
+		setSunburstColorMode: (sunburstColorMode: SunburstColorMode) => {
+			setAndCommit({ sunburstColorMode });
+		},
+
 		showGroupTypes: true,
+		showLeaders: true,
 		showOnlyDirectChildren: false,
+		showParentGroups: false,
+		sunburstColorMode: 'segment',
+		toggleCollapsedNodeId: (nodeId: string) => {
+			set((state) => ({
+				collapsedNodeIds: state.collapsedNodeIds.includes(nodeId)
+					? state.collapsedNodeIds.filter((id) => id !== nodeId)
+					: [...state.collapsedNodeIds, nodeId],
+			}));
+		},
 	};
 });

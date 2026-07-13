@@ -5,6 +5,7 @@ import type { GroupSettings } from './GroupSettings';
 import type { Role } from './Role';
 
 export interface Group {
+	[key: string]: unknown;
 	followUp: FollowUp;
 	guid: string;
 	id: number;
@@ -18,4 +19,5 @@ export interface Group {
 	roles: Role[];
 	securityLevelForGroup: number;
 	settings?: GroupSettings;
+	sunburstPrimaryParentGroupId?: number;
 }

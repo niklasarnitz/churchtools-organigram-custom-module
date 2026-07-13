@@ -7,6 +7,8 @@ import { downloadTextFile } from '../../helpers/downloadTextFile';
 import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
+import { useGenerateHTMLData } from '../../selectors/useGenerateHTMLData';
+import { useGeneratePDFData } from '../../selectors/useGeneratePDFData';
 import { useGenerateSVGData } from '../../selectors/useGenerateSVGData';
 import { useGroupsById } from '../../selectors/useGroupsById';
 import { useAppStore } from '../../state/useAppStore';
@@ -17,6 +19,7 @@ import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
 import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
 import { PresetManager } from './PresetManager';
+import { RadialRingDistanceControl } from './RadialRingDistanceControl';
 import { StartGroupSelect } from './StartGroupSelect';
 
 export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
@@ -25,11 +28,14 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 	const groupIdToStartWith = useAppStore((s) => s.groupIdToStartWith);
 	const groupsById = useGroupsById();
 	const generateGraphMLData = useGenerateGraphMLData();
+	const generateHTMLData = useGenerateHTMLData();
+	const generatePDFData = useGeneratePDFData();
 	const generateSVGData = useGenerateSVGData();
 	const { data: groups } = useGroups();
 	const { data: hierarchies } = useHierarchies();
 
 	const isExporting = useAppStore((s) => s.isExporting);
+	const setIsExporting = useAppStore((s) => s.setIsExporting);
 
 	const orphanedGroups = useMemo(() => {
 		if (!groups || !hierarchies) return [];
@@ -70,6 +76,20 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 		downloadTextFile(generateSVGData(), getFileName('svg'), document);
 	}, [generateSVGData, getFileName]);
 
+	const didPressDownloadHTML = useCallback(() => {
+		downloadTextFile(generateHTMLData(), getFileName('html'), document);
+	}, [generateHTMLData, getFileName]);
+
+	const didPressDownloadPDF = useCallback(async () => {
+		setIsExporting(true);
+		try {
+			const doc = await generatePDFData();
+			doc.save(getFileName('pdf'));
+		} finally {
+			setIsExporting(false);
+		}
+	}, [generatePDFData, getFileName, setIsExporting]);
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -89,6 +109,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 				<div className="my-4 border-t border-slate-200 dark:border-slate-700" />
 				<StartGroupSelect />
 				<LayoutSelect />
+				<RadialRingDistanceControl />
 				<div className="my-4 border-t border-slate-200 dark:border-slate-700" />
 				<ExclusionFilters />
 
@@ -121,9 +142,24 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 						</div>
 					)}
 
+					<Button
+						className="w-full"
+						disabled={isExporting}
+						onClick={() => {
+							void didPressDownloadPDF();
+						}}
+						variant="outline"
+					>
+						<Download className="size-4" />
+						Export als PDF Datei
+					</Button>
 					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadSVG} variant="outline">
 						<Download className="size-4" />
 						Export als SVG Datei
+					</Button>
+					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadHTML} variant="outline">
+						<Download className="size-4" />
+						Export als HTML Datei
 					</Button>
 					<Button
 						className="w-full"
@@ -149,7 +185,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 							</div>
 						</CollapsibleContent>
 					</Collapsible>
-
 					<div className="mt-2 space-y-2 text-xs text-slate-500 dark:text-slate-400">
 						<div className="flex items-end justify-between">
 							<div>

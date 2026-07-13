@@ -25,7 +25,6 @@ export const usePersons = () => {
 			const excludedRolesSet = new Set(excludedRoles);
 			filteredMembers = members.filter((m) => !excludedRolesSet.has(m.groupTypeRoleId));
 		}
-
 		return Array.from(new Set(filteredMembers.map((m) => m.personId)));
 	}, [members, committedFilters?.excludedRoles]);
 

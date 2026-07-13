@@ -1,16 +1,43 @@
 import _ from 'lodash';
 import React, { useCallback, useMemo } from 'react';
 
+import type { SunburstColorMode } from '../../types/Sunburst';
+
+import { cn } from '../../lib/utils';
 import { useGroupRoles } from '../../queries/useGroupRoles';
 import { useGroups } from '../../queries/useGroups';
 import { useGroupTypes } from '../../queries/useGroupTypes';
+import { usePermissions } from '../../queries/usePermissions';
 import { usePersonMasterData } from '../../queries/usePersonMasterData';
 import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
 import { GroupStatus } from '../../types/GroupStatus';
+import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
 import { Combobox } from '../ui/combobox';
 import { MultiSelect } from '../ui/multi-select';
 import { Switch } from '../ui/switch';
+
+const depthOptions = [
+	{ label: 'Alle Ebenen', value: 'none' },
+	{ label: '1 Ebene', value: '1' },
+	{ label: '2 Ebenen', value: '2' },
+	{ label: '3 Ebenen', value: '3' },
+	{ label: '4 Ebenen', value: '4' },
+	{ label: '5 Ebenen', value: '5' },
+];
+
+const groupStatusOptions = [
+	{ label: 'Aktiv', value: String(GroupStatus.ACTIVE) },
+	{ label: 'In Gründung', value: String(GroupStatus.PENDING) },
+	{ label: 'Archiviert', value: String(GroupStatus.ARCHIVED) },
+	{ label: 'Beendet', value: String(GroupStatus.FINISHED) },
+];
+
+const sunburstColorOptions: { label: string; value: SunburstColorMode }[] = [
+	{ label: 'Segment', value: 'segment' },
+	{ label: 'Gruppe', value: 'group' },
+	{ label: 'Gruppentyp', value: 'groupType' },
+];
 
 export const ExclusionFilters = React.memo(() => {
 	const { data: groups } = useGroups();
@@ -35,51 +62,35 @@ export const ExclusionFilters = React.memo(() => {
 	const setFilteredGroupCategoryIds = useAppStore((s) => s.setFilteredGroupCategoryIds);
 	const showGroupTypes = useAppStore((s) => s.showGroupTypes);
 	const setShowGroupTypes = useAppStore((s) => s.setShowGroupTypes);
+	const showLeaders = useAppStore((s) => s.showLeaders);
+	const setShowLeaders = useAppStore((s) => s.setShowLeaders);
+	const { data: permissions } = usePermissions();
+	const canAdministerPersons = permissions?.churchcore['administer persons'] ?? false;
+	const rolesDisabled = !showLeaders || !canAdministerPersons;
+	const rolesDisabledReason = !showLeaders
+		? 'Aktiviere „Mitglieder anzeigen“, um Rollen zu filtern'
+		: 'Fehlende Berechtigung „Personen verwalten” (administer persons)';
 	const maxDepth = useAppStore((s) => s.maxDepth);
 	const setMaxDepth = useAppStore((s) => s.setMaxDepth);
 	const showOnlyDirectChildren = useAppStore((s) => s.showOnlyDirectChildren);
 	const setShowOnlyDirectChildren = useAppStore((s) => s.setShowOnlyDirectChildren);
+	const showParentGroups = useAppStore((s) => s.showParentGroups);
+	const setShowParentGroups = useAppStore((s) => s.setShowParentGroups);
 	const hideIndirectSubgroups = useAppStore((s) => s.hideIndirectSubgroups);
 	const setHideIndirectSubgroups = useAppStore((s) => s.setHideIndirectSubgroups);
-
-	const showGroupTypesDidChange = useCallback(
-		(checked: boolean) => {
-			setShowGroupTypes(checked);
-		},
-		[setShowGroupTypes],
-	);
-
-	const showOnlyDirectChildrenDidChange = useCallback(
-		(checked: boolean) => {
-			setShowOnlyDirectChildren(checked);
-		},
-		[setShowOnlyDirectChildren],
-	);
-
-	const hideIndirectSubgroupsDidChange = useCallback(
-		(checked: boolean) => {
-			setHideIndirectSubgroups(checked);
-		},
-		[setHideIndirectSubgroups],
-	);
+	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
+	const sunburstColorMode = useAppStore((s) => s.sunburstColorMode);
+	const setSunburstColorMode = useAppStore((s) => s.setSunburstColorMode);
+	const isSunburstLayout =
+		layoutAlgorithm === LayoutAlgorithm.FLAT_RADIAL ||
+		layoutAlgorithm === LayoutAlgorithm.SUNBURST ||
+		layoutAlgorithm === LayoutAlgorithm.elkRadial;
 
 	const handleMaxDepthChange = useCallback(
 		(value: string) => {
 			setMaxDepth(value === 'none' ? undefined : parseInt(value, 10));
 		},
 		[setMaxDepth],
-	);
-
-	const depthOptions = useMemo(
-		() => [
-			{ label: 'Alle Ebenen', value: 'none' },
-			{ label: '1 Ebene', value: '1' },
-			{ label: '2 Ebenen', value: '2' },
-			{ label: '3 Ebenen', value: '3' },
-			{ label: '4 Ebenen', value: '4' },
-			{ label: '5 Ebenen', value: '5' },
-		],
-		[],
 	);
 
 	const groupTypeOptions = useMemo(
@@ -136,19 +147,9 @@ export const ExclusionFilters = React.memo(() => {
 		[setExcludedRoles],
 	);
 
-	const groupStatusOptions = useMemo(
-		() => [
-			{ label: 'Aktiv', value: String(GroupStatus.ACTIVE) },
-			{ label: 'In Gründung', value: String(GroupStatus.PENDING) },
-			{ label: 'Archiviert', value: String(GroupStatus.ARCHIVED) },
-			{ label: 'Beendet', value: String(GroupStatus.FINISHED) },
-		],
-		[],
-	);
-
 	const handleGroupStatusChange = useCallback(
 		(values: string[]) => {
-			setIncludedGroupStatuses(values.length > 0 ? (values.map(Number) as GroupStatus[]) : []);
+			setIncludedGroupStatuses(values.length > 0 ? values.map(Number) : []);
 		},
 		[setIncludedGroupStatuses],
 	);
@@ -223,11 +224,17 @@ export const ExclusionFilters = React.memo(() => {
 				/>
 			</div>
 
-			<div className="flex flex-col">
-				<h5 className="mb-1 text-sm font-semibold text-red-700 dark:text-red-400">
+			<div className="flex flex-col" title={rolesDisabled ? rolesDisabledReason : undefined}>
+				<h5
+					className={cn(
+						'mb-1 text-sm font-semibold text-red-700 dark:text-red-400',
+						rolesDisabled && 'opacity-40',
+					)}
+				>
 					Gruppenrollen ausschließen
 				</h5>
 				<MultiSelect
+					disabled={rolesDisabled}
 					onChange={handleRolesChange}
 					options={roleOptions}
 					placeholder="Keine Gruppenrollen ausgeschlossen"
@@ -282,18 +289,42 @@ export const ExclusionFilters = React.memo(() => {
 					Darstellungsoptionen
 				</h5>
 				<div className="flex flex-col gap-y-3 pt-1">
+					{isSunburstLayout ? (
+						<div className="flex flex-col gap-y-1">
+							<span className="text-sm font-medium">Sunburst-Farbe</span>
+							<Combobox
+								onValueChange={(value) => {
+									if (value) setSunburstColorMode(value as SunburstColorMode);
+								}}
+								options={sunburstColorOptions}
+								placeholder="Farbquelle wählen"
+								value={sunburstColorMode}
+							/>
+						</div>
+					) : null}
+
 					<div className="flex flex-row items-center gap-x-2">
-						<Switch checked={showGroupTypes} onCheckedChange={showGroupTypesDidChange} />
+						<Switch checked={showGroupTypes} onCheckedChange={setShowGroupTypes} />
 						<span className="text-sm">Gruppentypen anzeigen</span>
 					</div>
 
 					<div className="flex flex-row items-center gap-x-2">
-						<Switch checked={showOnlyDirectChildren} onCheckedChange={showOnlyDirectChildrenDidChange} />
+						<Switch checked={showLeaders} onCheckedChange={setShowLeaders} />
+						<span className="text-sm">Mitglieder anzeigen</span>
+					</div>
+
+					<div className="flex flex-row items-center gap-x-2">
+						<Switch checked={showOnlyDirectChildren} onCheckedChange={setShowOnlyDirectChildren} />
 						<span className="text-sm">Nur direkte Untergruppen</span>
 					</div>
 
 					<div className="flex flex-row items-center gap-x-2">
-						<Switch checked={hideIndirectSubgroups} onCheckedChange={hideIndirectSubgroupsDidChange} />
+						<Switch checked={showParentGroups} onCheckedChange={setShowParentGroups} />
+						<span className="text-sm">Obergruppen anzeigen</span>
+					</div>
+
+					<div className="flex flex-row items-center gap-x-2">
+						<Switch checked={hideIndirectSubgroups} onCheckedChange={setHideIndirectSubgroups} />
 						<span className="text-sm">Indirekte Gruppenzweige ausblenden</span>
 					</div>
 
