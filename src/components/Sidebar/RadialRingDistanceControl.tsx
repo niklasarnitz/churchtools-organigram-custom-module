@@ -5,8 +5,6 @@ import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
 
 export const RadialRingDistanceControl = React.memo(() => {
 	const layoutAlgorithm = useAppStore((s) => s.layoutAlgorithm);
-	const effectiveLayoutAlgorithm =
-		layoutAlgorithm === LayoutAlgorithm.elkRadial ? LayoutAlgorithm.FLAT_RADIAL : layoutAlgorithm;
 	const radialRingDistance = useAppStore((s) => s.radialRingDistance);
 	const setRadialRingDistance = useAppStore((s) => s.setRadialRingDistance);
 
@@ -18,7 +16,7 @@ export const RadialRingDistanceControl = React.memo(() => {
 	);
 
 	// Only show when a radial layout is active
-	if (effectiveLayoutAlgorithm !== LayoutAlgorithm.FLAT_RADIAL) {
+	if (layoutAlgorithm !== LayoutAlgorithm.FLAT_RADIAL && layoutAlgorithm !== LayoutAlgorithm.elkRadial) {
 		return null;
 	}
 
