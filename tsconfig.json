@@ -14,7 +14,8 @@
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"noEmit": true,
+		"types": ["bun"],
 		"jsx": "react-jsx"
 	},
-	"include": ["src", "scripts/test-sunburst-export.ts", "scripts/test-sunburst-text-orientation.ts"]
+	"include": ["src"]
 }
