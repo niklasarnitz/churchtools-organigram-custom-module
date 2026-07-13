@@ -9,7 +9,7 @@ import type {
 	CustomModuleDataValueCreate,
 } from '../types/CustomModule';
 
-const EXTENSION_KEY = (import.meta.env.VITE_KEY as string | undefined) ?? 'organigram';
+const EXTENSION_KEY = import.meta.env.VITE_KEY ?? 'organigram';
 
 export async function getModule(extensionkey: string = EXTENSION_KEY): Promise<CustomModule> {
 	const allModules: CustomModule[] = await churchtoolsClient.get(`/custommodules`);

@@ -45,9 +45,9 @@ if (import.meta.env.DEV) {
 
 	await churchtoolsClient.post('/login', {
 		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		password: (import.meta.env.VITE_CT_PASSWORD ?? import.meta.env.REACT_APP_PASSWORD) as string,
+		password: import.meta.env.VITE_CT_PASSWORD ?? import.meta.env.REACT_APP_PASSWORD ?? '',
 		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		username: (import.meta.env.VITE_CT_USERNAME ?? import.meta.env.REACT_APP_USERNAME) as string,
+		username: import.meta.env.VITE_CT_USERNAME ?? import.meta.env.REACT_APP_USERNAME ?? '',
 	});
 
 	try {
