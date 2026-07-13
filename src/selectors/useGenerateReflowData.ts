@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
- 
+
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
@@ -183,7 +183,7 @@ export const useGenerateReflowData = () => {
 
 					const childrenMap = new Map<number, PreviewGraphNodeData[]>();
 					const parentMap = new Map<number, PreviewGraphNodeData>();
-					const visibleNodeIds = new Set(reflowNodes.map((n) => (n.data).id));
+					const visibleNodeIds = new Set(reflowNodes.map((n) => n.data.id));
 
 					const getOrCreateNodeData = (nodeId: number): PreviewGraphNodeData | null => {
 						const visible = nodeDataById.get(nodeId);
