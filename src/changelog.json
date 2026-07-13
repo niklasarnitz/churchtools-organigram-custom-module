@@ -1,12 +1,12 @@
 {
 	"versions": [
 		{
-			"version": "1.6.2-bwl21",
+			"version": "1.7.3",
 			"date": "2026-07-13",
 			"changes": ["ESLint-Fehler behoben: unnötige Typ-Assertions und ungenutzte Importe entfernt."]
 		},
 		{
-			"version": "1.6.1-bwl21",
+			"version": "1.7.2",
 			"date": "2026-07-12",
 			"changes": [
 				"Neuer Sunburst-/DAG- und Flat-Radial-Layoutmodus fuer grosse Hierarchien mit Ringbreiten- und Tiefensteuerung.",
@@ -27,7 +27,7 @@
 			]
 		},
 		{
-			"version": "1.6.0-bwl23",
+			"version": "1.7.1",
 			"date": "2026-07-12",
 			"changes": [
 				"CI lint errors fixed: removed debug console.log blocks, fixed type issues and unused code in radialLayout.ts, treeTransformer.ts, elkDslExport.ts, and index.tsx.",
@@ -39,7 +39,7 @@
 			]
 		},
 		{
-			"version": "1.6.0-bwl22",
+			"version": "1.7.0",
 			"date": "2026-07-11",
 			"changes": [
 				"Sunburst-Segmente orientieren ihre Farbe nun an der Ring-1-Wurzel und werden pro Ebene heller.",
@@ -57,7 +57,7 @@
 			]
 		},
 		{
-			"version": "1.6.0-bwl21",
+			"version": "1.6.7",
 			"date": "2026-07-10",
 			"changes": [
 				"Die lokale Entwicklung verwendet verbindlich den Vite-Standardport 5173.",
