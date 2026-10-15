@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { GroupRole } from '../types/GroupRole';
 
 import { Logger } from '../globals/Logger';
+import { translateNames } from '../helpers/churchToolsTranslations';
 
 export const useGroupRoles = () =>
 	useQuery({
@@ -13,4 +14,5 @@ export const useGroupRoles = () =>
 			return churchtoolsClient.get<GroupRole[]>('/group/roles');
 		},
 		queryKey: ['groupRoles'],
+		select: translateNames<GroupRole>,
 	});

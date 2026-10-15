@@ -1,6 +1,14 @@
 {
 	"versions": [
 		{
+			"version": "1.8.0",
+			"date": "2026-10-15",
+			"changes": [
+				"Gruppennamen werden mit den ChurchTools-Übersetzungen in Ansicht, Suche, Filtern und Exporten übersetzt. In der Entwicklung werden die Übersetzungen von der konfigurierten Installation geladen; produktiv werden die vorhandenen Frontend-Übersetzungen ohne zusätzliche Downloads oder Übersetzungsdaten im Bundle verwendet.",
+				"Auch Gruppentypen, Rollen, Kategorien, Altersgruppen und Standorte verwenden jetzt übersetzte Namen. Vorhandene API-Übersetzungen werden wie im ChurchTools-Frontend bevorzugt, andernfalls werden die Namen anhand der ChurchTools-Übersetzungsschlüssel aufgelöst."
+			]
+		},
+		{
 			"version": "1.7.3",
 			"date": "2026-07-13",
 			"changes": [

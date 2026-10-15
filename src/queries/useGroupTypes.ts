@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { GroupType } from '../types/GroupType';
 
 import { Logger } from '../globals/Logger';
+import { translateNames } from '../helpers/churchToolsTranslations';
 
 export const useGroupTypes = () =>
 	useQuery({
@@ -13,4 +14,5 @@ export const useGroupTypes = () =>
 			return churchtoolsClient.get<GroupType[]>('/group/grouptypes');
 		},
 		queryKey: ['groupTypes'],
+		select: translateNames<GroupType>,
 	});

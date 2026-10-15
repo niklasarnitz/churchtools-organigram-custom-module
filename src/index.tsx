@@ -48,6 +48,10 @@ if (import.meta.env.DEV) {
 	});
 
 	try {
+		const { loadDevTranslations } = await import('./helpers/loadDevTranslations');
+		await loadDevTranslations().catch((error: unknown) => {
+			Logger.error('Failed to load ChurchTools translations; showing original names:', error);
+		});
 		start();
 	} catch (error) {
 		Logger.error('Failed to start in development mode:', error);

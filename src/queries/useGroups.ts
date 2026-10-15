@@ -4,8 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import type { Group } from '../types/Group';
 
 import { Logger } from '../globals/Logger';
+import { t } from '../helpers/churchToolsTranslations';
 import { extractConfiguredPrimaryParentGroupId } from '../helpers/sunburstLayout';
 import { useAppStore } from '../state/useAppStore';
+
+const translateGroupNames = (groups: Group[]) => groups.map((group) => ({ ...group, name: t(group.name) }));
 
 export const useGroups = () => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
@@ -48,5 +51,6 @@ export const useGroups = () => {
 			committedFilters?.filteredGroupCategoryIds,
 			committedFilters?.includedGroupStatuses,
 		],
+		select: translateGroupNames,
 	});
 };

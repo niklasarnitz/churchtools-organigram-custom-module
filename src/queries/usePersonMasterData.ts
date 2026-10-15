@@ -4,6 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import type { PersonMasterData } from '../types/PersonMasterData';
 
 import { Logger } from '../globals/Logger';
+import { translateNames } from '../helpers/churchToolsTranslations';
+
+const translateMasterData = (data: PersonMasterData): PersonMasterData => ({
+	...data,
+	ageGroups: translateNames(data.ageGroups),
+	campuses: translateNames(data.campuses),
+	groupCategories: translateNames(data.groupCategories),
+});
 
 export const usePersonMasterData = () =>
 	useQuery({
@@ -13,4 +21,5 @@ export const usePersonMasterData = () =>
 			return churchtoolsClient.get<PersonMasterData>('/person/masterdata');
 		},
 		queryKey: ['personMasterData'],
+		select: translateMasterData,
 	});
