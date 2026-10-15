@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import type { Person } from '../types/Person';
 
 import { Logger } from '../globals/Logger';
+import { fetchInBatches } from '../helpers/fetchInBatches';
 import { useAppStore } from '../state/useAppStore';
 import { useGroupMembers } from './useGroupMembers';
 
@@ -16,6 +17,7 @@ import { useGroupMembers } from './useGroupMembers';
 export const usePersons = () => {
 	const { data: members, isFetched: isMembersFetched } = useGroupMembers();
 	const committedFilters = useAppStore((s) => s.committedFilters);
+	const roleFiltersInitialized = useAppStore((s) => s.roleFiltersInitialized);
 	const personIds = useMemo(() => {
 		if (!members) return [];
 		const excludedRoles = committedFilters?.excludedRoles ?? [];
@@ -34,30 +36,14 @@ export const usePersons = () => {
 	}, [personIds]);
 
 	return useQuery({
-		enabled: isMembersFetched && personIds.length > 0,
+		enabled: roleFiltersInitialized && !!committedFilters?.showLeaders && isMembersFetched && personIds.length > 0,
 		queryFn: async () => {
 			if (personIds.length === 0) return [];
 			Logger.log(`API: Fetching ${String(personIds.length)} persons in chunks`);
 
-			const resultsPerCall = 100;
-			const chunks: number[][] = [];
-			for (let i = 0; i < personIds.length; i += resultsPerCall) {
-				chunks.push(personIds.slice(i, i + resultsPerCall));
-			}
-
-			const chunkResults = await Promise.all(
-				chunks.map((chunk) => {
-					const queryParams = chunk.map((id) => `ids[]=${String(id)}`).join('&');
-					return churchtoolsClient.get<Person[]>(`/persons?${queryParams}&limit=${String(resultsPerCall)}`);
-				}),
+			const result = await fetchInBatches(personIds, (ids) =>
+				churchtoolsClient.get<Person[]>('/persons', { ids, limit: 100 }),
 			);
-
-			const result: Person[] = [];
-			for (const chunk of chunkResults) {
-				if (Array.isArray(chunk)) {
-					result.push(...chunk);
-				}
-			}
 
 			Logger.log(`API: Finished fetching ${String(result.length)} persons`);
 			return result;

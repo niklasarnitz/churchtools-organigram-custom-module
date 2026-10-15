@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { GroupMember } from '../types/GroupMember';
 
 import { Logger } from '../globals/Logger';
+import { fetchInBatches } from '../helpers/fetchInBatches';
 import { useFilteredGroupIds } from '../selectors/useFilteredGroupIds';
 import { useAppStore } from '../state/useAppStore';
 import { usePermissions } from './usePermissions';
@@ -22,25 +23,9 @@ export const useGroupMembers = () => {
 
 			Logger.log(`API: Fetching group members for ${String(filteredGroupIds.length)} groups in chunks`);
 
-			const chunkSize = 100;
-			const chunks: number[][] = [];
-			for (let i = 0; i < filteredGroupIds.length; i += chunkSize) {
-				chunks.push(filteredGroupIds.slice(i, i + chunkSize));
-			}
-
-			const chunkResults = await Promise.all(
-				chunks.map((chunk) => {
-					const queryParams = chunk.map((id) => `ids[]=${String(id)}`).join('&');
-					return churchtoolsClient.get<GroupMember[]>(`/groups/members?${queryParams}`);
-				}),
+			const result = await fetchInBatches(filteredGroupIds, (ids) =>
+				churchtoolsClient.get<GroupMember[]>('/groups/members', { ids }),
 			);
-
-			const result: GroupMember[] = [];
-			for (const chunk of chunkResults) {
-				if (Array.isArray(chunk)) {
-					result.push(...chunk);
-				}
-			}
 
 			Logger.log(`API: Finished fetching ${String(result.length)} group members`);
 			return result;

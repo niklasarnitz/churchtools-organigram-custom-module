@@ -1,5 +1,5 @@
 import { Loader2, Menu, ShieldAlert, X } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 
 import { Logger } from '../globals/Logger';
 import { useGroupMembers } from '../queries/useGroupMembers';
@@ -10,6 +10,7 @@ import { useHierarchies } from '../queries/useHierarchies';
 import { usePermissions } from '../queries/usePermissions';
 import { usePersonMasterData } from '../queries/usePersonMasterData';
 import { usePersons } from '../queries/usePersons';
+import { ReflowDataProvider } from '../selectors/useGenerateReflowData';
 import { useAppStore } from '../state/useAppStore';
 import { GraphView } from './GraphView';
 import { Sidebar } from './Sidebar/Sidebar';
@@ -45,7 +46,8 @@ export const MainComponent = React.memo(() => {
 	const showLeaders = useAppStore((s) => s.showLeaders);
 
 	const groupRoles = groupRolesQuery.data;
-	const hasAppliedDefaultRoles = useRef(false);
+	const roleFiltersInitialized = useAppStore((s) => s.roleFiltersInitialized);
+	const setRoleFiltersInitialized = useAppStore((s) => s.setRoleFiltersInitialized);
 
 	// Base data needed for sidebar
 	const isBaseLoading =
@@ -60,7 +62,7 @@ export const MainComponent = React.memo(() => {
 
 	// Always default excluded roles to non-leader roles on page load
 	useEffect(() => {
-		if (hasAppliedDefaultRoles.current) return;
+		if (roleFiltersInitialized) return;
 
 		if (showLeaders && groupRoles && groupRoles.length > 0) {
 			const newExcluded = groupRoles.filter((role) => !role.isLeader).map((role) => String(role.id));
@@ -69,11 +71,18 @@ export const MainComponent = React.memo(() => {
 				newExcluded,
 			);
 			setExcludedRoles(newExcluded);
-			hasAppliedDefaultRoles.current = true;
+			setRoleFiltersInitialized();
 		} else if (!showLeaders || groupRolesQuery.isFetched) {
-			hasAppliedDefaultRoles.current = true;
+			setRoleFiltersInitialized();
 		}
-	}, [groupRoles, groupRolesQuery.isFetched, setExcludedRoles, showLeaders]);
+	}, [
+		groupRoles,
+		groupRolesQuery.isFetched,
+		roleFiltersInitialized,
+		setExcludedRoles,
+		setRoleFiltersInitialized,
+		showLeaders,
+	]);
 
 	useEffect(() => {
 		Logger.log('[MainComponent] MOUNTED');
@@ -84,7 +93,7 @@ export const MainComponent = React.memo(() => {
 
 	const showGraph = !!committedFilters && !isGraphLoading;
 
-	return (
+	const content = (
 		<div className="flex h-screen w-full flex-col overflow-hidden bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50">
 			<div className="relative w-full grow">
 				{showGraph && showLeaders && !canAdministerPersons && (
@@ -154,4 +163,5 @@ export const MainComponent = React.memo(() => {
 			</div>
 		</div>
 	);
+	return <ReflowDataProvider enabled={!isGraphLoading && roleFiltersInitialized}>{content}</ReflowDataProvider>;
 });

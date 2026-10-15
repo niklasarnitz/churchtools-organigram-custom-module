@@ -26,32 +26,11 @@ export interface RadialLayoutConfig {
  * 4. Parent-child relationships are preserved within each ray
  */
 export function calculateRadialPositions(
-	flattenedNodes: PreviewGraphNodeData[],
 	config: RadialLayoutConfig,
 	rootNode: PreviewGraphNodeData,
-	parentMap: Map<number, PreviewGraphNodeData>,
-	nodeSizes?: Map<string, { height: number; width: number }>,
-	childrenMap?: Map<number, PreviewGraphNodeData[]>,
+	childrenMap: Map<number, PreviewGraphNodeData[]>,
 	visibleNodeIds?: Set<number>,
 ): PositionedNode[] {
-	if (flattenedNodes.length === 0) {
-		return [];
-	}
-
-	if (!childrenMap) {
-		// Fallback: reconstruct childrenMap from parentMap
-		childrenMap = new Map();
-		for (const [childId, parent] of parentMap) {
-			if (!childrenMap.has(parent.id)) {
-				childrenMap.set(parent.id, []);
-			}
-			const childNode = flattenedNodes.find((n) => n.id === childId);
-			if (childNode) {
-				childrenMap.get(parent.id)?.push(childNode);
-			}
-		}
-	}
-
 	// Get direct children of root
 	const rootDirectChildren = childrenMap.get(rootNode.id) ?? [];
 	const totalDirectChildren = rootDirectChildren.length;
@@ -112,27 +91,4 @@ export function calculateRadialPositions(
 	}
 
 	return positionedNodes;
-}
-
-/**
- * Flattens a tree hierarchy to a flat list, excluding the root node
- * (deprecated - kept for compatibility but not used in new ray-based layout)
- */
-export function flattenTree(
-	rootNode: PreviewGraphNodeData,
-	childrenMap: Map<number, PreviewGraphNodeData[]>,
-): PreviewGraphNodeData[] {
-	const flattened: PreviewGraphNodeData[] = [];
-	const queue: PreviewGraphNodeData[] = [...(childrenMap.get(rootNode.id) ?? [])];
-
-	while (queue.length > 0) {
-		const node = queue.shift();
-		if (!node) break;
-		flattened.push(node);
-
-		const children = childrenMap.get(node.id) ?? [];
-		queue.push(...children);
-	}
-
-	return flattened;
 }

@@ -1,6 +1,6 @@
-import jsPDF from 'jspdf';
+import type jsPDF from 'jspdf';
+
 import { useCallback } from 'react';
-import 'svg2pdf.js';
 
 import type { SunburstRenderData } from '../types/Sunburst';
 
@@ -23,8 +23,8 @@ function calculatePDFOrientation(boundsWidth: number, boundsHeight: number): 'la
 	return aspectRatio > LANDSCAPE_THRESHOLD ? 'landscape' : 'portrait';
 }
 
-function createInfoPDF(message: string): jsPDF {
-	const doc = new jsPDF({
+function createInfoPDF(message: string, PDF: typeof jsPDF): jsPDF {
+	const doc = new PDF({
 		format: 'a4',
 		orientation: 'portrait',
 		unit: 'mm',
@@ -53,13 +53,17 @@ export const useGeneratePDFData = () => {
 	const generateSVGData = useGenerateSVGData();
 
 	return useCallback(async () => {
+		// PDF libraries are only needed after a user requests an export.
+		const { default: PDF } = await import('jspdf');
+		await import('svg2pdf.js');
 		if (data.sunburstRenderData) {
-			return createSunburstPDF(data.sunburstRenderData);
+			return createSunburstPDF(data.sunburstRenderData, PDF);
 		}
 
 		if (data.nodes.length === 0) {
 			return createInfoPDF(
 				'Es gibt keine sichtbaren Gruppen zum Export. Bitte passe die Filter an und versuche es erneut.',
+				PDF,
 			);
 		}
 
@@ -67,7 +71,7 @@ export const useGeneratePDFData = () => {
 		const svgDocument = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
 		const svg = svgDocument.documentElement;
 		if (svg.nodeName.toLowerCase() === 'parsererror') {
-			return createInfoPDF('Die Organigramm-SVG konnte nicht fuer den PDF-Export vorbereitet werden.');
+			return createInfoPDF('Die Organigramm-SVG konnte nicht fuer den PDF-Export vorbereitet werden.', PDF);
 		}
 
 		// Read dimensions from viewBox or width/height attributes
@@ -76,7 +80,7 @@ export const useGeneratePDFData = () => {
 		const boundsHeight = viewBox ? viewBox[3] : Number.parseFloat(svg.getAttribute('height') ?? '') || 1;
 
 		const orientation = calculatePDFOrientation(boundsWidth, boundsHeight);
-		const doc = new jsPDF({
+		const doc = new PDF({
 			compress: true,
 			format: 'a4',
 			orientation: orientation,
@@ -103,15 +107,15 @@ export const useGeneratePDFData = () => {
 	}, [data, generateSVGData]);
 };
 
-async function createSunburstPDF(renderData: SunburstRenderData): Promise<jsPDF> {
+async function createSunburstPDF(renderData: SunburstRenderData, PDF: typeof jsPDF): Promise<jsPDF> {
 	const svgMarkup = createSunburstSvg(renderData, { target: 'pdf' });
 	const svgDocument = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
 	const svg = svgDocument.documentElement;
 	if (svg.nodeName.toLowerCase() === 'parsererror') {
-		return createInfoPDF('Die Sunburst-SVG konnte nicht fuer den PDF-Export vorbereitet werden.');
+		return createInfoPDF('Die Sunburst-SVG konnte nicht fuer den PDF-Export vorbereitet werden.', PDF);
 	}
 
-	const doc = new jsPDF({
+	const doc = new PDF({
 		compress: true,
 		format: 'a3',
 		orientation: 'landscape',

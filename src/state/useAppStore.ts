@@ -63,6 +63,7 @@ interface GroupState {
 	pendingExport: PendingExport | undefined;
 	radialRingDistance: number;
 	renderer: RendererType;
+	roleFiltersInitialized: boolean;
 	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
 	setCollapsedNodeIds: (nodeIds: string[]) => void;
@@ -88,6 +89,7 @@ interface GroupState {
 	setPendingExport: (pendingExport: PendingExport | undefined) => void;
 	setRadialRingDistance: (distance: number) => void;
 	setRenderer: (renderer: RendererType) => void;
+	setRoleFiltersInitialized: () => void;
 
 	setShowGroupTypes: (show: boolean) => void;
 	setShowLeaders: (show: boolean) => void;
@@ -202,7 +204,7 @@ export const useAppStore = create<GroupState>((set) => {
 		radialRingDistance: 350,
 
 		renderer: 'webgl',
-
+		roleFiltersInitialized: false,
 		setAllSettings: (settings: Partial<UserSettings>) => {
 			setAndCommit(settings);
 		},
@@ -291,6 +293,10 @@ export const useAppStore = create<GroupState>((set) => {
 
 		setRenderer: (renderer: RendererType) => {
 			setAndCommit({ renderer });
+		},
+
+		setRoleFiltersInitialized: () => {
+			set({ roleFiltersInitialized: true });
 		},
 
 		setShowGroupTypes: (show: boolean) => {

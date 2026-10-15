@@ -13,7 +13,7 @@
 /* eslint-disable perfectionist/sort-objects */
 /* eslint-disable perfectionist/sort-union-types */
 
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, createElement, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { PreviewGraphNodeData } from '../types/GraphNode';
 
@@ -22,7 +22,7 @@ import { getColorForChurchToolsColor, getColorForGroupType } from '../globals/Co
 import { Logger } from '../globals/Logger';
 import { getGroupMetadataString, getGroupTitle } from '../helpers/GraphHelper';
 import { layoutElk } from '../helpers/layoutAlgorithms/elk';
-import { calculateRadialPositions, flattenTree } from '../helpers/radialLayout';
+import { calculateRadialPositions } from '../helpers/radialLayout';
 import { buildSunburstLayout } from '../helpers/sunburstLayout';
 import { useAppStore } from '../state/useAppStore';
 import { type Edge, type Node, Position } from '../types/GraphTypes';
@@ -40,7 +40,21 @@ interface ReflowLayoutData {
 	sunburstRenderData?: SunburstRenderData;
 }
 
+const ReflowDataContext = createContext<(ReflowLayoutData & { isCalculating: boolean }) | undefined>(undefined);
+
+/** View and all export formats consume the exact same completed layout. */
+export const ReflowDataProvider = ({ children, enabled }: { children: ReactNode; enabled: boolean }) => {
+	const data = useCalculateReflowData(enabled);
+	return createElement(ReflowDataContext.Provider, { value: data }, children);
+};
+
 export const useGenerateReflowData = () => {
+	const data = useContext(ReflowDataContext);
+	if (!data) throw new Error('ReflowDataProvider is required for graph views and exports.');
+	return data;
+};
+
+const useCalculateReflowData = (enabled: boolean) => {
 	const { nodes, relations } = useCreateRelatedData();
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
@@ -128,6 +142,7 @@ export const useGenerateReflowData = () => {
 	}, [relations, nodes, groupTypesById, personsById, showGroupTypes, isVertical]);
 
 	useEffect(() => {
+		if (!enabled) return;
 		let active = true;
 		let hasStartedLayout = false;
 
@@ -144,6 +159,7 @@ export const useGenerateReflowData = () => {
 
 			try {
 				await document.fonts.ready;
+				if (!active) return;
 
 				const measureCanvas = document.createElement('canvas');
 				measureCanvas.width = 1;
@@ -163,6 +179,12 @@ export const useGenerateReflowData = () => {
 
 				if (reflowNodes.length === 0) {
 					result = { edges: reflowEdges, nodes: reflowNodes };
+				} else if (
+					effectiveLayoutAlgorithm !== LayoutAlgorithm.SUNBURST &&
+					effectiveLayoutAlgorithm !== LayoutAlgorithm.FLAT_RADIAL
+				) {
+					// Standard layouts need only the visible graph, not the full hierarchy maps.
+					result = await layoutElk(reflowNodes, reflowEdges, effectiveLayoutAlgorithm, nodeSizes);
 				} else {
 					const rootNode = reflowNodes[0].data;
 					const nodeDataById = new Map<number, PreviewGraphNodeData>();
@@ -172,7 +194,6 @@ export const useGenerateReflowData = () => {
 					}
 
 					const childrenMap = new Map<number, PreviewGraphNodeData[]>();
-					const parentMap = new Map<number, PreviewGraphNodeData>();
 					const visibleNodeIds = new Set(reflowNodes.map((n) => n.data.id));
 
 					const getOrCreateNodeData = (nodeId: number): PreviewGraphNodeData | null => {
@@ -195,6 +216,7 @@ export const useGenerateReflowData = () => {
 						const parentId = parseInt(parentIdStr);
 						const parentNodeData = getOrCreateNodeData(parentId);
 						const childrenList = hierarchy?.children || [];
+						const addedChildren = new Set<number>();
 
 						if (!childrenMap.has(parentId)) {
 							childrenMap.set(parentId, []);
@@ -203,9 +225,9 @@ export const useGenerateReflowData = () => {
 						for (const childId of childrenList) {
 							const childNodeData = getOrCreateNodeData(childId);
 							if (childNodeData && parentNodeData) {
-								if (!childrenMap.get(parentId)!.find((c) => c.id === childId)) {
+								if (!addedChildren.has(childId)) {
+									addedChildren.add(childId);
 									childrenMap.get(parentId)!.push(childNodeData);
-									parentMap.set(childId, parentNodeData);
 								}
 							}
 						}
@@ -247,12 +269,12 @@ export const useGenerateReflowData = () => {
 							nodes: positionedReflowNodes,
 							sunburstRenderData: sunburstLayout.renderData,
 						};
-					} else if (effectiveLayoutAlgorithm === LayoutAlgorithm.FLAT_RADIAL) {
+					} else {
 						// Apply custom flat radial layout
 						if (reflowNodes.length === 0) {
 							result = { edges: reflowEdges, nodes: reflowNodes };
 						} else {
-							// childrenMap and parentMap already built above
+							// childrenMap already built above
 							if ((window as any).__DEBUG_RADIAL) {
 								console.log(`=== FLAT_RADIAL Layout ===`);
 								console.log(`Total nodes: ${reflowNodes.length}`);
@@ -340,13 +362,9 @@ export const useGenerateReflowData = () => {
 								}
 							}
 
-							// Flatten all nodes into a single ring
-							const flatNodes = flattenTree(rootNode, childrenMap);
-
 							// Calculate radial positions
 							// Pass visibleNodeIds so TreeVisitor only adds visible nodes to the layout
 							const positionedNodes = calculateRadialPositions(
-								flatNodes,
 								{
 									clockwise: true,
 									nodeScaleByDepth: { 0: 1, 1: 0.9, 2: 0.8, 3: 0.7 },
@@ -354,8 +372,6 @@ export const useGenerateReflowData = () => {
 									startAngle: 0,
 								},
 								rootNode,
-								parentMap,
-								nodeSizes,
 								childrenMap,
 								visibleNodeIds,
 							);
@@ -491,9 +507,6 @@ export const useGenerateReflowData = () => {
 
 							result = { edges: rayEdges, nodes: positionedReflowNodes };
 						}
-					} else {
-						// Use ELK for standard layouts
-						result = await layoutElk(reflowNodes, reflowEdges, effectiveLayoutAlgorithm, nodeSizes);
 					}
 				}
 
@@ -520,6 +533,7 @@ export const useGenerateReflowData = () => {
 			finishLayout();
 		};
 	}, [
+		enabled,
 		reflowNodes,
 		reflowEdges,
 		effectiveLayoutAlgorithm,

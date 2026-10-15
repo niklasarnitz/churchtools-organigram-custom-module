@@ -1,6 +1,14 @@
 {
 	"versions": [
 		{
+			"version": "1.8.1",
+			"date": "2026-10-15",
+			"changes": [
+				"Schnelleres Laden großer Installationen: Das Organigramm nutzt den vorhandenen ChurchTools-Gruppencache in beide Richtungen und lädt nur fehlende oder veraltete Gruppen nach. Gruppen-, Mitglieder- und Personenabfragen werden in begrenzt parallelen Paketen geladen; unnötige Personenabfragen vor der Rollenfilter-Initialisierung entfallen. Übersetzungen werden in der Entwicklung zwischengespeichert, statt bei jedem Neuladen vollständig heruntergeladen zu werden.",
+				"Ansicht und Exporte teilen sich jetzt eine Layoutberechnung statt mehrfach dasselbe Organigramm zu berechnen. PDF-Bibliotheken werden erst beim Export geladen und verkleinern dadurch das initiale JavaScript-Paket."
+			]
+		},
+		{
 			"version": "1.8.0",
 			"date": "2026-10-15",
 			"changes": [
