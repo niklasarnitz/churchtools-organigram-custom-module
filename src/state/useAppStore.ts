@@ -141,10 +141,14 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 			(set) => {
 				let activeLayoutCalculations = 0;
 
-				const setAndCommit = (updates: Partial<GroupState>) => {
+				const setAndCommit = (updates: Partial<GroupState>, resetCamera = true) => {
 					set((state) => {
 						const newState = { ...state, ...updates };
-						return { ...updates, camera: undefined, committedFilters: snapshotFilters(newState) };
+						return {
+							...updates,
+							camera: resetCamera ? undefined : state.camera,
+							committedFilters: snapshotFilters(newState),
+						};
 					});
 				};
 
@@ -343,7 +347,7 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 					},
 
 					setSunburstColorMode: (sunburstColorMode: SunburstColorMode) => {
-						setAndCommit({ sunburstColorMode });
+						setAndCommit({ sunburstColorMode }, false);
 					},
 
 					showGroupTypes: true,

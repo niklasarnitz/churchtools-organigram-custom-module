@@ -76,6 +76,23 @@ test('changing filters invalidates the previous camera and cleared values surviv
 	expect(restored.getState().committedFilters?.showParentGroups).toBe(true);
 });
 
+test('switching every Sunburst color mode preserves zoom and position, including after reload', () => {
+	const storage = memoryStorage();
+	const store = createAppStore(storage);
+	store.getState().setLayoutAlgorithm(LayoutAlgorithm.SUNBURST);
+	const camera = { x: 137, y: -92, zoom: 2.3 };
+	store.getState().setCamera(camera);
+
+	for (const mode of ['group', 'groupType', 'segment'] as const) {
+		store.getState().setSunburstColorMode(mode);
+		expect(store.getState().committedFilters?.sunburstColorMode).toBe(mode);
+		expect(store.getState().camera).toEqual(camera);
+		const restored = createAppStore(storage).getState();
+		expect(restored.camera).toEqual(camera);
+		expect(restored.committedFilters?.sunburstColorMode).toBe(mode);
+	}
+});
+
 test('missing or malformed storage leaves the initial view usable', () => {
 	for (const initial of [null, '{broken json']) {
 		const store = createAppStore(memoryStorage(initial));
