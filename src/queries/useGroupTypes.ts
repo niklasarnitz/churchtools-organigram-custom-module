@@ -14,5 +14,6 @@ export const useGroupTypes = () =>
 			return churchtoolsClient.get<GroupType[]>('/group/grouptypes');
 		},
 		queryKey: ['groupTypes'],
+		refetchOnMount: 'always',
 		select: translateNames<GroupType>,
 	});

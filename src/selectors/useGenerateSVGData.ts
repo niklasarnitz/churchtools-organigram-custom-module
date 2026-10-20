@@ -5,6 +5,7 @@ import type { Edge, Node } from '../types/GraphTypes';
 
 import { measureNodeCard } from '../components/WebGLRenderer/engine/drawNodeCard2D';
 import { oklchToHex } from '../globals/Colors';
+import { EXPORT_FONT_FAMILY, fitExportText, wrapExportTitle } from '../helpers/exportText';
 import { createSunburstSvg } from '../helpers/sunburstExport';
 import { useAppStore } from '../state/useAppStore';
 import { useGenerateReflowData } from './useGenerateReflowData';
@@ -34,82 +35,82 @@ export const useGenerateSVGData = () => {
 			return createSunburstSvg(data.sunburstRenderData);
 		}
 
-		const nodes = data.nodes as Node<PreviewGraphNodeData>[];
-		const edges = data.edges;
+		return createGraphSvg(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes);
+	}, [data, showGroupTypes]);
+};
 
-		// We need a measurement canvas for badge wrapping
-		const measureCanvas = document.createElement('canvas');
-		measureCanvas.width = 1;
-		measureCanvas.height = 1;
-		const measureCtx = measureCanvas.getContext('2d');
-		if (!measureCtx) return '';
+export function createGraphSvg(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean): string {
+	// We need a measurement canvas for badge wrapping
+	const measureCanvas = document.createElement('canvas');
+	measureCanvas.width = 1;
+	measureCanvas.height = 1;
+	const measureCtx = measureCanvas.getContext('2d');
+	if (!measureCtx) return '';
 
-		// Compute metrics for each node
-		const metricsMap = new Map<string, ReturnType<typeof measureNodeCard>>();
-		for (const node of nodes) {
-			metricsMap.set(node.id, measureNodeCard(measureCtx, node.data, showGroupTypes));
-		}
+	// Compute metrics for each node
+	const metricsMap = new Map<string, ReturnType<typeof measureNodeCard>>();
+	for (const node of nodes) {
+		metricsMap.set(node.id, measureNodeCard(measureCtx, node.data, showGroupTypes));
+	}
 
-		// Compute SVG viewBox bounds
-		let minX = Infinity;
-		let minY = Infinity;
-		let maxX = -Infinity;
-		let maxY = -Infinity;
-		for (const node of nodes) {
-			const m = metricsMap.get(node.id);
-			if (!m) continue;
-			minX = Math.min(minX, node.position.x);
-			minY = Math.min(minY, node.position.y);
-			maxX = Math.max(maxX, node.position.x + m.width);
-			maxY = Math.max(maxY, node.position.y + m.height);
-		}
-		for (const edge of edges) {
-			if (!edge.sections) continue;
-			for (const section of edge.sections) {
-				const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint];
-				for (const p of points) {
-					minX = Math.min(minX, p.x);
-					minY = Math.min(minY, p.y);
-					maxX = Math.max(maxX, p.x);
-					maxY = Math.max(maxY, p.y);
-				}
+	// Compute SVG viewBox bounds
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (const node of nodes) {
+		const m = metricsMap.get(node.id);
+		if (!m) continue;
+		minX = Math.min(minX, node.position.x);
+		minY = Math.min(minY, node.position.y);
+		maxX = Math.max(maxX, node.position.x + m.width);
+		maxY = Math.max(maxY, node.position.y + m.height);
+	}
+	for (const edge of edges) {
+		if (!edge.sections) continue;
+		for (const section of edge.sections) {
+			const points = [section.startPoint, ...(section.bendPoints ?? []), section.endPoint];
+			for (const p of points) {
+				minX = Math.min(minX, p.x);
+				minY = Math.min(minY, p.y);
+				maxX = Math.max(maxX, p.x);
+				maxY = Math.max(maxY, p.y);
 			}
 		}
+	}
 
-		const vbX = minX - SVG_PADDING;
-		const vbY = minY - SVG_PADDING;
-		const vbW = maxX - minX + SVG_PADDING * 2;
-		const vbH = maxY - minY + SVG_PADDING * 2;
+	const vbX = minX - SVG_PADDING;
+	const vbY = minY - SVG_PADDING;
+	const vbW = maxX - minX + SVG_PADDING * 2;
+	const vbH = maxY - minY + SVG_PADDING * 2;
 
-		let svg = `<?xml version="1.0" encoding="UTF-8"?>
+	let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="${String(vbX)} ${String(vbY)} ${String(vbW)} ${String(vbH)}" width="${String(vbW)}" height="${String(vbH)}">
 <defs>
   <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth">
     <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
   </marker>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&amp;display=swap');
-    text { font-family: 'Lato', sans-serif; }
+    text { font-family: ${EXPORT_FONT_FAMILY}; }
   </style>
 </defs>
 `;
 
-		// Draw edges
-		for (const edge of edges) {
-			svg += renderEdgeSVG(edge);
-		}
+	// Draw edges
+	for (const edge of edges) {
+		svg += renderEdgeSVG(edge);
+	}
 
-		// Draw nodes
-		for (const node of nodes) {
-			const m = metricsMap.get(node.id);
-			if (!m) continue;
-			svg += renderNodeSVG(node, m, showGroupTypes, measureCtx);
-		}
+	// Draw nodes
+	for (const node of nodes) {
+		const m = metricsMap.get(node.id);
+		if (!m) continue;
+		svg += renderNodeSVG(node, m, showGroupTypes, measureCtx);
+	}
 
-		svg += '</svg>';
-		return svg;
-	}, [data, showGroupTypes]);
-};
+	svg += '</svg>';
+	return svg;
+}
 
 function esc(s: string): string {
 	return s
@@ -173,11 +174,25 @@ function renderNodeSVG(
 	}
 
 	// Title
-	svg += `    <text x="${String(x + w / 2)}" y="${String(y + HEADER_PADDING_Y + TITLE_FONT_SIZE / 2)}" text-anchor="middle" dy="0.35em" font-size="${String(TITLE_FONT_SIZE)}" font-weight="bold" fill="#0f172a">${esc(d.title)}</text>\n`;
+	const titleLines = wrapExportTitle(measureCtx, d.title, w - NODE_PADDING * 2);
+	for (const [index, line] of titleLines.entries()) {
+		const titleY = y + HEADER_PADDING_Y + TITLE_FONT_SIZE / 2 + (index - (titleLines.length - 1) / 2) * 16;
+		svg += `    <text x="${String(x + w / 2)}" y="${String(titleY + TITLE_FONT_SIZE * 0.35)}" text-anchor="middle" font-size="${String(TITLE_FONT_SIZE)}" font-weight="bold" fill="#0f172a">${esc(line)}</text>\n`;
+	}
 
 	// Group type
 	if (showGroupTypes) {
-		svg += `    <text x="${String(x + w / 2)}" y="${String(y + HEADER_PADDING_Y + TITLE_FONT_SIZE + 4 + GROUP_TYPE_FONT_SIZE / 2)}" text-anchor="middle" dy="0.35em" font-size="${String(GROUP_TYPE_FONT_SIZE)}" font-weight="bold" fill="#64748b" letter-spacing="2">${esc(d.groupTypeName.toUpperCase())}</text>\n`;
+		const groupType = fitExportText(
+			measureCtx,
+			d.groupTypeName.toUpperCase(),
+			w - NODE_PADDING * 2,
+			GROUP_TYPE_FONT_SIZE,
+			true,
+			2,
+		);
+		const groupTypeY =
+			y + HEADER_PADDING_Y + TITLE_FONT_SIZE + 4 + GROUP_TYPE_FONT_SIZE / 2 + (titleLines.length > 1 ? 8 : 0);
+		svg += `    <text x="${String(x + w / 2)}" y="${String(groupTypeY + GROUP_TYPE_FONT_SIZE * 0.35)}" text-anchor="middle" font-size="${String(GROUP_TYPE_FONT_SIZE)}" font-weight="bold" fill="#64748b" letter-spacing="2">${esc(groupType)}</text>\n`;
 	}
 
 	// Body: roles and member badges
@@ -189,15 +204,29 @@ function renderNodeSVG(
 			if (names.length === 0) continue;
 
 			// Role label
-			svg += `    <text x="${String(x + NODE_PADDING)}" y="${String(cursorY + ROLE_FONT_SIZE / 2)}" dy="0.35em" font-size="${String(ROLE_FONT_SIZE)}" font-weight="bold" fill="#64748b" letter-spacing="1">${esc(role.name.toUpperCase())}</text>\n`;
+			const roleLabel = fitExportText(
+				measureCtx,
+				role.name.toUpperCase(),
+				w - NODE_PADDING * 2,
+				ROLE_FONT_SIZE,
+				true,
+				1,
+			);
+			svg += `    <text x="${String(x + NODE_PADDING)}" y="${String(cursorY + ROLE_FONT_SIZE * 0.85)}" font-size="${String(ROLE_FONT_SIZE)}" font-weight="bold" fill="#64748b" letter-spacing="1">${esc(roleLabel)}</text>\n`;
 			cursorY += ROLE_FONT_SIZE + 6;
 
 			// Member badges with wrapping
-			measureCtx.font = `${String(MEMBER_FONT_SIZE)}px Lato, sans-serif`;
+			measureCtx.font = `${String(MEMBER_FONT_SIZE)}px ${EXPORT_FONT_FAMILY}`;
 			let badgeX = x + NODE_PADDING;
 
 			for (const name of names) {
-				const textWidth = measureCtx.measureText(name).width;
+				const label = fitExportText(
+					measureCtx,
+					name,
+					w - NODE_PADDING * 2 - BADGE_PADDING_X * 2,
+					MEMBER_FONT_SIZE,
+				);
+				const textWidth = measureCtx.measureText(label).width;
 				const badgeWidth = textWidth + BADGE_PADDING_X * 2;
 
 				if (badgeX + badgeWidth > x + w - NODE_PADDING && badgeX > x + NODE_PADDING) {
@@ -207,7 +236,7 @@ function renderNodeSVG(
 
 				const badgeR = BADGE_HEIGHT / 2;
 				svg += `    <rect x="${String(badgeX)}" y="${String(cursorY)}" width="${String(badgeWidth)}" height="${String(BADGE_HEIGHT)}" rx="${String(badgeR)}" fill="#f1f5f9"/>\n`;
-				svg += `    <text x="${String(badgeX + BADGE_PADDING_X)}" y="${String(cursorY + BADGE_HEIGHT / 2)}" dy="0.35em" font-size="${String(MEMBER_FONT_SIZE)}" fill="#334155">${esc(name)}</text>\n`;
+				svg += `    <text x="${String(badgeX + BADGE_PADDING_X)}" y="${String(cursorY + BADGE_HEIGHT / 2 + MEMBER_FONT_SIZE * 0.35)}" font-size="${String(MEMBER_FONT_SIZE)}" fill="#334155">${esc(label)}</text>\n`;
 
 				badgeX += badgeWidth + BADGE_GAP;
 			}

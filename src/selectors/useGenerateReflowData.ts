@@ -38,6 +38,7 @@ interface ReflowLayoutData {
 	edges: Edge[];
 	nodes: Node[];
 	sunburstRenderData?: SunburstRenderData;
+	viewKey?: string;
 }
 
 const ReflowDataContext = createContext<(ReflowLayoutData & { isCalculating: boolean }) | undefined>(undefined);
@@ -511,7 +512,7 @@ const useCalculateReflowData = (enabled: boolean) => {
 				}
 
 				if (active) {
-					setLayoutedData(result);
+					setLayoutedData({ ...result, viewKey: JSON.stringify([layoutAlgorithm, centerNodeId]) });
 				}
 			} catch (error) {
 				Logger.error('[useGenerateReflowData] Layout calculation failed', {

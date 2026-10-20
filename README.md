@@ -54,6 +54,13 @@ to the displayed data, not the shared entities. Host group-list invalidations al
 the organigram. A complete filtered ID list is always required: one cached page is not
 mistaken for the whole installation.
 
+Only view settings are persisted in tab-scoped session storage. A reload revalidates the
+group ID list and reloads group entities older than the current module load, even when
+the host still considers them fresh. Groups refreshed during this session remain reusable.
+The module checks `/pollfornews` for `group` and `person` changes every 15 seconds while
+visible, refreshing affected organigram data without resetting the camera. It does not
+invalidate unrelated host entities or change the host's global cache policy.
+
 Group, membership and person downloads use batches of at most 100 IDs and at most four
 concurrent requests per download, avoiding both sequential page waterfalls and unbounded
 request bursts. Persons are requested only after the initial role exclusions have been applied.

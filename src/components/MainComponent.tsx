@@ -2,6 +2,7 @@ import { Loader2, Menu, ShieldAlert, X } from 'lucide-react';
 import React, { useEffect } from 'react';
 
 import { Logger } from '../globals/Logger';
+import { useOrganigramNews } from '../hooks/useOrganigramNews';
 import { useGroupMembers } from '../queries/useGroupMembers';
 import { useGroupRoles } from '../queries/useGroupRoles';
 import { useGroups } from '../queries/useGroups';
@@ -17,6 +18,7 @@ import { Sidebar } from './Sidebar/Sidebar';
 import { Button } from './ui/button';
 
 export const MainComponent = React.memo(() => {
+	useOrganigramNews();
 	// Zustand
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const committedFilters = useAppStore((s) => s.committedFilters);
@@ -26,7 +28,7 @@ export const MainComponent = React.memo(() => {
 
 	// Automatically close sidebar on mobile on mount
 	useEffect(() => {
-		if (window.innerWidth < 768) {
+		if (!useAppStore.getState().hasSavedView && window.innerWidth < 768) {
 			setIsSidebarOpen(false);
 		}
 	}, [setIsSidebarOpen]);

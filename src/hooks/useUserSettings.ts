@@ -44,6 +44,7 @@ export const usePresets = () => {
 	const { data: storage, isLoading } = useQuery({
 		queryFn: () => getUserSettings<PresetStorage>(CATEGORY_SHORTY, CATEGORY_NAME),
 		queryKey: [SETTINGS_KEY],
+		refetchOnMount: 'always',
 	});
 
 	const mutation = useMutation({
@@ -55,7 +56,9 @@ export const usePresets = () => {
 
 	return {
 		isLoading,
-		presets: storage?.presets ?? [],
+		presets: [...(storage?.presets ?? [])].sort((a, b) =>
+			a.name.localeCompare(b.name, 'de', { numeric: true, sensitivity: 'base' }),
+		),
 		savePresets: mutation.mutate,
 	};
 };

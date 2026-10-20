@@ -8,6 +8,8 @@ import { extractConfiguredPrimaryParentGroupId } from '../helpers/sunburstLayout
 import { useAppStore } from '../state/useAppStore';
 import { fetchGroups, type GroupFilter } from './groupCache';
 
+const loadedAt = Date.now();
+
 const translateGroupNames = (groups: Group[]) =>
 	groups.map((group) => ({
 		...group,
@@ -31,10 +33,11 @@ export const useGroups = () => {
 	return useQuery({
 		queryFn: async () => {
 			Logger.log('API: Fetching groups');
-			return fetchGroups(client, filter);
+			return fetchGroups(client, filter, loadedAt);
 		},
 		// Host group mutations invalidate ['groups', 'filter']; keep our list under that prefix.
 		queryKey: ['groups', 'filter', 'organigram', filter],
+		refetchOnMount: 'always',
 		select: translateGroupNames,
 	});
 };

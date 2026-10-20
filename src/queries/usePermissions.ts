@@ -15,4 +15,5 @@ export const usePermissions = () =>
 	useQuery({
 		queryFn: fetchPermissions,
 		queryKey: ['permissions'],
+		refetchOnMount: 'always',
 	});

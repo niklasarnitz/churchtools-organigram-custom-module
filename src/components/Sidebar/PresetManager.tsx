@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 export const PresetManager = React.memo(() => {
-	const [selectedPresetName, setSelectedPresetName] = useState('');
+	const selectedPresetName = useAppStore((s) => s.selectedPresetName);
+	const setSelectedPresetName = useAppStore((s) => s.setSelectedPresetName);
 	const [newPresetName, setNewPresetName] = useState('');
 	const [isSaveOpen, setIsSaveOpen] = useState(false);
 
@@ -45,7 +46,7 @@ export const PresetManager = React.memo(() => {
 				setSelectedPresetName(name);
 			}
 		},
-		[presets, setAllSettings],
+		[presets, setAllSettings, setSelectedPresetName],
 	);
 
 	const handleSavePreset = useCallback(() => {
@@ -58,13 +59,13 @@ export const PresetManager = React.memo(() => {
 		savePresets(updatedPresets);
 		setIsSaveOpen(false);
 		setSelectedPresetName(newPresetName);
-	}, [newPresetName, presets, savePresets, snapshotSettings]);
+	}, [newPresetName, presets, savePresets, snapshotSettings, setSelectedPresetName]);
 
 	const handleDeletePreset = useCallback(() => {
 		const filtered = presets.filter((p) => p.name !== selectedPresetName);
 		savePresets(filtered);
 		setSelectedPresetName('');
-	}, [presets, savePresets, selectedPresetName]);
+	}, [presets, savePresets, selectedPresetName, setSelectedPresetName]);
 
 	const handleOpenSaveDialog = useCallback(
 		(open: boolean) => {

@@ -245,6 +245,23 @@ test('group loading reuses and populates the native cache, respects filters and 
 		expect((await fetchGroups(client, filter)).map((group) => group.id)).toEqual([23, 9, 15, 30]);
 		expect(idRequests).toBe(1);
 		expect(requests).toHaveLength(1);
+		// A reload bypasses even fresh host entries from before this module load,
+		// but keeps entities already refreshed during the current session.
+		const reloadedAt = Date.now();
+		for (const id of [23, 15, 30]) {
+			client.setQueryData(rawKey(id), { id, name: 'Before reload' }, { updatedAt: reloadedAt - 1 });
+		}
+		client.setQueryData(rawKey(9), { id: 9, name: 'Already refreshed' }, { updatedAt: reloadedAt });
+		expect((await fetchGroups(client, filter, reloadedAt)).map((group) => group.name)).toEqual([
+			'Fresh 23',
+			'Already refreshed',
+			'Fresh 15',
+			'Fresh 30',
+		]);
+		expect(requests[1]).toEqual([23, 15, 30]);
+		expect(idRequests).toBe(2);
+		await fetchGroups(client, filter, reloadedAt);
+		expect(requests).toHaveLength(2);
 	} finally {
 		churchtoolsClient.setBaseUrl(previousUrl ?? '');
 		client.clear();
