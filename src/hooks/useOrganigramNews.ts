@@ -28,18 +28,24 @@ export async function refreshOrganigramNews(client: QueryClient, changes: NewsCh
 		});
 	}
 
-	await client.invalidateQueries({
-		predicate: ({ queryKey: key }) =>
-			(groupIds.size > 0 &&
-				((key[0] === 'groups' && key[1] === 'filter' && key[2] === 'organigram') ||
-					(key.length === 1 &&
-						['groupRoles', 'groupTypes', 'hierarchies', 'personMasterData'].includes(String(key[0]))))) ||
-			// These are the organigram's ID-list queries, not the host's person or member entities.
-			(key.length === 2 &&
-				typeof key[1] === 'string' &&
-				/^\d+(,\d+)*$/u.test(key[1]) &&
-				(key[0] === 'groupMembers' || key[0] === 'persons')),
-	});
+	await client.invalidateQueries(
+		{
+			predicate: ({ queryKey: key }) =>
+				(groupIds.size > 0 &&
+					((key[0] === 'groups' && key[1] === 'filter' && key[2] === 'organigram') ||
+						(key.length === 1 &&
+							['groupRoles', 'groupTypes', 'hierarchies', 'personMasterData'].includes(
+								String(key[0]),
+							)))) ||
+				// These are the organigram's ID-list queries, not the host's person or member entities.
+				(key.length === 2 &&
+					typeof key[1] === 'string' &&
+					/^\d+(,\d+)*$/u.test(key[1]) &&
+					(key[0] === 'groupMembers' || key[0] === 'persons')),
+		},
+		// Keep the News cursor unchanged if any displayed data could not be refreshed.
+		{ throwOnError: true },
+	);
 }
 
 export function useOrganigramNews() {

@@ -49,3 +49,29 @@ test('person changes refresh names and memberships; unrelated news does not refr
 	expect(client.getQueryState(['hierarchies'])?.isInvalidated).toBe(false);
 	client.clear();
 });
+
+test('a failed news refresh is reported to the poller and the same change can be retried', async () => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+	const key = ['groups', 'filter', 'organigram', {}];
+	client.setQueryData(key, 'before');
+	let fail = true;
+	const observer = new QueryObserver(client, {
+		queryFn: () => (fail ? Promise.reject(new Error('Refresh failed')) : Promise.resolve('after')),
+		queryKey: key,
+	});
+	const unsubscribe = observer.subscribe(() => {
+		/* Keep the displayed query active. */
+	});
+	try {
+		const changes = [{ domainId: 42, domainType: 'group' }];
+		const failure = await refreshOrganigramNews(client, changes).catch((error: unknown) => error);
+		expect(failure).toMatchObject({ message: 'Refresh failed' });
+		expect(client.getQueryData<string>(key)).toBe('before');
+		fail = false;
+		await refreshOrganigramNews(client, changes);
+		expect(client.getQueryData<string>(key)).toBe('after');
+	} finally {
+		unsubscribe();
+		client.clear();
+	}
+});

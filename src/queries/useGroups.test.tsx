@@ -302,6 +302,16 @@ test('reload refreshes IDs without replacing the shared host query policy or fet
 		await client.refetchQueries({ exact: true, queryKey: idsKey });
 		expect(hostFetches).toBe(2);
 		expect(client.getQueryData<number[]>(idsKey)).toEqual([9]);
+
+		// A request started by the host before our reload may finish afterward.
+		const older = Promise.withResolvers<number[]>();
+		const olderRequest = client
+			.fetchQuery({ queryFn: () => older.promise, queryKey: idsKey, staleTime: 0 })
+			.catch((error: unknown) => error);
+		expect((await fetchGroups(client, filter, Date.now())).map((group) => group.id)).toEqual([23]);
+		older.resolve([9]);
+		await olderRequest;
+		expect(client.getQueryData<number[]>(idsKey)).toEqual([23]);
 	} finally {
 		churchtoolsClient.setBaseUrl(previousUrl ?? '');
 		client.clear();

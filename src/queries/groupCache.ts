@@ -20,7 +20,11 @@ export async function fetchGroups(client: QueryClient, filter: GroupFilter, fres
 				queryFn: () => churchtoolsClient.get<number[]>('/groups/ids', filter),
 				queryKey: idsKey,
 			});
-	if (freshSince) client.setQueryData(idsKey, ids);
+	if (freshSince) {
+		// An older host request must not overwrite the freshly loaded ID list.
+		await client.cancelQueries({ exact: true, queryKey: idsKey });
+		client.setQueryData(idsKey, ids);
+	}
 	const rawKey = (id: number) => ['groups', 'single', id, 'raw'] as const;
 	const staleTime = client.getDefaultOptions().queries?.staleTime;
 	const maxAge = typeof staleTime === 'number' ? staleTime : 5 * 60 * 1000;
