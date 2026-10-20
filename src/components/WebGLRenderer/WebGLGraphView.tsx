@@ -55,8 +55,8 @@ export const WebGLGraphView = React.memo(() => {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Pointer state
-	const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
-	const pointerDownPositions = useRef<Map<number, { x: number; y: number }>>(new Map());
+	const activePointers = useRef<Map>(new Map());
+	const pointerDownPositions = useRef<Map>(new Map());
 	const suppressNextClick = useRef(false);
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
@@ -64,7 +64,8 @@ export const WebGLGraphView = React.memo(() => {
 	const previousSunburstRenderRingWidth = useRef<number | undefined>(undefined);
 
 	// Camera state for minimap reactivity
-	const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
+	const cameraState = useAppStore((s) => s.camera) ?? { x: 0, y: 0, zoom: 1 };
+	const setCameraState = useAppStore((s) => s.setCamera);
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
 	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
@@ -105,13 +106,7 @@ export const WebGLGraphView = React.memo(() => {
 		const engine = engineRef.current;
 		if (!engine || data.nodes.length === 0) return;
 
-		engine.setData(
-			data.nodes as Node<PreviewGraphNodeData>[],
-			data.edges,
-			showGroupTypes,
-			isDarkMode,
-			data.sunburstRenderData,
-		);
+		engine.setData(data.nodes as Node[], data.edges, showGroupTypes, isDarkMode, data.sunburstRenderData);
 
 		const renderedRingWidth = data.sunburstRenderData?.ringWidth;
 		const changedOnlyRingWidth =
@@ -121,13 +116,16 @@ export const WebGLGraphView = React.memo(() => {
 
 		// Preserve the current zoom when the Sunburst ring width changes. Otherwise
 		// auto-fitting would scale the wider rings straight back to the same screen size.
-		if (!changedOnlyRingWidth) {
+		const savedCamera = useAppStore.getState().camera;
+		if (savedCamera) {
+			engine.setCamera(savedCamera);
+		} else if (!changedOnlyRingWidth) {
 			engine.fitView(0.05);
 		}
 		previousSunburstRenderRingWidth.current = renderedRingWidth;
 		const cam = engine.getCamera();
 		setCameraState(cam);
-	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes]);
+	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes, setCameraState]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
@@ -139,7 +137,7 @@ export const WebGLGraphView = React.memo(() => {
 		engine.focusNode(focusNodeId, rect);
 		setCameraState(engine.getCamera());
 		setFocusNodeId(undefined);
-	}, [focusNodeId, setFocusNodeId]);
+	}, [focusNodeId, setFocusNodeId, setCameraState]);
 
 	// Update camera state periodically for minimap
 	const updateCameraState = useCallback(() => {
@@ -147,7 +145,7 @@ export const WebGLGraphView = React.memo(() => {
 		if (engine) {
 			setCameraState(engine.getCamera());
 		}
-	}, []);
+	}, [setCameraState]);
 
 	// Pointer handlers
 	const handlePointerDown = useCallback(
@@ -409,7 +407,7 @@ export const WebGLGraphView = React.memo(() => {
 		return () => {
 			canvas.removeEventListener('wheel', handleWheel);
 		};
-	}, []);
+	}, [setCameraState]);
 
 	const handleFitView = useCallback(() => {
 		const engine = engineRef.current;
@@ -512,7 +510,7 @@ export const WebGLGraphView = React.memo(() => {
 	const setShowParentGroupsAction = useAppStore((s) => s.setShowParentGroups);
 
 	const didClickOpenGroup = useCallback(
-		(params: ItemParams<ContextMenuProps>) => {
+		(params: ItemParams) => {
 			const groupId = params.props?.groupId;
 			if (groupId && baseUrl) {
 				window.open(`${baseUrl}/groups/${String(groupId)}`, '_blank')?.focus();
@@ -522,7 +520,7 @@ export const WebGLGraphView = React.memo(() => {
 	);
 
 	const didClickSetGroupAsStartGroup = useCallback(
-		(params: ItemParams<ContextMenuProps>) => {
+		(params: ItemParams) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
 				setShowParentGroupsAction(true);
@@ -541,7 +539,7 @@ export const WebGLGraphView = React.memo(() => {
 	);
 
 	const didClickToggleCollapse = useCallback(
-		(params: ItemParams<ContextMenuProps>) => {
+		(params: ItemParams) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
 				toggleCollapsedNodeId(String(groupId));

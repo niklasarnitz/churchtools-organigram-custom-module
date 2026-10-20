@@ -1,6 +1,14 @@
 {
 	"versions": [
 		{
+			"version": "1.9.0",
+			"date": "2026-10-20",
+			"changes": [
+				"Die aktuelle Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten: Filter, Layout, Zoom, Bildausschnitt, eingeklappte Gruppen, Seitenleiste und ausgewähltes Preset werden wiederhergestellt.",
+				"Presets werden alphabetisch sortiert angezeigt."
+			]
+		},
+		{
 			"version": "1.8.1",
 			"date": "2026-10-15",
 			"changes": [
