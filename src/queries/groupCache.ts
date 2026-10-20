@@ -12,11 +12,15 @@ export type GroupFilter = Partial<
 export async function fetchGroups(client: QueryClient, filter: GroupFilter, freshSince = 0): Promise<Group[]> {
 	// This is the group module's ID-list key. Never infer completeness from cached entities:
 	// they may come from just one page, a different filter, or contain now-invisible groups.
-	const ids = await client.fetchQuery({
-		queryFn: () => churchtoolsClient.get<number[]>('/groups/ids', filter),
-		queryKey: ['groups', 'filter', 'ids', filter],
-		...(freshSince ? { staleTime: 0 } : {}),
-	});
+	const idsKey = ['groups', 'filter', 'ids', filter] as const;
+	// A forced reload must not replace the shared query's options or query function.
+	const ids = freshSince
+		? await churchtoolsClient.get<number[]>('/groups/ids', filter)
+		: await client.fetchQuery({
+				queryFn: () => churchtoolsClient.get<number[]>('/groups/ids', filter),
+				queryKey: idsKey,
+			});
+	if (freshSince) client.setQueryData(idsKey, ids);
 	const rawKey = (id: number) => ['groups', 'single', id, 'raw'] as const;
 	const staleTime = client.getDefaultOptions().queries?.staleTime;
 	const maxAge = typeof staleTime === 'number' ? staleTime : 5 * 60 * 1000;

@@ -6,7 +6,7 @@
 			"changes": [
 				"Touch-Gesten bleiben im Organigramm: Verschieben und Pinch-Zoom bewegen die Grafik statt der Browserseite. Eine Prozentanzeige setzt den Zoom per Klick auf 100 % zurück; die Gesamtansicht bleibt separat verfügbar.",
 				"Ansicht, Filter, Startgruppe, Farben, Ringabstand, Zoom, Bildausschnitt, eingeklappte Gruppen, Seitenleiste und Preset-Auswahl bleiben beim Neuladen im selben Tab erhalten. Gespeicherte Rollenfilter werden nicht mit Standardwerten überschrieben; Presets sind deutsch-alphabetisch mit natürlicher Zahlensortierung geordnet. Daten werden beim Start neu geladen, nicht im Sitzungsspeicher aufbewahrt.",
-				"Gruppen- und Personenänderungen werden über Poll for News automatisch nachgeladen, ohne Zoom oder Bildausschnitt zurückzusetzen.",
+				"Gruppen- und Personenänderungen werden über Poll for News automatisch nachgeladen, ohne Zoom oder Bildausschnitt zurückzusetzen. Die Cache-Einstellungen der gemeinsamen Gruppen-ID-Abfrage bleiben beim Neuladen erhalten.",
 				"SVG- und PDF-Exporte begrenzen lange Beschriftungen auf die Kartenbreite und verwenden zuverlässige Schriftmetriken. Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘."
 			]
 		},

@@ -269,6 +269,46 @@ test('group loading reuses and populates the native cache, respects filters and 
 	}
 });
 
+test('reload refreshes IDs without replacing the shared host query policy or fetch function', async () => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+	const filter = { campus_ids: [7] };
+	const idsKey = ['groups', 'filter', 'ids', filter];
+	let hostFetches = 0;
+	await client.fetchQuery({
+		queryFn: () => {
+			hostFetches++;
+			return Promise.resolve([9]);
+		},
+		queryKey: idsKey,
+		staleTime: Infinity,
+	});
+	const server = Bun.serve({
+		fetch(request) {
+			return Response.json({
+				data: new URL(request.url).pathname.endsWith('/ids') ? [23] : [{ id: 23, name: 'New group' }],
+			});
+		},
+		port: 0,
+	});
+	const previousUrl = churchtoolsClient.getBaseUrl();
+	churchtoolsClient.setBaseUrl(server.url.origin);
+	try {
+		expect((await fetchGroups(client, filter, Date.now())).map((group) => group.id)).toEqual([23]);
+		expect(client.getQueryData<number[]>(idsKey)).toEqual([23]);
+		expect(client.getQueryCache().find({ exact: true, queryKey: idsKey })?.options).toMatchObject({
+			staleTime: Infinity,
+		});
+		expect(hostFetches).toBe(1);
+		await client.refetchQueries({ exact: true, queryKey: idsKey });
+		expect(hostFetches).toBe(2);
+		expect(client.getQueryData<number[]>(idsKey)).toEqual([9]);
+	} finally {
+		churchtoolsClient.setBaseUrl(previousUrl ?? '');
+		client.clear();
+		await server.stop(true);
+	}
+});
+
 test('published groups expire for the native batcher without invalidating newer host writes or include data', async () => {
 	const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 40 } } });
 	const rawKey = (id: number) => ['groups', 'single', id, 'raw'];
