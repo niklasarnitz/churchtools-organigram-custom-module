@@ -66,6 +66,31 @@ development, or on older frontends without the exposed client, the module falls 
 own in-memory cache. Reloading refreshes the organigram data; only display settings are
 restored from session storage. No ChurchTools frontend packages are bundled to achieve cache sharing.
 
+### Automatic updates
+
+The organigram calls `GET /pollfornews` with a five-second pause after each completed
+poll/refresh cycle for the documented
+`group` and `person` domain types. It uses `meta.lastPollDate` from each successful
+response as the cursor, subtracting a two-second overlap for the next `since`
+parameter (also on the initial request). This accommodates second-resolution change
+timestamps, a strict `executedate > since` comparison and a rounded-up server cursor
+(as reported by a server source-code analysis supplied by the maintainer). It does
+not guarantee recovery of arbitrarily delayed or expired notifications.
+Repeated notifications are processed again because the endpoint provides no revision
+with which to distinguish a duplicate from another change to the same group. This can
+cause repeated data requests during the overlap window. Group changes invalidate filtered ID lists,
+the changed raw groups, hierarchies, memberships and displayed persons; person
+changes refresh memberships and displayed persons. View settings and camera are
+not reset. Changes without a corresponding group/person notification still need
+a reload (for example, master-data changes not covered by this endpoint).
+
+Polling pauses while the tab is hidden or offline. Failures retain the cursor and
+retry with increasing delays up to five minutes. Requests and refreshes do not
+overlap, and the subscription is removed when the organigram unmounts.
+
+API contract: https://demo.church.tools/system/runtime/swagger/openapi.json
+(`/pollfornews`, inspected on 2026-10-20). No real installation is used in the tests.
+
 ## Building for production
 
 To build the project for production, run the following command:

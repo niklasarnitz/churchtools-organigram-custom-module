@@ -1,5 +1,6 @@
 export interface GroupType {
 	availableForNewPerson: boolean;
+	color?: null | string;
 	id: number;
 	isLeaderNecessary: boolean;
 	name: string;
