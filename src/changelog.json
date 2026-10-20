@@ -1,6 +1,18 @@
 {
 	"versions": [
 		{
+			"version": "1.9.0",
+			"date": "2026-10-20",
+			"changes": [
+				"Die aktuelle Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten: Filter, Layout, Zoom, Bildausschnitt, eingeklappte Gruppen, Seitenleiste und ausgewähltes Preset werden wiederhergestellt.",
+				"Presets werden alphabetisch sortiert angezeigt.",
+				"Beim Neuladen werden die Organigramm-Daten frisch vom Server abgerufen, während die gespeicherten Anzeigeeinstellungen erhalten bleiben.",
+				"Beim Wechsel der Sunburst-Farbeinstellung bleiben Zoom und Bildausschnitt unverändert.",
+				"Beim Preset-Wechsel wird der Bildausschnitt erst auf das fertig berechnete Layout angepasst.",
+				"Beim Reload werden veraltete Organigramm-Daten auch dann nachgeladen, wenn das ChurchTools-Frontend automatische Abfragen beim Einhängen deaktiviert."
+			]
+		},
+		{
 			"version": "1.8.1",
 			"date": "2026-10-15",
 			"changes": [

@@ -7,6 +7,7 @@ import { Logger } from '../globals/Logger';
 import { fetchInBatches } from '../helpers/fetchInBatches';
 import { useFilteredGroupIds } from '../selectors/useFilteredGroupIds';
 import { useAppStore } from '../state/useAppStore';
+import { organigramQueryOptions } from './organigramQueryOptions';
 import { usePermissions } from './usePermissions';
 
 export const useGroupMembers = () => {
@@ -17,6 +18,7 @@ export const useGroupMembers = () => {
 	const showLeaders = useAppStore((s) => s.showLeaders);
 
 	return useQuery({
+		...organigramQueryOptions,
 		enabled: !!committedFilters && filteredGroupIds.length > 0 && canAdministerPersons && showLeaders,
 		queryFn: async () => {
 			if (filteredGroupIds.length === 0) return [];
