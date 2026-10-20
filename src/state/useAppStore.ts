@@ -69,7 +69,7 @@ interface GroupState {
 	renderer: RendererType;
 	roleFiltersInitialized: boolean;
 	selectedPresetName: string;
-	setAllSettings: (settings: Partial) => void;
+	setAllSettings: (settings: Partial<UserSettings>) => void;
 	setBaseUrl: (url: string | undefined) => void;
 	setCamera: (camera: Camera) => void;
 	setCollapsedNodeIds: (nodeIds: string[]) => void;
@@ -141,7 +141,7 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 			(set) => {
 				let activeLayoutCalculations = 0;
 
-				const setAndCommit = (updates: Partial) => {
+				const setAndCommit = (updates: Partial<GroupState>) => {
 					set((state) => {
 						const newState = { ...state, ...updates };
 						return { ...updates, camera: undefined, committedFilters: snapshotFilters(newState) };
@@ -217,7 +217,7 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 
 					selectedPresetName: '',
 
-					setAllSettings: (settings: Partial) => {
+					setAllSettings: (settings: Partial<UserSettings>) => {
 						setAndCommit({ ...settings, roleFiltersInitialized: true });
 					},
 					setBaseUrl: (url: string | undefined) => {
@@ -363,7 +363,7 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 			},
 			{
 				merge: (persisted, current) => {
-					const merged = { ...current, ...(persisted as Partial) };
+					const merged = { ...current, ...(persisted as Partial<GroupState>) };
 					return { ...merged, committedFilters: snapshotFilters(merged) };
 				},
 				name: 'organigram-view-v1',

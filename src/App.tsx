@@ -1,13 +1,13 @@
 import '@fontsource/lato';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { useState } from 'react';
 import 'react-contexify/dist/ReactContexify.css';
 
 import { MainComponent } from './components/MainComponent';
 import { useChurchToolsTheme } from './hooks/useChurchToolsTheme';
 import { useCustomModuleTitleBar } from './hooks/useCustomModuleTitleBar';
 import { getChurchToolsQueryClient } from './queries/groupCache';
+import { prepareQueryClientForSession } from './queries/prepareQueryClientForSession';
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -25,28 +25,16 @@ const queryClient = new QueryClient({
 	},
 });
 
-const persister = createAsyncStoragePersister({
-	storage: window.sessionStorage,
-});
-
 export const App = () => {
 	useChurchToolsTheme();
 	useCustomModuleTitleBar();
 
-	const hostClient = getChurchToolsQueryClient();
-	if (hostClient) {
-		// Do not persist or reconfigure the host's cache. Its own invalidations and
-		// freshness policy must apply to both the group module and the organigram.
-		return (
-			<QueryClientProvider client={hostClient}>
-				<MainComponent />
-			</QueryClientProvider>
-		);
-	}
-
+	// View settings persist separately. API data is refreshed once per page session,
+	// including when ChurchTools supplies an already populated query client.
+	const [client] = useState(() => prepareQueryClientForSession(getChurchToolsQueryClient() ?? queryClient));
 	return (
-		<PersistQueryClientProvider client={queryClient} persistOptions={{ buster: 'normalized-groups-v1', persister }}>
+		<QueryClientProvider client={client}>
 			<MainComponent />
-		</PersistQueryClientProvider>
+		</QueryClientProvider>
 	);
 };

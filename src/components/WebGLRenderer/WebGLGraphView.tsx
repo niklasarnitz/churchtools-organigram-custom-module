@@ -55,8 +55,8 @@ export const WebGLGraphView = React.memo(() => {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Pointer state
-	const activePointers = useRef<Map>(new Map());
-	const pointerDownPositions = useRef<Map>(new Map());
+	const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+	const pointerDownPositions = useRef<Map<number, { x: number; y: number }>>(new Map());
 	const suppressNextClick = useRef(false);
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
@@ -106,7 +106,13 @@ export const WebGLGraphView = React.memo(() => {
 		const engine = engineRef.current;
 		if (!engine || data.nodes.length === 0) return;
 
-		engine.setData(data.nodes as Node[], data.edges, showGroupTypes, isDarkMode, data.sunburstRenderData);
+		engine.setData(
+			data.nodes as Node<PreviewGraphNodeData>[],
+			data.edges,
+			showGroupTypes,
+			isDarkMode,
+			data.sunburstRenderData,
+		);
 
 		const renderedRingWidth = data.sunburstRenderData?.ringWidth;
 		const changedOnlyRingWidth =
@@ -510,7 +516,7 @@ export const WebGLGraphView = React.memo(() => {
 	const setShowParentGroupsAction = useAppStore((s) => s.setShowParentGroups);
 
 	const didClickOpenGroup = useCallback(
-		(params: ItemParams) => {
+		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId && baseUrl) {
 				window.open(`${baseUrl}/groups/${String(groupId)}`, '_blank')?.focus();
@@ -520,7 +526,7 @@ export const WebGLGraphView = React.memo(() => {
 	);
 
 	const didClickSetGroupAsStartGroup = useCallback(
-		(params: ItemParams) => {
+		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
 				setShowParentGroupsAction(true);
@@ -539,7 +545,7 @@ export const WebGLGraphView = React.memo(() => {
 	);
 
 	const didClickToggleCollapse = useCallback(
-		(params: ItemParams) => {
+		(params: ItemParams<ContextMenuProps>) => {
 			const groupId = params.props?.groupId;
 			if (groupId) {
 				toggleCollapsedNodeId(String(groupId));
