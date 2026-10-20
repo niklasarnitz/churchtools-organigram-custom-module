@@ -13,4 +13,5 @@ export const useHierarchies = () =>
 			return churchtoolsClient.get<Hierarchy[]>('/groups/hierarchies');
 		},
 		queryKey: ['hierarchies'],
+		refetchOnMount: 'always',
 	});

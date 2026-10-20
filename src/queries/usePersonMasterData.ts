@@ -21,5 +21,6 @@ export const usePersonMasterData = () =>
 			return churchtoolsClient.get<PersonMasterData>('/person/masterdata');
 		},
 		queryKey: ['personMasterData'],
+		refetchOnMount: 'always',
 		select: translateMasterData,
 	});

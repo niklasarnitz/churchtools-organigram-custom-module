@@ -9,19 +9,33 @@ export type GroupFilter = Partial<
 	Record<'agegroup_ids' | 'campus_ids' | 'group_category_ids' | 'group_status_ids', number[]>
 >;
 
-export async function fetchGroups(client: QueryClient, filter: GroupFilter): Promise<Group[]> {
+export async function fetchGroups(client: QueryClient, filter: GroupFilter, freshSince = 0): Promise<Group[]> {
 	// This is the group module's ID-list key. Never infer completeness from cached entities:
 	// they may come from just one page, a different filter, or contain now-invisible groups.
-	const ids = await client.fetchQuery({
-		queryFn: () => churchtoolsClient.get<number[]>('/groups/ids', filter),
-		queryKey: ['groups', 'filter', 'ids', filter],
-	});
+	const idsKey = ['groups', 'filter', 'ids', filter] as const;
+	// A forced reload must not replace the shared query's options or query function.
+	const ids = freshSince
+		? await churchtoolsClient.get<number[]>('/groups/ids', filter)
+		: await client.fetchQuery({
+				queryFn: () => churchtoolsClient.get<number[]>('/groups/ids', filter),
+				queryKey: idsKey,
+			});
+	if (freshSince) {
+		// An older host request must not overwrite the freshly loaded ID list.
+		await client.cancelQueries({ exact: true, queryKey: idsKey });
+		client.setQueryData(idsKey, ids);
+	}
 	const rawKey = (id: number) => ['groups', 'single', id, 'raw'] as const;
 	const staleTime = client.getDefaultOptions().queries?.staleTime;
 	const maxAge = typeof staleTime === 'number' ? staleTime : 5 * 60 * 1000;
 	const missing = ids.filter((id) => {
 		const state = client.getQueryState<Group>(rawKey(id));
-		return !state?.data || state.isInvalidated || Date.now() - state.dataUpdatedAt >= maxAge;
+		return (
+			!state?.data ||
+			state.isInvalidated ||
+			state.dataUpdatedAt < freshSince ||
+			Date.now() - state.dataUpdatedAt >= maxAge
+		);
 	});
 
 	client.setQueryDefaults(['groups', 'single'], { gcTime: Infinity });

@@ -31,5 +31,6 @@ export const useGroupMembers = () => {
 			return result;
 		},
 		queryKey: ['groupMembers', filteredGroupIds.join(',')],
+		refetchOnMount: 'always',
 	});
 };

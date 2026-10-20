@@ -1,7 +1,5 @@
 import '@fontsource/lato';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import 'react-contexify/dist/ReactContexify.css';
 
 import { MainComponent } from './components/MainComponent';
@@ -25,10 +23,6 @@ const queryClient = new QueryClient({
 	},
 });
 
-const persister = createAsyncStoragePersister({
-	storage: window.sessionStorage,
-});
-
 export const App = () => {
 	useChurchToolsTheme();
 	useCustomModuleTitleBar();
@@ -45,8 +39,8 @@ export const App = () => {
 	}
 
 	return (
-		<PersistQueryClientProvider client={queryClient} persistOptions={{ buster: 'normalized-groups-v1', persister }}>
+		<QueryClientProvider client={queryClient}>
 			<MainComponent />
-		</PersistQueryClientProvider>
+		</QueryClientProvider>
 	);
 };

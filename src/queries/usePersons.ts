@@ -49,5 +49,6 @@ export const usePersons = () => {
 			return result;
 		},
 		queryKey: ['persons', personIdsKey],
+		refetchOnMount: 'always',
 	});
 };

@@ -16,11 +16,14 @@ Im Organigramm stehen außerdem folgende Bedienelemente zur Verfügung:
 
 - **Gruppe suchen**: Suche über die Suchleiste oben oder mit `Strg+K` beziehungsweise `Cmd+K`.
 - **Zoom**: Mausrad, die Plus-/Minus-Schaltflächen oder `+` und `-`.
+- **Zoom-Prozentanzeige**: Zeigt den aktuellen Maßstab. Ein Klick setzt ihn auf 100 % (Originalgröße der Karten) zurück und behält die Bildschirmmitte bei.
 - **Verschieben**: Mit gedrückter Maustaste ziehen. Auf Touch-Geräten mit einem Finger verschieben.
 - **Ansicht einpassen**: Die Schaltfläche mit dem Vollbildsymbol setzt die Ansicht auf den verfügbaren Bereich zurück.
 - **Minimap**: Die Übersicht unten rechts zeigt die aktuelle Position und erlaubt eine schnelle Navigation.
 
 Ein einfacher Klick auf eine Gruppe markiert die Gruppe und ihren Unterbaum. Ein weiterer Klick auf die bereits markierte Gruppe hebt die Markierung wieder auf.
+
+Die Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten, einschließlich Zoom, Bildausschnitt, Filtern und eingeklappten Gruppen. Es werden nur Anzeigeeinstellungen im Sitzungsspeicher gespeichert, keine Personen- oder Gruppendaten. Beim Start werden die Daten neu geladen. Solange der Tab sichtbar ist, werden Gruppen- und Personenänderungen alle 15 Sekunden über „Poll for News“ geprüft; automatische Aktualisierungen behalten den Bildausschnitt bei. Ein bewusst gewähltes neues Layout oder eine andere Startgruppe passt die Ansicht erneut ein.
 
 ## Presets
 

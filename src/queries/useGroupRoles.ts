@@ -14,5 +14,6 @@ export const useGroupRoles = () =>
 			return churchtoolsClient.get<GroupRole[]>('/group/roles');
 		},
 		queryKey: ['groupRoles'],
+		refetchOnMount: 'always',
 		select: translateNames<GroupRole>,
 	});

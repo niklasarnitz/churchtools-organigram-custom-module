@@ -1,6 +1,7 @@
 import type { PreviewGraphNodeData } from '../../../types/GraphNode';
 
 import { oklchToHex } from '../../../globals/Colors';
+import { EXPORT_FONT_FAMILY } from '../../../helpers/exportText';
 
 export interface NodeCardMetrics {
 	headerHeight: number;
@@ -300,8 +301,13 @@ export function measureNodeCard(
 }
 
 function measureText(ctx: CanvasRenderingContext2D, text: string, font: string): number {
+	// Reserve space for both screen and export typography during the shared layout.
+	// Exporting must never enlarge a card after its neighbours and edges were placed.
+	ctx.letterSpacing = '0px';
 	ctx.font = font;
-	return ctx.measureText(text).width;
+	const screenWidth = ctx.measureText(text).width;
+	ctx.font = font.replace('Lato, sans-serif', EXPORT_FONT_FAMILY);
+	return Math.max(screenWidth, ctx.measureText(text).width);
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

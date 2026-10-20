@@ -49,6 +49,8 @@ export const WebGLGraphView = React.memo(() => {
 	const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const isDarkMode = useIsDarkMode();
+	const savedCamera = useAppStore((s) => s.camera);
+	const saveCamera = useAppStore((s) => s.setCamera);
 
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const engineRef = useRef<null | WebGLGraphEngine>(null);
@@ -61,10 +63,11 @@ export const WebGLGraphView = React.memo(() => {
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
 	const isPanning = useRef(false);
-	const previousSunburstRenderRingWidth = useRef<number | undefined>(undefined);
+	const previousView = useRef<string | undefined>(undefined);
 
 	// Camera state for minimap reactivity
-	const [cameraState, setCameraState] = useState({ x: 0, y: 0, zoom: 1 });
+	const cameraState = savedCamera ?? { x: 0, y: 0, zoom: 1 };
+	const setCameraState = saveCamera;
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
 	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
@@ -82,6 +85,8 @@ export const WebGLGraphView = React.memo(() => {
 		if (!canvas) return;
 
 		const eng = new WebGLGraphEngine(canvas);
+		const camera = useAppStore.getState().camera;
+		if (camera) eng.setCamera(camera);
 		engineRef.current = eng;
 		setEngine(eng);
 		eng.resize();
@@ -103,7 +108,7 @@ export const WebGLGraphView = React.memo(() => {
 	// Update data
 	useEffect(() => {
 		const engine = engineRef.current;
-		if (!engine || data.nodes.length === 0) return;
+		if (!engine) return;
 
 		engine.setData(
 			data.nodes as Node<PreviewGraphNodeData>[],
@@ -113,21 +118,20 @@ export const WebGLGraphView = React.memo(() => {
 			data.sunburstRenderData,
 		);
 
-		const renderedRingWidth = data.sunburstRenderData?.ringWidth;
-		const changedOnlyRingWidth =
-			renderedRingWidth !== undefined &&
-			previousSunburstRenderRingWidth.current !== undefined &&
-			previousSunburstRenderRingWidth.current !== renderedRingWidth;
-
-		// Preserve the current zoom when the Sunburst ring width changes. Otherwise
-		// auto-fitting would scale the wider rings straight back to the same screen size.
-		if (!changedOnlyRingWidth) {
+		if (data.nodes.length === 0) return;
+		const previous = previousView.current;
+		const camera = useAppStore.getState().camera;
+		// Only an explicit change of layout or start group requests a new framing.
+		// Refreshes, filtering and ring spacing preserve the user's camera.
+		if ((!previous && !camera) || (previous && previous !== data.viewKey)) {
 			engine.fitView(0.05);
+		} else if (!previous && camera) {
+			engine.setCamera(camera);
 		}
-		previousSunburstRenderRingWidth.current = renderedRingWidth;
+		previousView.current = data.viewKey;
 		const cam = engine.getCamera();
 		setCameraState(cam);
-	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes]);
+	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes, data.viewKey, setCameraState]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
@@ -139,7 +143,7 @@ export const WebGLGraphView = React.memo(() => {
 		engine.focusNode(focusNodeId, rect);
 		setCameraState(engine.getCamera());
 		setFocusNodeId(undefined);
-	}, [focusNodeId, setFocusNodeId]);
+	}, [focusNodeId, setFocusNodeId, setCameraState]);
 
 	// Update camera state periodically for minimap
 	const updateCameraState = useCallback(() => {
@@ -147,7 +151,7 @@ export const WebGLGraphView = React.memo(() => {
 		if (engine) {
 			setCameraState(engine.getCamera());
 		}
-	}, []);
+	}, [setCameraState]);
 
 	// Pointer handlers
 	const handlePointerDown = useCallback(
@@ -159,7 +163,7 @@ export const WebGLGraphView = React.memo(() => {
 			const now = Date.now();
 			const timeSinceLastTap = now - lastTapTime.current;
 
-			if (timeSinceLastTap < 300 && activePointers.current.size === 0) {
+			if (e.pointerType === 'touch' && timeSinceLastTap < 300 && activePointers.current.size === 0) {
 				// Double tap detected
 				const rect = canvas.getBoundingClientRect();
 				const tapX = e.clientX - rect.left;
@@ -191,6 +195,7 @@ export const WebGLGraphView = React.memo(() => {
 			if (activePointers.current.size === 1) {
 				isPanning.current = true;
 			} else if (activePointers.current.size === 2) {
+				suppressNextClick.current = true;
 				isPanning.current = false; // Stop panning when starting pinch
 				const pointers = Array.from(activePointers.current.values());
 				lastPinchDistance.current = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
@@ -409,7 +414,7 @@ export const WebGLGraphView = React.memo(() => {
 		return () => {
 			canvas.removeEventListener('wheel', handleWheel);
 		};
-	}, []);
+	}, [setCameraState]);
 
 	const handleFitView = useCallback(() => {
 		const engine = engineRef.current;
@@ -417,6 +422,15 @@ export const WebGLGraphView = React.memo(() => {
 			engine.fitView(0.05);
 			updateCameraState();
 		}
+	}, [updateCameraState]);
+
+	const handleResetZoom = useCallback(() => {
+		const engine = engineRef.current;
+		const rect = canvasRef.current?.getBoundingClientRect();
+		if (!engine || !rect) return;
+		const center = engine.screenToWorld(rect.width / 2, rect.height / 2);
+		engine.setCamera({ x: center.x - rect.width / 2, y: center.y - rect.height / 2, zoom: 1 });
+		updateCameraState();
 	}, [updateCameraState]);
 
 	const handleZoomIn = useCallback(() => {
@@ -556,7 +570,7 @@ export const WebGLGraphView = React.memo(() => {
 				<FloatingHeader nodes={data.nodes} />
 			</div>
 			<canvas
-				className="size-full cursor-grab active:cursor-grabbing"
+				className="size-full cursor-grab touch-none active:cursor-grabbing"
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
 				onPointerCancel={handlePointerUp}
@@ -688,7 +702,9 @@ export const WebGLGraphView = React.memo(() => {
 			</Menu>
 
 			{/* Controls */}
-			<div className="absolute bottom-6 left-2 flex flex-col gap-2">
+			<div
+				className={`absolute bottom-6 flex-col gap-2 ${isSidebarOpen ? 'left-[22rem] hidden sm:flex' : 'left-2 flex'}`}
+			>
 				<button
 					className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
 					onClick={handleZoomIn}
@@ -702,6 +718,14 @@ export const WebGLGraphView = React.memo(() => {
 					title="Zoom Out"
 				>
 					<Minus className="size-5" />
+				</button>
+				<button
+					aria-label={`Zoom ${String(Math.round(cameraState.zoom * 100))} %, auf 100 % zurücksetzen`}
+					className="flex h-9 min-w-12 items-center justify-center rounded-full border border-slate-200 bg-white/80 px-2 text-xs text-slate-600 shadow-lg dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"
+					onClick={handleResetZoom}
+					title="Zoom auf 100 % zurücksetzen"
+				>
+					{Math.round(cameraState.zoom * 100)} %
 				</button>
 				<button
 					className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"

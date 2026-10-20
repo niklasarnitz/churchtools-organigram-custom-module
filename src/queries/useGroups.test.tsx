@@ -245,6 +245,73 @@ test('group loading reuses and populates the native cache, respects filters and 
 		expect((await fetchGroups(client, filter)).map((group) => group.id)).toEqual([23, 9, 15, 30]);
 		expect(idRequests).toBe(1);
 		expect(requests).toHaveLength(1);
+		// A reload bypasses even fresh host entries from before this module load,
+		// but keeps entities already refreshed during the current session.
+		const reloadedAt = Date.now();
+		for (const id of [23, 15, 30]) {
+			client.setQueryData(rawKey(id), { id, name: 'Before reload' }, { updatedAt: reloadedAt - 1 });
+		}
+		client.setQueryData(rawKey(9), { id: 9, name: 'Already refreshed' }, { updatedAt: reloadedAt });
+		expect((await fetchGroups(client, filter, reloadedAt)).map((group) => group.name)).toEqual([
+			'Fresh 23',
+			'Already refreshed',
+			'Fresh 15',
+			'Fresh 30',
+		]);
+		expect(requests[1]).toEqual([23, 15, 30]);
+		expect(idRequests).toBe(2);
+		await fetchGroups(client, filter, reloadedAt);
+		expect(requests).toHaveLength(2);
+	} finally {
+		churchtoolsClient.setBaseUrl(previousUrl ?? '');
+		client.clear();
+		await server.stop(true);
+	}
+});
+
+test('reload refreshes IDs without replacing the shared host query policy or fetch function', async () => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+	const filter = { campus_ids: [7] };
+	const idsKey = ['groups', 'filter', 'ids', filter];
+	let hostFetches = 0;
+	await client.fetchQuery({
+		queryFn: () => {
+			hostFetches++;
+			return Promise.resolve([9]);
+		},
+		queryKey: idsKey,
+		staleTime: Infinity,
+	});
+	const server = Bun.serve({
+		fetch(request) {
+			return Response.json({
+				data: new URL(request.url).pathname.endsWith('/ids') ? [23] : [{ id: 23, name: 'New group' }],
+			});
+		},
+		port: 0,
+	});
+	const previousUrl = churchtoolsClient.getBaseUrl();
+	churchtoolsClient.setBaseUrl(server.url.origin);
+	try {
+		expect((await fetchGroups(client, filter, Date.now())).map((group) => group.id)).toEqual([23]);
+		expect(client.getQueryData<number[]>(idsKey)).toEqual([23]);
+		expect(client.getQueryCache().find({ exact: true, queryKey: idsKey })?.options).toMatchObject({
+			staleTime: Infinity,
+		});
+		expect(hostFetches).toBe(1);
+		await client.refetchQueries({ exact: true, queryKey: idsKey });
+		expect(hostFetches).toBe(2);
+		expect(client.getQueryData<number[]>(idsKey)).toEqual([9]);
+
+		// A request started by the host before our reload may finish afterward.
+		const older = Promise.withResolvers<number[]>();
+		const olderRequest = client
+			.fetchQuery({ queryFn: () => older.promise, queryKey: idsKey, staleTime: 0 })
+			.catch((error: unknown) => error);
+		expect((await fetchGroups(client, filter, Date.now())).map((group) => group.id)).toEqual([23]);
+		older.resolve([9]);
+		await olderRequest;
+		expect(client.getQueryData<number[]>(idsKey)).toEqual([23]);
 	} finally {
 		churchtoolsClient.setBaseUrl(previousUrl ?? '');
 		client.clear();
