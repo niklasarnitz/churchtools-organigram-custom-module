@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Permissions } from '../types/Permissions';
 
 import { Logger } from '../globals/Logger';
+import { organigramQueryOptions } from './organigramQueryOptions';
 
 export const fetchPermissions = async () => {
 	Logger.log('API: Fetching permissions');
@@ -13,6 +14,7 @@ export const fetchPermissions = async () => {
 
 export const usePermissions = () =>
 	useQuery({
+		...organigramQueryOptions,
 		queryFn: fetchPermissions,
 		queryKey: ['permissions'],
 	});

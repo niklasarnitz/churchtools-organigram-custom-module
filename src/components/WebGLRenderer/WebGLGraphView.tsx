@@ -4,8 +4,6 @@ import { Maximize, Minus, Plus } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 
-import type { PreviewGraphNodeData } from '../../types/GraphNode';
-import type { Node } from '../../types/GraphTypes';
 import type { SunburstBaseColorDebugEntry, SunburstInteractionMeta } from '../../types/Sunburst';
 
 import { Constants } from '../../globals/Constants';
@@ -15,6 +13,7 @@ import { useGenerateReflowData } from '../../selectors/useGenerateReflowData';
 import { useAppStore } from '../../state/useAppStore';
 import { FloatingHeader } from '../FloatingHeader';
 import { WebGLGraphEngine } from './engine/WebGLGraphEngine';
+import { updateGraphView } from './updateGraphView';
 import { WebGLMinimap } from './WebGLMinimap';
 
 interface ContextMenuProps {
@@ -104,34 +103,17 @@ export const WebGLGraphView = React.memo(() => {
 	// Update data
 	useEffect(() => {
 		const engine = engineRef.current;
-		if (!engine || data.nodes.length === 0) return;
-
-		engine.setData(
-			data.nodes as Node<PreviewGraphNodeData>[],
-			data.edges,
-			showGroupTypes,
+		if (!engine) return;
+		previousSunburstRenderRingWidth.current = updateGraphView({
+			data,
+			engine,
 			isDarkMode,
-			data.sunburstRenderData,
-		);
-
-		const renderedRingWidth = data.sunburstRenderData?.ringWidth;
-		const changedOnlyRingWidth =
-			renderedRingWidth !== undefined &&
-			previousSunburstRenderRingWidth.current !== undefined &&
-			previousSunburstRenderRingWidth.current !== renderedRingWidth;
-
-		// Preserve the current zoom when the Sunburst ring width changes. Otherwise
-		// auto-fitting would scale the wider rings straight back to the same screen size.
-		const savedCamera = useAppStore.getState().camera;
-		if (savedCamera) {
-			engine.setCamera(savedCamera);
-		} else if (!changedOnlyRingWidth) {
-			engine.fitView(0.05);
-		}
-		previousSunburstRenderRingWidth.current = renderedRingWidth;
-		const cam = engine.getCamera();
-		setCameraState(cam);
-	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes, setCameraState]);
+			previousRingWidth: previousSunburstRenderRingWidth.current,
+			savedCamera: useAppStore.getState().camera,
+			setCamera: setCameraState,
+			showGroupTypes,
+		});
+	}, [data, isDarkMode, showGroupTypes, setCameraState]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {

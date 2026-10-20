@@ -17,7 +17,7 @@ export function prepareQueryClientForSession(client: QueryClient): QueryClient {
 	if (preparedClients.has(client)) return client;
 	preparedClients.add(client);
 
-	// Invalidation is synchronous. Observers fetch on mount; do not trigger
+	// Invalidation is synchronous. Our observers explicitly enable mount refetches; do not trigger
 	// unrelated active host requests or change the host's cache configuration.
 	void client.invalidateQueries({
 		predicate: ({ queryKey }) =>

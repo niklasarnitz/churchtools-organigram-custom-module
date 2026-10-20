@@ -1,8 +1,9 @@
 import { churchtoolsClient } from '@churchtools/churchtools-client';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { expect, spyOn, test } from 'bun:test';
 
 import { fetchGroups } from './groupCache';
+import { organigramQueryOptions } from './organigramQueryOptions';
 import { prepareQueryClientForSession } from './prepareQueryClientForSession';
 
 test('startup refreshes even fresh cached group IDs and entities, then reuses them within the session', async () => {
@@ -54,5 +55,48 @@ test('startup invalidates all organigram data but preserves unrelated host cache
 	for (const key of keys) expect(client.getQueryState(key)?.isInvalidated).toBe(true);
 	for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated).toBe(false);
 	expect(client.getDefaultOptions()).toBe(defaults);
+	client.clear();
+});
+
+test('organigram observers refresh on mount despite host defaults and leave host observers alone', async () => {
+	const client = new QueryClient({
+		defaultOptions: { queries: { refetchOnMount: false, retry: false, staleTime: Infinity } },
+	});
+	const key = ['groups', 'filter', 'organigram', {}];
+	client.setQueryData(key, ['old']);
+	client.setQueryData(['calendar'], ['host cached']);
+	const defaults = client.getDefaultOptions();
+	prepareQueryClientForSession(client);
+	let requests = 0;
+	const observer = new QueryObserver(client, {
+		...organigramQueryOptions,
+		queryFn: () => {
+			requests++;
+			return Promise.resolve(['fresh']);
+		},
+		queryKey: key,
+	});
+	const done = new Promise<void>((resolve) => {
+		const unsubscribe = observer.subscribe((result) => {
+			if (result.data?.[0] === 'fresh') {
+				unsubscribe();
+				resolve();
+			}
+		});
+	});
+	await done;
+	expect(requests).toBe(1);
+	expect(observer.getCurrentResult().data).toEqual(['fresh']);
+	expect(client.getDefaultOptions()).toBe(defaults);
+	const host = new QueryObserver<string[]>(client, {
+		queryFn: () => {
+			throw new Error('Host must not refetch');
+		},
+		queryKey: ['calendar'],
+	});
+	const stop = host.subscribe(() => undefined);
+	expect(host.getCurrentResult().fetchStatus).toBe('idle');
+	expect(host.getCurrentResult().data).toEqual(['host cached']);
+	stop();
 	client.clear();
 });
