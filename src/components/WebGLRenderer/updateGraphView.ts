@@ -24,7 +24,7 @@ export function updateGraphView({
 	setCamera,
 	showGroupTypes,
 }: ViewUpdate): number | undefined {
-	if (data.isCalculating || data.nodes.length === 0) return previousRingWidth;
+	if (data.isCalculating) return previousRingWidth;
 	engine.setData(
 		data.nodes as Node<PreviewGraphNodeData>[],
 		data.edges,
@@ -32,6 +32,8 @@ export function updateGraphView({
 		isDarkMode,
 		data.sunburstRenderData,
 	);
+	// A completed empty refresh must clear deleted groups without changing the camera.
+	if (data.nodes.length === 0) return previousRingWidth;
 	const ringWidth = data.sunburstRenderData?.ringWidth;
 	const changedRingWidth =
 		ringWidth !== undefined && previousRingWidth !== undefined && previousRingWidth !== ringWidth;

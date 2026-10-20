@@ -60,3 +60,30 @@ test('completed redraws restore the saved camera instead of fitting again', () =
 	expect(engine.setCamera).toHaveBeenCalledWith(camera);
 	expect(save).toHaveBeenCalledWith(camera);
 });
+
+test('a completed empty news refresh clears the graph without fitting or saving the camera', () => {
+	const camera = { x: 10, y: 20, zoom: 2 };
+	const engine = {
+		fitView: mock(() => undefined),
+		getCamera: () => camera,
+		setCamera: mock(() => undefined),
+		setData: mock(() => undefined),
+	};
+	const save = mock(() => undefined);
+	const options = {
+		data: { edges: [], isCalculating: true, nodes: [] },
+		engine,
+		isDarkMode: false,
+		previousRingWidth: 350,
+		savedCamera: camera,
+		setCamera: save,
+		showGroupTypes: true,
+	};
+	updateGraphView(options);
+	expect(engine.setData).not.toHaveBeenCalled();
+	options.data.isCalculating = false;
+	expect(updateGraphView(options)).toBe(350);
+	expect(engine.setData).toHaveBeenCalledWith([], [], true, false, undefined);
+	expect(engine.fitView).not.toHaveBeenCalled();
+	expect(save).not.toHaveBeenCalled();
+});

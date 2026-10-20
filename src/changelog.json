@@ -9,7 +9,9 @@
 				"Beim Neuladen werden die Organigramm-Daten frisch vom Server abgerufen, während die gespeicherten Anzeigeeinstellungen erhalten bleiben.",
 				"Beim Wechsel der Sunburst-Farbeinstellung bleiben Zoom und Bildausschnitt unverändert.",
 				"Beim Preset-Wechsel wird der Bildausschnitt erst auf das fertig berechnete Layout angepasst.",
-				"Beim Reload werden veraltete Organigramm-Daten auch dann nachgeladen, wenn das ChurchTools-Frontend automatische Abfragen beim Einhängen deaktiviert."
+				"Beim Reload werden veraltete Organigramm-Daten auch dann nachgeladen, wenn das ChurchTools-Frontend automatische Abfragen beim Einhängen deaktiviert.",
+				"Das Organigramm prüft alle zwei Sekunden per Poll for News auf Gruppen- und Personenänderungen und aktualisiert die Daten bei unveränderter Ansicht. Die Abfrage pausiert in ausgeblendeten Tabs und bei fehlender Verbindung.",
+				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt."
 			]
 		},
 		{

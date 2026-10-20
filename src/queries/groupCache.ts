@@ -9,6 +9,10 @@ export type GroupFilter = Partial<
 	Record<'agegroup_ids' | 'campus_ids' | 'group_category_ids' | 'group_status_ids', number[]>
 >;
 
+// Host cache writes can clear TanStack's invalidation flag while IDs are loading.
+// Keep news pending independently until our own group request succeeds.
+const pendingGroupNews = new WeakMap<QueryClient, Map<number, symbol>>();
+
 export async function fetchGroups(client: QueryClient, filter: GroupFilter): Promise<Group[]> {
 	// This is the group module's ID-list key. Never infer completeness from cached entities:
 	// they may come from just one page, a different filter, or contain now-invisible groups.
@@ -19,9 +23,11 @@ export async function fetchGroups(client: QueryClient, filter: GroupFilter): Pro
 	const rawKey = (id: number) => ['groups', 'single', id, 'raw'] as const;
 	const staleTime = client.getDefaultOptions().queries?.staleTime;
 	const maxAge = typeof staleTime === 'number' ? staleTime : 5 * 60 * 1000;
+	const pending = pendingGroupNews.get(client);
+	const revisions = new Map(pending);
 	const missing = ids.filter((id) => {
 		const state = client.getQueryState<Group>(rawKey(id));
-		return !state?.data || state.isInvalidated || Date.now() - state.dataUpdatedAt >= maxAge;
+		return revisions.has(id) || !state?.data || state.isInvalidated || Date.now() - state.dataUpdatedAt >= maxAge;
 	});
 
 	client.setQueryDefaults(['groups', 'single'], { gcTime: Infinity });
@@ -43,6 +49,9 @@ export async function fetchGroups(client: QueryClient, filter: GroupFilter): Pro
 			client.setQueryData(rawKey(group.id), group);
 			return { id: group.id, updatedAt: client.getQueryState(rawKey(group.id))?.dataUpdatedAt };
 		});
+		for (const id of batch) {
+			if (pending && revisions.has(id) && pending.get(id) === revisions.get(id)) pending.delete(id);
+		}
 		// The native group batcher checks invalidation, not timestamps. Expire our
 		// entries the same way, without invalidating a newer host write or includes.
 		if (published.length && Number.isFinite(maxAge)) {
@@ -66,4 +75,13 @@ export async function fetchGroups(client: QueryClient, filter: GroupFilter): Pro
 /** vComps exposes the host's actual Vue Query client (the same TanStack Query core API). */
 export function getChurchToolsQueryClient(): QueryClient | undefined {
 	return (globalThis as typeof globalThis & { vComps?: { queryClient?: QueryClient } }).vComps?.queryClient;
+}
+
+export function markGroupsChanged(client: QueryClient, ids: Iterable<number>): void {
+	let pending = pendingGroupNews.get(client);
+	if (!pending) {
+		pending = new Map();
+		pendingGroupNews.set(client, pending);
+	}
+	for (const id of ids) pending.set(id, Symbol());
 }
