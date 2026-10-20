@@ -68,9 +68,17 @@ restored from session storage. No ChurchTools frontend packages are bundled to a
 
 ### Automatic updates
 
-The organigram calls `GET /pollfornews` every two seconds for the documented
+The organigram calls `GET /pollfornews` with a five-second pause after each completed
+poll/refresh cycle for the documented
 `group` and `person` domain types. It uses `meta.lastPollDate` from each successful
-response as the next `since` cursor. Group changes invalidate filtered ID lists,
+response as the cursor, subtracting a two-second overlap for the next `since`
+parameter (also on the initial request). This accommodates second-resolution change
+timestamps, a strict `executedate > since` comparison and a rounded-up server cursor
+(as reported by a server source-code analysis supplied by the maintainer). It does
+not guarantee recovery of arbitrarily delayed or expired notifications.
+Repeated notifications are processed again because the endpoint provides no revision
+with which to distinguish a duplicate from another change to the same group. This can
+cause repeated data requests during the overlap window. Group changes invalidate filtered ID lists,
 the changed raw groups, hierarchies, memberships and displayed persons; person
 changes refresh memberships and displayed persons. View settings and camera are
 not reset. Changes without a corresponding group/person notification still need

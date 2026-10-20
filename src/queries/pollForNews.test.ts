@@ -2,6 +2,7 @@ import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { expect, mock, spyOn, test } from 'bun:test';
 
+import { getColorForChurchToolsColor, getColorForGroupType } from '../globals/Colors';
 import { createAppStore } from '../state/useAppStore';
 import { fetchGroups } from './groupCache';
 import { fetchNews, type NewsResponse, refreshNewsQueries, startNewsPolling } from './pollForNews';
@@ -14,7 +15,10 @@ const settle = async () => {
 	for (let i = 0; i < 20; i++) await Promise.resolve();
 };
 
-function harness(fetch: (since: string) => Promise<NewsResponse>, apply = mock(() => Promise.resolve())) {
+function harness(
+	fetch: (since: string) => Promise<NewsResponse>,
+	apply = mock<(changes: NewsResponse['data']) => Promise<void>>(() => Promise.resolve()),
+) {
 	let available = true;
 	let scheduled: (() => void) | undefined;
 	let delay = 0;
@@ -74,14 +78,15 @@ test('polling advances using the server timestamp, pauses and resumes, then clea
 	const fetch = mock<(since: string) => Promise<NewsResponse>>(() => Promise.resolve(response()));
 	const h = harness(fetch);
 	await settle();
-	expect(h.delay()).toBe(2_000);
+	expect(h.delay()).toBe(5_000);
 	h.setAvailable(false);
 	await h.tick();
 	expect(fetch).toHaveBeenCalledTimes(1);
 	h.setAvailable(true);
 	h.polling.resume();
 	await settle();
-	expect(fetch.mock.calls[1]).toEqual(['2026-10-20T10:00:30Z']);
+	expect(fetch.mock.calls[0]).toEqual(['2026-10-20T09:59:58.000Z']);
+	expect(fetch.mock.calls[1]).toEqual(['2026-10-20T10:00:28.000Z']);
 	h.polling.stop();
 	expect(h.hasTimer()).toBe(false);
 	h.polling.resume();
@@ -92,15 +97,17 @@ test('request and refresh failures retain the cursor and back off', async () => 
 	const fetch = mock<(since: string) => Promise<NewsResponse>>(() =>
 		Promise.resolve(response()),
 	).mockRejectedValueOnce(new Error('offline'));
-	const apply = mock(() => Promise.resolve()).mockRejectedValueOnce(new Error('refresh failed'));
+	const apply = mock<(changes: NewsResponse['data']) => Promise<void>>(() => Promise.resolve()).mockRejectedValueOnce(
+		new Error('refresh failed'),
+	);
 	const h = harness(fetch, apply);
 	await settle();
 	expect(h.delay()).toBe(60_000);
 	await h.tick();
 	expect(h.delay()).toBe(120_000);
 	await h.tick();
-	expect(fetch.mock.calls).toEqual(Array.from({ length: 3 }, () => ['2026-10-20T10:00:00Z']));
-	expect(h.delay()).toBe(2_000);
+	expect(fetch.mock.calls).toEqual(Array.from({ length: 3 }, () => ['2026-10-20T09:59:58.000Z']));
+	expect(h.delay()).toBe(5_000);
 	expect(h.errors).toHaveBeenCalledTimes(2);
 	h.polling.stop();
 });
@@ -248,4 +255,75 @@ test('group news survives host cache writes and failed reloads, without fetching
 		api.mockRestore();
 		client.clear();
 	}
+});
+
+test('group news removes a cached explicit color and restores the group-type fallback', async () => {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+	const filter = { group_status_ids: [1] };
+	const key = ['groups', 'filter', 'organigram', filter];
+	const oldGroup = { id: 458, information: { color: 'red', groupTypeId: 1 }, name: 'Demo' };
+	const api = spyOn(churchtoolsClient, 'get');
+	try {
+		for (const information of [
+			{ color: null, groupTypeId: 1 },
+			{ color: '', groupTypeId: 1 },
+			{ groupTypeId: 1 },
+		]) {
+			client.setQueryData(['groups', 'single', 458, 'raw'], oldGroup);
+			client.setQueryData(key, [oldGroup]);
+			const observer = new QueryObserver(client, { queryFn: () => fetchGroups(client, filter), queryKey: key });
+			const unsubscribe = observer.subscribe(() => undefined);
+			try {
+				api.mockResolvedValueOnce([458]).mockResolvedValueOnce([{ ...oldGroup, information }]);
+				await refreshNewsQueries(client, [{ domainId: 458, domainType: 'group' }]);
+				const group = observer.getCurrentResult().data?.[0];
+				expect(group?.information.color).not.toBe('red');
+				expect(getColorForChurchToolsColor(group?.information.color)).toBeUndefined();
+				expect(getColorForChurchToolsColor(group?.information.color) ?? getColorForGroupType(1)).toEqual(
+					getColorForGroupType(1),
+				);
+			} finally {
+				unsubscribe();
+			}
+		}
+		expect(api).toHaveBeenCalledTimes(6);
+	} finally {
+		api.mockRestore();
+		client.clear();
+	}
+});
+
+test('two-second overlap catches strict timestamp boundaries and later changes to the same group', async () => {
+	const firstCursor = Date.parse('2026-10-20T10:00:01Z');
+	const storedChange = Date.parse('2026-10-20T10:00:00Z');
+	// A server read at .800 rounds to :01; a subsequent write at .900 is stored as :00.
+	expect(storedChange > firstCursor).toBe(false);
+	expect(storedChange > firstCursor - 1_000).toBe(false);
+	let polls = 0;
+	const fetch = mock((since: string): Promise<NewsResponse> => {
+		polls++;
+		const cursor = new Date(firstCursor + (polls - 1) * 5_000).toISOString();
+		// A second edit to the same ID is stored at :05 before the third poll.
+		const executedAt = polls === 2 ? storedChange : Date.parse('2026-10-20T10:00:05Z');
+		const data = polls >= 2 && executedAt > Date.parse(since) ? [{ domainId: 458, domainType: 'group' }] : [];
+		return Promise.resolve({ data, meta: { lastPollDate: cursor } });
+	});
+	const applied: NewsResponse['data'][] = [];
+	const h = harness(
+		fetch,
+		mock((changes: NewsResponse['data']) => {
+			applied.push(changes);
+			return Promise.resolve();
+		}),
+	);
+	await settle();
+	expect(applied).toEqual([[]]);
+	await h.tick();
+	expect(fetch.mock.calls[1]).toEqual(['2026-10-20T09:59:59.000Z']);
+	expect(applied[1]).toEqual([{ domainId: 458, domainType: 'group' }]);
+	await h.tick();
+	expect(fetch.mock.calls[2]).toEqual(['2026-10-20T10:00:04.000Z']);
+	expect(applied[2]).toEqual([{ domainId: 458, domainType: 'group' }]);
+	expect(h.delay()).toBe(5_000);
+	h.polling.stop();
 });

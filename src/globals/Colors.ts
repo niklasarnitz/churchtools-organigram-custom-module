@@ -100,7 +100,7 @@ export function findChurchToolsColorCandidates(group: Record<string, unknown>): 
 	return candidates;
 }
 
-export function getColorForChurchToolsColor(colorName?: string) {
+export function getColorForChurchToolsColor(colorName?: null | string) {
 	if (!colorName) return undefined;
 
 	const normalizedColorName = colorName.trim().toLowerCase();
@@ -205,6 +205,6 @@ function getNestedRecordValue(record: Record<string, unknown>, path: string): un
 	}, record);
 }
 
-export const getColorForGroupType = (id: number) => {
-	return getColorForId(id, masterDataColorSeeds.groupTypes);
+export const getColorForGroupType = (id: number, configuredColor?: null | string) => {
+	return getColorForChurchToolsColor(configuredColor) ?? getColorForId(id, masterDataColorSeeds.groupTypes);
 };

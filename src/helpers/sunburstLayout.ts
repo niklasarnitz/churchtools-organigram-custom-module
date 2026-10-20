@@ -539,7 +539,7 @@ function getSunburstTitle(
 }
 
 function getGroupTypeColor(nodeData: PreviewGraphNodeData): string {
-	const shade500 = getColorForGroupType(nodeData.group.information.groupTypeId).shades[500];
+	const shade500 = getColorForGroupType(nodeData.group.information.groupTypeId, nodeData.groupTypeColor).shades[500];
 	return shade500.startsWith('#') ? shade500 : oklchToHex(shade500);
 }
 
@@ -660,7 +660,7 @@ function deriveBaseNodeColor(
 	}
 
 	const shade500 = nodeData.color.shades[500];
-	const churchToolsColorName = nodeData.group.information.color;
+	const churchToolsColorName = nodeData.group.information.color ?? undefined;
 	if (!shade500) {
 		debugEntries?.push({
 			derivedColor: '#94a3b8',

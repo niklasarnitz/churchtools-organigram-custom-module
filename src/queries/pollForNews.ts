@@ -65,6 +65,11 @@ export async function refreshNewsQueries(client: QueryClient, changes: NewsChang
 	);
 }
 
+// Allow for second-resolution timestamps, strict executedate > since and a rounded-up
+// server cursor. One second would still exclude a change exactly on the boundary.
+// This does not cover arbitrarily delayed writes or expired notifications.
+const NEWS_OVERLAP_MS = 2_000;
+
 /** One request/refresh at a time; retries retain the last successful server cursor. */
 export function startNewsPolling(options: PollOptions) {
 	let since = options.initialSince;
@@ -84,7 +89,7 @@ export function startNewsPolling(options: PollOptions) {
 		}
 		busy = true;
 		try {
-			const news = await options.fetch(since);
+			const news = await options.fetch(new Date(Date.parse(since) - NEWS_OVERLAP_MS).toISOString());
 			if (isStopped()) return;
 			await options.apply(news.data);
 			if (isStopped()) return;
@@ -100,7 +105,7 @@ export function startNewsPolling(options: PollOptions) {
 					() => {
 						void run();
 					},
-					failures === 0 ? 2_000 : Math.min(300_000, 30_000 * 2 ** Math.min(failures, 4)),
+					failures === 0 ? 5_000 : Math.min(300_000, 30_000 * 2 ** Math.min(failures, 4)),
 				);
 			}
 		}
