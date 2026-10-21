@@ -1,6 +1,13 @@
 {
 	"versions": [
 		{
+			"version": "1.9.1",
+			"date": "2026-10-21",
+			"changes": [
+				"PDF-Poster drucken das Bild rechts und unten bis in die bedruckbaren Klebelaschen weiter. Gleichseitige Passmarken über die gesamte bedruckbare Breite der Klebelaschen zeigen mit ihrer Spitze die Anlegekante; Überlappungen kaschieren leichte Klebeungenauigkeiten bei unveränderter Postergröße."
+			]
+		},
+		{
 			"version": "1.9.0",
 			"date": "2026-10-20",
 			"changes": [
@@ -13,7 +20,8 @@
 				"Das Organigramm prüft alle fünf Sekunden per Poll for News auf Gruppen- und Personenänderungen und aktualisiert die Daten bei unveränderter Ansicht. Die Abfrage pausiert in ausgeblendeten Tabs und bei fehlender Verbindung.",
 				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt.",
 				"Poll for News verwendet zwei Sekunden überlappende Zeitfenster, um Änderungsmeldungen an sekundengenauen, gerundeten Zeitgrenzen zu erfassen. Nach jedem abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden.",
-				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe."
+				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe.",
+				"PDF-Posterexport mit A4/A3, proportionaler Zielgröße, Kachelvorschau, zwei einheitlichen Stapelschnitten und abschließender Montageübersicht samt Anleitung für waagerechte Streifen und Fixogum."
 			]
 		},
 		{
