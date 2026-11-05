@@ -145,3 +145,31 @@ async function createSunburstPDF(renderData: SunburstRenderData, PDF: typeof jsP
 
 	return doc;
 }
+
+/** Capture one consistent diagram for both the preview and all poster pages. */
+export const useGeneratePosterSource = () => {
+	const data = useGenerateReflowData();
+	const generateSVGData = useGenerateSVGData();
+	return useCallback(() => {
+		if (data.isCalculating)
+			throw new Error('Das Layout wird noch berechnet. Bitte anschließend erneut exportieren.');
+		if (!data.sunburstRenderData && data.nodes.length === 0) {
+			throw new Error('Es gibt keine sichtbaren Gruppen zum Export.');
+		}
+		const markup = data.sunburstRenderData
+			? createSunburstSvg(data.sunburstRenderData, { target: 'pdf' })
+			: generateSVGData();
+		// Poster export stays local; no remote font stylesheet is needed for PDF generation.
+		const svg = new DOMParser().parseFromString(markup.replace(/@import[^;]+;/g, ''), 'image/svg+xml');
+		if (svg.querySelector('parsererror')) throw new Error('Die Exportgrafik konnte nicht vorbereitet werden.');
+		const element = svg.documentElement;
+		const viewBox = element
+			.getAttribute('viewBox')
+			?.trim()
+			.split(/[\s,]+/)
+			.map(Number);
+		const width = viewBox?.[2] ?? Number.parseFloat(element.getAttribute('width') ?? '');
+		const height = viewBox?.[3] ?? Number.parseFloat(element.getAttribute('height') ?? '');
+		return { element, height, width };
+	}, [data, generateSVGData]);
+};

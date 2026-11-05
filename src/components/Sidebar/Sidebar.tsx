@@ -8,7 +8,7 @@ import { useGroups } from '../../queries/useGroups';
 import { useHierarchies } from '../../queries/useHierarchies';
 import { useGenerateGraphMLData } from '../../selectors/useGenerateGraphMLData';
 import { useGenerateHTMLData } from '../../selectors/useGenerateHTMLData';
-import { useGeneratePDFData } from '../../selectors/useGeneratePDFData';
+import { useGeneratePDFData, useGeneratePosterSource } from '../../selectors/useGeneratePDFData';
 import { useGenerateSVGData } from '../../selectors/useGenerateSVGData';
 import { useGroupsById } from '../../selectors/useGroupsById';
 import { useAppStore } from '../../state/useAppStore';
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
 import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
+import { PosterExportDialog } from './PosterExportDialog';
 import { PresetManager } from './PresetManager';
 import { RadialRingDistanceControl } from './RadialRingDistanceControl';
 import { StartGroupSelect } from './StartGroupSelect';
@@ -30,6 +31,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 	const generateGraphMLData = useGenerateGraphMLData();
 	const generateHTMLData = useGenerateHTMLData();
 	const generatePDFData = useGeneratePDFData();
+	const preparePosterSource = useGeneratePosterSource();
 	const generateSVGData = useGenerateSVGData();
 	const { data: groups } = useGroups();
 	const { data: hierarchies } = useHierarchies();
@@ -153,6 +155,7 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 						<Download className="size-4" />
 						Export als PDF Datei
 					</Button>
+					<PosterExportDialog fileName={getFileName('poster.pdf')} prepareSource={preparePosterSource} />
 					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadSVG} variant="outline">
 						<Download className="size-4" />
 						Export als SVG Datei

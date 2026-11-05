@@ -102,3 +102,24 @@ bun run build:module
 You can then install the custom module in ChurchTools by uploading the `.zip` file.
 
 **Important: The shorty of the custom module must be `organigram`.**
+
+## Tiled PDF posters
+
+Use **PDF-Poster drucken** in the sidebar to choose A4/A3, orientation, a target
+width or height in centimetres, the printer margin (3–30 mm), and the printable
+glue tab (8–30 mm). The other dimension follows the diagram's aspect ratio.
+The preview shows the final size, tile grid and sheet count; exports are limited
+to 100 tiles plus one assembly overview. The diagram is captured when the dialog
+opens, so a background refresh cannot change individual pages during export.
+
+Print single-sided at **100% / actual size**. Remove the last overview sheet,
+then cut the entire tile stack along the same top and left marks (printer margin
+plus 5 mm). The right and bottom tabs include the unprintable printer margin and
+are covered by the next sheet. The image continues into the printable tabs at
+the same scale, repeating the matching region of the next tile, including the
+bottom-right corner. Small contrasting triangles lie wholly on the tabs; their tips mark the next sheet's
+trimmed edge and are hidden after assembly. The unprintable margin stays blank. Assemble complete horizontal strips first, then
+join those strips from top to bottom. The overview contains the tile map and
+instructions for temporary Fixogum positioning, a paper test, permanent fixing,
+and final outside trimming. Physical printer accuracy and cutting alignment
+should be checked with a small test poster before printing a large one.
