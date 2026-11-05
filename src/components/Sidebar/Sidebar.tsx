@@ -1,8 +1,6 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Download, History, Loader2 } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 
-import type { PosterOptions } from '../../helpers/pdfPosterLayout';
-
 import changelog from '../../changelog.json';
 import { Strings } from '../../globals/Strings';
 import { downloadTextFile } from '../../helpers/downloadTextFile';
@@ -20,7 +18,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ExclusionFilters } from './ExclusionFilters';
 import { LayoutSelect } from './LayoutSelect';
 import { OrphanedGroupsWizard } from './OrphanedGroupsWizard';
-import { PdfPosterExportDialog } from './PdfPosterExportDialog';
 import { PresetManager } from './PresetManager';
 import { RadialRingDistanceControl } from './RadialRingDistanceControl';
 import { StartGroupSelect } from './StartGroupSelect';
@@ -93,19 +90,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 		}
 	}, [generatePDFData, getFileName, setIsExporting]);
 
-	const downloadPosterPDF = useCallback(
-		async (options: PosterOptions) => {
-			setIsExporting(true);
-			try {
-				const doc = await generatePDFData(options);
-				doc.save(getFileName('poster.pdf'));
-			} finally {
-				setIsExporting(false);
-			}
-		},
-		[generatePDFData, getFileName, setIsExporting],
-	);
-
 	if (isLoading) {
 		return (
 			<div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -169,7 +153,6 @@ export const Sidebar = React.memo(({ isLoading }: { isLoading: boolean }) => {
 						<Download className="size-4" />
 						Export als PDF Datei
 					</Button>
-					<PdfPosterExportDialog disabled={isExporting} onExport={downloadPosterPDF} />
 					<Button className="w-full" disabled={isExporting} onClick={didPressDownloadSVG} variant="outline">
 						<Download className="size-4" />
 						Export als SVG Datei

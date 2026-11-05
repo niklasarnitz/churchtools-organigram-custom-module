@@ -132,24 +132,11 @@ Mit **Überspringen** wird die aktuelle Gruppe ohne Änderung übersprungen.
 Die aktuelle, gefilterte Darstellung kann über die Seitenleiste exportiert werden:
 
 - **PDF**: Druck- und weitergabefertiges Dokument.
-- **PDF-Poster drucken**: Maßhaltiger Mehrseitenexport mit Kachelraster und separater Montageanleitung.
 - **SVG**: Skalierbare Vektorgrafik, geeignet für Nachbearbeitung und große Formate.
 - **HTML**: Eigenständige interaktive Darstellung mit Hover-Informationen und ChurchTools-Links. Die Texte sind nicht interaktiv und verhindern nicht die Interaktion mit den Segmenten.
 - **GraphML**: Strukturformat für Programme zur Analyse und Weiterverarbeitung von Graphen.
 
 Der Dateiname enthält bei gesetzter Startgruppe deren Namen, ansonsten einen allgemeinen Organigramm-Namen sowie das aktuelle Datum. Für den Export werden die aktuell sichtbaren Gruppen, Filter, Beschriftungen und Sunburst-Einstellungen verwendet.
-
-### Poster aus mehreren Druckblättern
-
-**PDF-Poster drucken** öffnet die Druckeinstellungen. A4 oder A3 sowie Hoch- oder Querformat wählen und die gewünschte Posterbreite oder -höhe in Zentimetern eingeben. Die andere Dimension wird proportional berechnet. Die Größe umfasst die gesamte exportierte Grafik einschließlich ihres Außenabstands. Vorschau und Blattanzahl aktualisieren sich sofort; maximal 400 Kachelblätter sind möglich.
-
-Den **Druckrand** entsprechend dem Drucker einstellen (Standard: 5 mm). Die **Klebelasche gesamt** bleibt rechts und unten stehen und enthält diesen unbedruckbaren Rand (Standard: 15 mm). Mindestens 4 mm zusätzlich zum Druckrand müssen für die Blattkennung bleiben. Oben und links liegt der Schnitt immer bei Druckrand + 5 mm, auch auf der letzten Reihe und Spalte.
-
-Alle Seiten **einseitig mit „Tatsächliche Größe / 100 %“ ohne Seitenanpassung** drucken. Zuerst einen Probedruck machen und Druckermaßstab, Rand sowie Ablösbarkeit des Klebers prüfen. Das letzte PDF-Blatt ist die unbeschnittene Montageübersicht: vor den beiden Stapelschnitten herausnehmen.
-
-Die Kachelblätter deckungsgleich stapeln und oben sowie links an den gemeinsamen Marken schneiden. Zuerst jede waagerechte Reihe von links nach rechts als separaten Streifen zusammensetzen; die nächste beschnittene Kante überdeckt die rechte Klebelasche samt Druckrand. Mit kleinen Fixogum-Punkten vorläufig fixieren, den ganzen Streifen ausrichten und erst dann dauerhaft sichern, etwa mit rückseitigem Klebeband. Danach die vollständigen Streifen von oben nach unten auf die unteren Laschen kleben. Erst am fertig montierten Poster überstehende Außenränder auf die Zielgröße abschneiden. Kennungen auf den Laschen sind dann verdeckt oder abgeschnitten.
-
-Der normale einseitige PDF-Export bleibt unverändert. Beide PDF-Varianten verwenden die fertige aktuelle Anordnung, auch bei Sunburst; Zoom, Bildausschnitt und Presets werden nicht verändert. Während einer Layoutberechnung ist der Posterexport gesperrt.
 
 ## Fehlersuche
 

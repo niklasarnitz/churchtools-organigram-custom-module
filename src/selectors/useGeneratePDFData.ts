@@ -2,11 +2,8 @@ import type jsPDF from 'jspdf';
 
 import { useCallback } from 'react';
 
-import type { PosterOptions } from '../helpers/pdfPosterLayout';
 import type { SunburstRenderData } from '../types/Sunburst';
 
-import { createPosterPDF, getSvgSize } from '../helpers/pdfPosterExport';
-import { calculatePosterLayout } from '../helpers/pdfPosterLayout';
 import { createSunburstSvg } from '../helpers/sunburstExport';
 import { useGenerateReflowData } from './useGenerateReflowData';
 import { useGenerateSVGData } from './useGenerateSVGData';
@@ -55,78 +52,64 @@ export const useGeneratePDFData = () => {
 	const data = useGenerateReflowData();
 	const generateSVGData = useGenerateSVGData();
 
-	return useCallback(
-		async (posterOptions?: PosterOptions) => {
-			if (posterOptions) {
-				if (data.isCalculating) throw new Error('Das Layout wird noch berechnet. Bitte kurz warten.');
-				if (data.nodes.length === 0) throw new Error('Es gibt keine sichtbaren Gruppen zum Export.');
-				// Capture the completed layout before loading libraries; live updates cannot mix tile snapshots.
-				const svg = new DOMParser().parseFromString(generateSVGData('pdf'), 'image/svg+xml').documentElement;
-				const layout = calculatePosterLayout(getSvgSize(svg), posterOptions);
-				for (const text of svg.querySelectorAll('text')) text.style.fontFamily = 'helvetica';
-				const { default: PDF } = await import('jspdf');
-				await import('svg2pdf.js');
-				return createPosterPDF(svg, layout, PDF);
-			}
-			// PDF libraries are only needed after a user requests an export.
-			const { default: PDF } = await import('jspdf');
-			await import('svg2pdf.js');
-			if (data.sunburstRenderData) {
-				return createSunburstPDF(data.sunburstRenderData, PDF);
-			}
+	return useCallback(async () => {
+		// PDF libraries are only needed after a user requests an export.
+		const { default: PDF } = await import('jspdf');
+		await import('svg2pdf.js');
+		if (data.sunburstRenderData) {
+			return createSunburstPDF(data.sunburstRenderData, PDF);
+		}
 
-			if (data.nodes.length === 0) {
-				return createInfoPDF(
-					'Es gibt keine sichtbaren Gruppen zum Export. Bitte passe die Filter an und versuche es erneut.',
-					PDF,
-				);
-			}
+		if (data.nodes.length === 0) {
+			return createInfoPDF(
+				'Es gibt keine sichtbaren Gruppen zum Export. Bitte passe die Filter an und versuche es erneut.',
+				PDF,
+			);
+		}
 
-			const svgMarkup = generateSVGData();
-			const svgDocument = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
-			const svg = svgDocument.documentElement;
-			if (svg.nodeName.toLowerCase() === 'parsererror') {
-				return createInfoPDF('Die Organigramm-SVG konnte nicht fuer den PDF-Export vorbereitet werden.', PDF);
-			}
-			// svg2pdf cannot embed CSS/web fonts: use its built-in Helvetica explicitly.
-			// SVG card fitting uses the metrically compatible Arial, not the screen's Lato.
-			for (const text of svg.querySelectorAll('text')) {
-				text.style.fontFamily = 'helvetica';
-			}
+		const svgMarkup = generateSVGData();
+		const svgDocument = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
+		const svg = svgDocument.documentElement;
+		if (svg.nodeName.toLowerCase() === 'parsererror') {
+			return createInfoPDF('Die Organigramm-SVG konnte nicht fuer den PDF-Export vorbereitet werden.', PDF);
+		}
+		// svg2pdf cannot embed CSS/web fonts: use its built-in Helvetica explicitly.
+		// SVG card fitting uses the metrically compatible Arial, not the screen's Lato.
+		for (const text of svg.querySelectorAll('text')) {
+			text.style.fontFamily = 'helvetica';
+		}
 
-			// Read dimensions from viewBox or width/height attributes
-			const viewBox = svg.getAttribute('viewBox')?.split(' ').map(Number);
-			const boundsWidth = viewBox ? viewBox[2] : Number.parseFloat(svg.getAttribute('width') ?? '') || 1;
-			const boundsHeight = viewBox ? viewBox[3] : Number.parseFloat(svg.getAttribute('height') ?? '') || 1;
+		// Read dimensions from viewBox or width/height attributes
+		const viewBox = svg.getAttribute('viewBox')?.split(' ').map(Number);
+		const boundsWidth = viewBox ? viewBox[2] : Number.parseFloat(svg.getAttribute('width') ?? '') || 1;
+		const boundsHeight = viewBox ? viewBox[3] : Number.parseFloat(svg.getAttribute('height') ?? '') || 1;
 
-			const orientation = calculatePDFOrientation(boundsWidth, boundsHeight);
-			const doc = new PDF({
-				compress: true,
-				format: 'a4',
-				orientation: orientation,
-				unit: 'mm',
-			});
+		const orientation = calculatePDFOrientation(boundsWidth, boundsHeight);
+		const doc = new PDF({
+			compress: true,
+			format: 'a4',
+			orientation: orientation,
+			unit: 'mm',
+		});
 
-			const pageWidth = doc.internal.pageSize.getWidth();
-			const pageHeight = doc.internal.pageSize.getHeight();
-			const availableWidth = pageWidth - 20; // 10mm margin on each side
-			const availableHeight = pageHeight - 20;
+		const pageWidth = doc.internal.pageSize.getWidth();
+		const pageHeight = doc.internal.pageSize.getHeight();
+		const availableWidth = pageWidth - 20; // 10mm margin on each side
+		const availableHeight = pageHeight - 20;
 
-			const scale = Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight);
-			const width = boundsWidth * scale;
-			const height = boundsHeight * scale;
+		const scale = Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight);
+		const width = boundsWidth * scale;
+		const height = boundsHeight * scale;
 
-			await doc.svg(svg, {
-				height,
-				width,
-				x: (pageWidth - width) / 2,
-				y: (pageHeight - height) / 2,
-			});
+		await doc.svg(svg, {
+			height,
+			width,
+			x: (pageWidth - width) / 2,
+			y: (pageHeight - height) / 2,
+		});
 
-			return doc;
-		},
-		[data, generateSVGData],
-	);
+		return doc;
+	}, [data, generateSVGData]);
 };
 
 async function createSunburstPDF(renderData: SunburstRenderData, PDF: typeof jsPDF): Promise<jsPDF> {

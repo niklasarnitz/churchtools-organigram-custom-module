@@ -14,7 +14,7 @@
 				"Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘.",
 				"Aktualisierungen erhalten die Abfrageeinstellungen des ChurchTools-Gruppencaches, verhindern das Überschreiben frischer Gruppen-IDs durch ältere Antworten und lassen unabhängige Personen- und Mitgliedercaches unverändert.",
 				"Die Rollen-Schnellaktionen ‚Nur Leitungsrollen‘ und ‚Alle Rollen‘ ersetzen die Rollenauswahl über alle Gruppentypen hinweg. Individuelle Anpassungen bleiben möglich; die Auswahl wird wie bisher mit der Ansicht und in Presets gespeichert.",
-				"Der neue PDF-Posterexport verteilt das aktuelle Organigramm maßhaltig auf A4- oder A3-Blätter mit wählbarer Zielgröße, einheitlichen Stapelschnitten und Klebelaschen. Eine abschließende Montageübersicht zeigt das Kachelraster und erklärt den Zusammenbau."
+				"Der mehrseitige PDF-Posterexport zum Zusammenkleben wurde entfernt. Der normale einseitige PDF-Export bleibt erhalten."
 			]
 		},
 		{

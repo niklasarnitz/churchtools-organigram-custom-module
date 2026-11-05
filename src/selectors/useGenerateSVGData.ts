@@ -30,16 +30,13 @@ export const useGenerateSVGData = () => {
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const showGroupTypes = committedFilters?.showGroupTypes ?? true;
 
-	return useCallback(
-		(target: 'pdf' | 'svg' = 'svg') => {
-			if (data.sunburstRenderData) {
-				return createSunburstSvg(data.sunburstRenderData, { target });
-			}
+	return useCallback(() => {
+		if (data.sunburstRenderData) {
+			return createSunburstSvg(data.sunburstRenderData);
+		}
 
-			return createGraphSvg(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes);
-		},
-		[data, showGroupTypes],
-	);
+		return createGraphSvg(data.nodes as Node<PreviewGraphNodeData>[], data.edges, showGroupTypes);
+	}, [data, showGroupTypes]);
 };
 
 export function createGraphSvg(nodes: Node<PreviewGraphNodeData>[], edges: Edge[], showGroupTypes: boolean): string {
