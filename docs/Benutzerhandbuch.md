@@ -23,7 +23,7 @@ Im Organigramm stehen außerdem folgende Bedienelemente zur Verfügung:
 
 Ein einfacher Klick auf eine Gruppe markiert die Gruppe und ihren Unterbaum. Ein weiterer Klick auf die bereits markierte Gruppe hebt die Markierung wieder auf.
 
-Die Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten, einschließlich Zoom, Bildausschnitt, Filtern und eingeklappten Gruppen. Es werden nur Anzeigeeinstellungen im Sitzungsspeicher gespeichert, keine Personen- oder Gruppendaten. Beim Start werden die Daten neu geladen. Solange der Tab sichtbar ist, werden Gruppen- und Personenänderungen alle 15 Sekunden über „Poll for News“ geprüft; automatische Aktualisierungen behalten den Bildausschnitt bei. Ein bewusst gewähltes neues Layout oder eine andere Startgruppe passt die Ansicht erneut ein.
+Die Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten, einschließlich Zoom, Bildausschnitt, Filtern und eingeklappten Gruppen. Es werden nur Anzeigeeinstellungen im Sitzungsspeicher gespeichert, keine Personen- oder Gruppendaten. Beim Start werden die Daten neu geladen. Solange der Tab sichtbar und die Verbindung verfügbar ist, werden Gruppen- und Personenänderungen über „Poll for News“ geprüft; auf jeden abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden. Automatische Aktualisierungen behalten den Bildausschnitt bei. Ein bewusst gewähltes neues Layout oder eine andere Startgruppe passt die Ansicht erneut ein.
 
 ## Presets
 

@@ -7,6 +7,7 @@ import type { Person } from '../types/Person';
 import { Logger } from '../globals/Logger';
 import { fetchInBatches } from '../helpers/fetchInBatches';
 import { useAppStore } from '../state/useAppStore';
+import { organigramQueryOptions } from './organigramQueryOptions';
 import { useGroupMembers } from './useGroupMembers';
 
 /**
@@ -36,6 +37,7 @@ export const usePersons = () => {
 	}, [personIds]);
 
 	return useQuery({
+		...organigramQueryOptions,
 		enabled: roleFiltersInitialized && !!committedFilters?.showLeaders && isMembersFetched && personIds.length > 0,
 		queryFn: async () => {
 			if (personIds.length === 0) return [];
@@ -49,6 +51,5 @@ export const usePersons = () => {
 			return result;
 		},
 		queryKey: ['persons', personIdsKey],
-		refetchOnMount: 'always',
 	});
 };

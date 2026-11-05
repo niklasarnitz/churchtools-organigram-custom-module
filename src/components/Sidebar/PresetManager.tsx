@@ -86,11 +86,13 @@ export const PresetManager = React.memo(() => {
 						<SelectValue placeholder="Preset wählen..." />
 					</SelectTrigger>
 					<SelectContent>
-						{presets.map((preset) => (
-							<SelectItem key={preset.name} value={preset.name}>
-								{preset.name}
-							</SelectItem>
-						))}
+						{[...presets]
+							.sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true, sensitivity: 'base' }))
+							.map((preset) => (
+								<SelectItem key={preset.name} value={preset.name}>
+									{preset.name}
+								</SelectItem>
+							))}
 					</SelectContent>
 				</Select>
 

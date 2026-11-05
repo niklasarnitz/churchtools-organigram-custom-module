@@ -1,13 +1,30 @@
 {
 	"versions": [
 		{
+			"version": "1.10.0",
+			"date": "2026-11-05",
+			"changes": [
+				"Das Organigramm prüft alle fünf Sekunden per Poll for News auf Gruppen- und Personenänderungen und aktualisiert die Daten bei unveränderter Ansicht. Die Abfrage pausiert in ausgeblendeten Tabs und bei fehlender Verbindung.",
+				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt.",
+				"Poll for News verwendet zwei Sekunden überlappende Zeitfenster, um Änderungsmeldungen an sekundengenauen, gerundeten Zeitgrenzen zu erfassen. Nach jedem abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden.",
+				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe.",
+				"Wenn nach einer automatischen Aktualisierung keine Gruppen mehr sichtbar sind, wird auch die Zeichenfläche geleert, ohne Zoom oder Bildausschnitt zu verändern.",
+				"Touch-Gesten bleiben im Organigramm: Verschieben und Pinch-Zoom bewegen die Grafik statt der Browserseite. Eine Prozentanzeige setzt den Zoom per Klick auf 100 % zurück und behält die Bildschirmmitte bei; die Gesamtansicht bleibt separat verfügbar.",
+				"SVG- und PDF-Exporte begrenzen lange Beschriftungen auf die Kartenbreite und verwenden zuverlässige Schriftmetriken, ohne Karten nachträglich zu vergrößern.",
+				"Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘.",
+				"Aktualisierungen erhalten die Abfrageeinstellungen des ChurchTools-Gruppencaches, verhindern das Überschreiben frischer Gruppen-IDs durch ältere Antworten und lassen unabhängige Personen- und Mitgliedercaches unverändert."
+			]
+		},
+		{
 			"version": "1.9.0",
 			"date": "2026-10-20",
 			"changes": [
-				"Touch-Gesten bleiben im Organigramm: Verschieben und Pinch-Zoom bewegen die Grafik statt der Browserseite. Eine Prozentanzeige setzt den Zoom per Klick auf 100 % zurück; die Gesamtansicht bleibt separat verfügbar.",
-				"Ansicht, Filter, Startgruppe, Farben, Ringabstand, Zoom, Bildausschnitt, eingeklappte Gruppen, Seitenleiste und Preset-Auswahl bleiben beim Neuladen im selben Tab erhalten. Gespeicherte Rollenfilter werden nicht mit Standardwerten überschrieben; Presets sind deutsch-alphabetisch mit natürlicher Zahlensortierung geordnet. Daten werden beim Start neu geladen, nicht im Sitzungsspeicher aufbewahrt.",
-				"Gruppen- und Personenänderungen werden über Poll for News automatisch nachgeladen, ohne Zoom oder Bildausschnitt zurückzusetzen. Fehlgeschlagene Aktualisierungen werden erneut versucht. Die Cache-Einstellungen der gemeinsamen Gruppen-ID-Abfrage bleiben beim Neuladen erhalten.",
-				"SVG- und PDF-Exporte begrenzen lange Beschriftungen auf die Kartenbreite und verwenden zuverlässige Schriftmetriken. Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘."
+				"Die aktuelle Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten: Filter, Layout, Zoom, Bildausschnitt, eingeklappte Gruppen, Seitenleiste und ausgewähltes Preset werden wiederhergestellt.",
+				"Presets werden alphabetisch sortiert angezeigt.",
+				"Beim Neuladen werden die Organigramm-Daten frisch vom Server abgerufen, während die gespeicherten Anzeigeeinstellungen erhalten bleiben.",
+				"Beim Wechsel der Sunburst-Farbeinstellung bleiben Zoom und Bildausschnitt unverändert.",
+				"Beim Preset-Wechsel wird der Bildausschnitt erst auf das fertig berechnete Layout angepasst. Zoom- und Verschiebeeingaben während der Berechnung können diese Anpassung nicht mehr verhindern.",
+				"Beim Reload werden veraltete Organigramm-Daten auch dann nachgeladen, wenn das ChurchTools-Frontend automatische Abfragen beim Einhängen deaktiviert."
 			]
 		},
 		{

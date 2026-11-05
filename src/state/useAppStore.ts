@@ -1,6 +1,6 @@
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
 import type { Camera } from '../components/WebGLRenderer/engine/types';
 import type { UserSettings } from '../hooks/useUserSettings';
@@ -9,6 +9,7 @@ import type { SunburstColorMode } from '../types/Sunburst';
 import { GroupStatus } from '../types/GroupStatus';
 import { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import { type RendererType } from '../types/RendererType';
+import { viewSessionStorage } from './viewSessionStorage';
 
 export interface CommittedFilters {
 	excludedGroups: number[];
@@ -43,6 +44,7 @@ interface GroupState {
 	collapsedNodeIds: string[];
 	commitFilters: () => void;
 	committedFilters: CommittedFilters | undefined;
+	completeViewUpdate: (camera: Camera) => void;
 	endLayoutCalculation: () => void;
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
@@ -51,9 +53,8 @@ interface GroupState {
 	filteredCampusIds: number[];
 	filteredGroupCategoryIds: number[];
 	focusNodeId: string | undefined;
-	groupIdToStartWith: string | undefined;
 
-	hasSavedView: boolean;
+	groupIdToStartWith: string | undefined;
 	hideIndirectSubgroups: boolean;
 	includedGroups: number[];
 	includedGroupStatuses: GroupStatus[];
@@ -64,6 +65,7 @@ interface GroupState {
 
 	maxDepth: number | undefined;
 	pendingExport: PendingExport | undefined;
+	presetFitPending: boolean;
 	radialRingDistance: number;
 
 	renderer: RendererType;
@@ -135,261 +137,258 @@ function snapshotFilters(state: GroupState): CommittedFilters {
 	};
 }
 
-export const useAppStore = create<GroupState>()(
-	persist(
-		(set) => {
-			let activeLayoutCalculations = 0;
+export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
+	create<GroupState>()(
+		persist(
+			(set) => {
+				let activeLayoutCalculations = 0;
 
-			const setAndCommit = (updates: Partial<GroupState>) => {
-				set((state) => {
-					const newState = { ...state, ...updates };
-					return { ...updates, committedFilters: snapshotFilters(newState) };
-				});
-			};
+				const setAndCommit = (updates: Partial<GroupState>, resetCamera = true) => {
+					set((state) => {
+						const newState = { ...state, ...updates };
+						return {
+							...updates,
+							camera: resetCamera ? undefined : state.camera,
+							committedFilters: snapshotFilters(newState),
+						};
+					});
+				};
 
-			return {
-				baseUrl: undefined,
-				beginLayoutCalculation: () => {
-					activeLayoutCalculations += 1;
-					if (activeLayoutCalculations === 1) {
-						set({ isLayoutCalculating: true });
-					}
-				},
-				camera: undefined,
-				collapsedNodeIds: [],
-				commitFilters: () => {
-					set((state) => ({ committedFilters: snapshotFilters(state) }));
-				},
-				committedFilters: {
-					excludedGroups: [],
-					excludedGroupTypes: [],
-					excludedRoles: [],
-					filteredAgeGroupIds: [],
-					filteredCampusIds: [],
-					filteredGroupCategoryIds: [],
+				return {
+					baseUrl: undefined,
+					beginLayoutCalculation: () => {
+						activeLayoutCalculations += 1;
+						if (activeLayoutCalculations === 1) {
+							set({ isLayoutCalculating: true });
+						}
+					},
+					camera: undefined,
+					collapsedNodeIds: [],
+					commitFilters: () => {
+						set((state) => ({ committedFilters: snapshotFilters(state) }));
+					},
+					committedFilters: {
+						excludedGroups: [],
+						excludedGroupTypes: [],
+						excludedRoles: [],
+						filteredAgeGroupIds: [],
+						filteredCampusIds: [],
+						filteredGroupCategoryIds: [],
+						groupIdToStartWith: undefined,
+						hideIndirectSubgroups: false,
+						includedGroups: [],
+						includedGroupStatuses: [GroupStatus.ACTIVE],
+						layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+						maxDepth: undefined,
+						renderer: 'webgl' as RendererType,
+						showGroupTypes: true,
+						showLeaders: true,
+						showOnlyDirectChildren: false,
+						showParentGroups: false,
+						sunburstColorMode: 'segment' as SunburstColorMode,
+					},
+					completeViewUpdate: (camera) => {
+						set({ camera, presetFitPending: false });
+					},
+					endLayoutCalculation: () => {
+						activeLayoutCalculations = Math.max(0, activeLayoutCalculations - 1);
+						if (activeLayoutCalculations === 0) {
+							set({ isLayoutCalculating: false });
+						}
+					},
+					excludedGroups: [] as number[],
+					excludedGroupTypes: [] as number[],
+					excludedRoles: [] as number[],
+					filteredAgeGroupIds: [] as number[],
+					filteredCampusIds: [] as number[],
+					filteredGroupCategoryIds: [] as number[],
+					focusNodeId: undefined,
+
 					groupIdToStartWith: undefined,
 					hideIndirectSubgroups: false,
-					includedGroups: [],
-					includedGroupStatuses: [GroupStatus.ACTIVE],
+					includedGroups: [] as number[],
+
+					includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
+
+					isExporting: false,
+					isLayoutCalculating: false,
+					isSidebarOpen: typeof window === 'undefined' || window.innerWidth >= 768,
 					layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
+
 					maxDepth: undefined,
-					renderer: 'webgl' as RendererType,
+					pendingExport: undefined,
+					presetFitPending: false,
+
+					radialRingDistance: 350,
+
+					renderer: 'webgl',
+
+					roleFiltersInitialized: false,
+
+					selectedPresetName: '',
+
+					setAllSettings: (settings: Partial<UserSettings>) => {
+						setAndCommit({ ...settings, presetFitPending: true, roleFiltersInitialized: true });
+					},
+					setBaseUrl: (url: string | undefined) => {
+						churchtoolsClient.setBaseUrl(url ?? '');
+						set({ baseUrl: url });
+					},
+					setCamera: (camera) => {
+						set({ camera });
+					},
+
+					setCollapsedNodeIds: (collapsedNodeIds: string[]) => {
+						set({ camera: undefined, collapsedNodeIds });
+					},
+
+					setExcludedGroups: (groups: string | string[]) => {
+						setAndCommit({
+							excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number),
+						});
+					},
+
+					setExcludedGroupTypes: (groups: string | string[]) => {
+						setAndCommit({
+							excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number),
+						});
+					},
+
+					setExcludedRoles: (roles: string | string[]) => {
+						setAndCommit({
+							excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number),
+							roleFiltersInitialized: true,
+						});
+					},
+
+					setFilteredAgeGroupIds: (filteredAgeGroupIds: number[]) => {
+						setAndCommit({ filteredAgeGroupIds });
+					},
+
+					setFilteredCampusIds: (filteredCampusIds: number[]) => {
+						setAndCommit({ filteredCampusIds });
+					},
+
+					setFilteredGroupCategoryIds: (filteredGroupCategoryIds: number[]) => {
+						setAndCommit({ filteredGroupCategoryIds });
+					},
+
+					setFocusNodeId: (id: string | undefined) => {
+						set({ focusNodeId: id });
+					},
+
+					setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
+						setAndCommit({ groupIdToStartWith: groupIdToStartWith?.toString() });
+					},
+
+					setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
+						setAndCommit({ hideIndirectSubgroups });
+					},
+
+					setIncludedGroups: (groups: string | string[]) => {
+						setAndCommit({
+							includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number),
+						});
+					},
+
+					setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
+						setAndCommit({ includedGroupStatuses });
+					},
+
+					setIsExporting: (isExporting: boolean) => {
+						set({ isExporting });
+					},
+
+					setIsLayoutCalculating: (isLayoutCalculating: boolean) => {
+						activeLayoutCalculations = isLayoutCalculating ? Math.max(1, activeLayoutCalculations) : 0;
+						set({ isLayoutCalculating });
+					},
+
+					setIsSidebarOpen: (isSidebarOpen: boolean) => {
+						set({ isSidebarOpen });
+					},
+
+					setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
+						setAndCommit({ layoutAlgorithm: algorithm });
+					},
+
+					setMaxDepth: (maxDepth: number | undefined) => {
+						setAndCommit({ maxDepth });
+					},
+
+					setPendingExport: (pendingExport: PendingExport | undefined) => {
+						set({ pendingExport });
+					},
+
+					setRadialRingDistance: (radialRingDistance: number) => {
+						set({ radialRingDistance });
+					},
+
+					setRenderer: (renderer: RendererType) => {
+						setAndCommit({ renderer });
+					},
+
+					setRoleFiltersInitialized: () => {
+						set({ roleFiltersInitialized: true });
+					},
+
+					setSelectedPresetName: (selectedPresetName) => {
+						set({ selectedPresetName });
+					},
+
+					setShowGroupTypes: (show: boolean) => {
+						setAndCommit({ showGroupTypes: show });
+					},
+
+					setShowLeaders: (show: boolean) => {
+						setAndCommit({ showLeaders: show });
+					},
+
+					setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
+						setAndCommit({ showOnlyDirectChildren });
+					},
+
+					setShowParentGroups: (showParentGroups: boolean) => {
+						setAndCommit({ showParentGroups });
+					},
+
+					setSunburstColorMode: (sunburstColorMode: SunburstColorMode) => {
+						setAndCommit({ sunburstColorMode }, false);
+					},
+
 					showGroupTypes: true,
 					showLeaders: true,
 					showOnlyDirectChildren: false,
 					showParentGroups: false,
-					sunburstColorMode: 'segment' as SunburstColorMode,
+					sunburstColorMode: 'segment',
+					toggleCollapsedNodeId: (nodeId: string) => {
+						set((state) => ({
+							camera: undefined,
+							collapsedNodeIds: state.collapsedNodeIds.includes(nodeId)
+								? state.collapsedNodeIds.filter((id) => id !== nodeId)
+								: [...state.collapsedNodeIds, nodeId],
+						}));
+					},
+				};
+			},
+			{
+				merge: (persisted, current) => {
+					const merged = { ...current, ...(persisted as Partial<GroupState>) };
+					return { ...merged, committedFilters: snapshotFilters(merged) };
 				},
-				endLayoutCalculation: () => {
-					activeLayoutCalculations = Math.max(0, activeLayoutCalculations - 1);
-					if (activeLayoutCalculations === 0) {
-						set({ isLayoutCalculating: false });
-					}
-				},
-				excludedGroups: [] as number[],
-				excludedGroupTypes: [] as number[],
-				excludedRoles: [] as number[],
-				filteredAgeGroupIds: [] as number[],
-				filteredCampusIds: [] as number[],
-				filteredGroupCategoryIds: [] as number[],
-				focusNodeId: undefined,
-				groupIdToStartWith: undefined,
+				name: 'organigram-view-v1',
+				partialize: (state) => ({
+					...snapshotFilters(state),
+					camera: state.camera,
+					collapsedNodeIds: state.collapsedNodeIds,
+					isSidebarOpen: state.isSidebarOpen,
+					radialRingDistance: state.radialRingDistance,
+					roleFiltersInitialized: state.roleFiltersInitialized,
+					selectedPresetName: state.selectedPresetName,
+				}),
+				storage: createJSONStorage(() => storage),
+			},
+		),
+	);
 
-				hasSavedView: false,
-				hideIndirectSubgroups: false,
-				includedGroups: [] as number[],
-
-				includedGroupStatuses: [GroupStatus.ACTIVE] as GroupStatus[],
-
-				isExporting: false,
-				isLayoutCalculating: false,
-				isSidebarOpen: true,
-				layoutAlgorithm: LayoutAlgorithm.elkLayeredTB,
-
-				maxDepth: undefined,
-				pendingExport: undefined,
-
-				radialRingDistance: 350,
-
-				renderer: 'webgl',
-
-				roleFiltersInitialized: false,
-
-				selectedPresetName: '',
-
-				setAllSettings: (settings: Partial<UserSettings>) => {
-					setAndCommit({ ...settings, roleFiltersInitialized: true });
-				},
-				setBaseUrl: (url: string | undefined) => {
-					churchtoolsClient.setBaseUrl(url ?? '');
-					set({ baseUrl: url });
-				},
-				setCamera: (camera) => set({ camera }),
-
-				setCollapsedNodeIds: (collapsedNodeIds: string[]) => {
-					set({ collapsedNodeIds });
-				},
-
-				setExcludedGroups: (groups: string | string[]) => {
-					setAndCommit({
-						excludedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number),
-					});
-				},
-
-				setExcludedGroupTypes: (groups: string | string[]) => {
-					setAndCommit({
-						excludedGroupTypes: typeof groups === 'string' ? [Number(groups)] : groups.map(Number),
-					});
-				},
-
-				setExcludedRoles: (roles: string | string[]) => {
-					setAndCommit({ excludedRoles: typeof roles === 'string' ? [Number(roles)] : roles.map(Number) });
-				},
-
-				setFilteredAgeGroupIds: (filteredAgeGroupIds: number[]) => {
-					setAndCommit({ filteredAgeGroupIds });
-				},
-
-				setFilteredCampusIds: (filteredCampusIds: number[]) => {
-					setAndCommit({ filteredCampusIds });
-				},
-
-				setFilteredGroupCategoryIds: (filteredGroupCategoryIds: number[]) => {
-					setAndCommit({ filteredGroupCategoryIds });
-				},
-
-				setFocusNodeId: (id: string | undefined) => {
-					set({ focusNodeId: id });
-				},
-
-				setGroupIdToStartWith: (groupIdToStartWith: number | string | undefined) => {
-					setAndCommit({ groupIdToStartWith: groupIdToStartWith?.toString() });
-				},
-
-				setHideIndirectSubgroups: (hideIndirectSubgroups: boolean) => {
-					setAndCommit({ hideIndirectSubgroups });
-				},
-
-				setIncludedGroups: (groups: string | string[]) => {
-					setAndCommit({
-						includedGroups: typeof groups === 'string' ? [Number(groups)] : groups.map(Number),
-					});
-				},
-
-				setIncludedGroupStatuses: (includedGroupStatuses: GroupStatus[]) => {
-					setAndCommit({ includedGroupStatuses });
-				},
-
-				setIsExporting: (isExporting: boolean) => {
-					set({ isExporting });
-				},
-
-				setIsLayoutCalculating: (isLayoutCalculating: boolean) => {
-					activeLayoutCalculations = isLayoutCalculating ? Math.max(1, activeLayoutCalculations) : 0;
-					set({ isLayoutCalculating });
-				},
-
-				setIsSidebarOpen: (isSidebarOpen: boolean) => {
-					set({ isSidebarOpen });
-				},
-
-				setLayoutAlgorithm: (algorithm: LayoutAlgorithm) => {
-					setAndCommit({ layoutAlgorithm: algorithm });
-				},
-
-				setMaxDepth: (maxDepth: number | undefined) => {
-					setAndCommit({ maxDepth });
-				},
-
-				setPendingExport: (pendingExport: PendingExport | undefined) => {
-					set({ pendingExport });
-				},
-
-				setRadialRingDistance: (radialRingDistance: number) => {
-					set({ radialRingDistance });
-				},
-
-				setRenderer: (renderer: RendererType) => {
-					setAndCommit({ renderer });
-				},
-
-				setRoleFiltersInitialized: () => {
-					set({ roleFiltersInitialized: true });
-				},
-
-				setSelectedPresetName: (selectedPresetName) => set({ selectedPresetName }),
-
-				setShowGroupTypes: (show: boolean) => {
-					setAndCommit({ showGroupTypes: show });
-				},
-
-				setShowLeaders: (show: boolean) => {
-					setAndCommit({ showLeaders: show });
-				},
-
-				setShowOnlyDirectChildren: (showOnlyDirectChildren: boolean) => {
-					setAndCommit({ showOnlyDirectChildren });
-				},
-
-				setShowParentGroups: (showParentGroups: boolean) => {
-					setAndCommit({ showParentGroups });
-				},
-
-				setSunburstColorMode: (sunburstColorMode: SunburstColorMode) => {
-					setAndCommit({ sunburstColorMode });
-				},
-
-				showGroupTypes: true,
-				showLeaders: true,
-				showOnlyDirectChildren: false,
-				showParentGroups: false,
-				sunburstColorMode: 'segment',
-				toggleCollapsedNodeId: (nodeId: string) => {
-					set((state) => ({
-						collapsedNodeIds: state.collapsedNodeIds.includes(nodeId)
-							? state.collapsedNodeIds.filter((id) => id !== nodeId)
-							: [...state.collapsedNodeIds, nodeId],
-					}));
-				},
-			};
-		},
-		{
-			merge: (saved, current) => ({ ...current, ...(saved as Partial<GroupState>), hasSavedView: saved != null }),
-			name: 'organigram-view-v1',
-			partialize: (state) => ({
-				...snapshotFilters(state),
-				camera: state.camera,
-				collapsedNodeIds: state.collapsedNodeIds,
-				committedFilters: state.committedFilters,
-				isSidebarOpen: state.isSidebarOpen,
-				radialRingDistance: state.radialRingDistance,
-				roleFiltersInitialized: state.roleFiltersInitialized,
-				selectedPresetName: state.selectedPresetName,
-			}),
-			storage: createJSONStorage(() => ({
-				getItem: (key) => {
-					try {
-						return sessionStorage.getItem(key);
-					} catch {
-						return null;
-					}
-				},
-				removeItem: (key) => {
-					try {
-						sessionStorage.removeItem(key);
-					} catch {
-						/* Storage unavailable. */
-					}
-				},
-				setItem: (key, value) => {
-					// A blocked or full browser store must not prevent using the graph.
-					try {
-						sessionStorage.setItem(key, value);
-					} catch {
-						/* View stays in memory. */
-					}
-				},
-			})),
-		},
-	),
-);
+export const useAppStore = createAppStore();

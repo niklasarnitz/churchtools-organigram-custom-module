@@ -5,6 +5,7 @@ import type { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import type { SunburstColorMode } from '../types/Sunburst';
 
 import { getUserSettings, saveUserSettings } from '../helpers/kvStore';
+import { organigramQueryOptions } from '../queries/organigramQueryOptions';
 
 export interface Preset {
 	name: string;
@@ -42,9 +43,9 @@ export const usePresets = () => {
 	const queryClient = useQueryClient();
 
 	const { data: storage, isLoading } = useQuery({
+		...organigramQueryOptions,
 		queryFn: () => getUserSettings<PresetStorage>(CATEGORY_SHORTY, CATEGORY_NAME),
 		queryKey: [SETTINGS_KEY],
-		refetchOnMount: 'always',
 	});
 
 	const mutation = useMutation({
@@ -56,9 +57,7 @@ export const usePresets = () => {
 
 	return {
 		isLoading,
-		presets: [...(storage?.presets ?? [])].sort((a, b) =>
-			a.name.localeCompare(b.name, 'de', { numeric: true, sensitivity: 'base' }),
-		),
+		presets: storage?.presets ?? [],
 		savePresets: mutation.mutate,
 	};
 };

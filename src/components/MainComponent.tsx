@@ -2,7 +2,7 @@ import { Loader2, Menu, ShieldAlert, X } from 'lucide-react';
 import React, { useEffect } from 'react';
 
 import { Logger } from '../globals/Logger';
-import { useOrganigramNews } from '../hooks/useOrganigramNews';
+import { usePollForNews } from '../hooks/usePollForNews';
 import { useGroupMembers } from '../queries/useGroupMembers';
 import { useGroupRoles } from '../queries/useGroupRoles';
 import { useGroups } from '../queries/useGroups';
@@ -18,20 +18,13 @@ import { Sidebar } from './Sidebar/Sidebar';
 import { Button } from './ui/button';
 
 export const MainComponent = React.memo(() => {
-	useOrganigramNews();
+	usePollForNews();
 	// Zustand
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const committedFilters = useAppStore((s) => s.committedFilters);
 	const isLayoutCalculating = useAppStore((s) => s.isLayoutCalculating);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const setIsSidebarOpen = useAppStore((s) => s.setIsSidebarOpen);
-
-	// Automatically close sidebar on mobile on mount
-	useEffect(() => {
-		if (!useAppStore.getState().hasSavedView && window.innerWidth < 768) {
-			setIsSidebarOpen(false);
-		}
-	}, [setIsSidebarOpen]);
 
 	// Queries - these always load (needed for sidebar filter options)
 	const groupsQuery = useGroups();
@@ -62,7 +55,7 @@ export const MainComponent = React.memo(() => {
 	// Full loading including members/persons (only relevant after render requested)
 	const isGraphLoading = isBaseLoading || groupMembersQuery.isLoading || personsQuery.isLoading;
 
-	// Always default excluded roles to non-leader roles on page load
+	// Initialize role defaults only when no previous selection was restored.
 	useEffect(() => {
 		if (roleFiltersInitialized) return;
 

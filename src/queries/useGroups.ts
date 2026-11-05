@@ -7,8 +7,7 @@ import { t } from '../helpers/churchToolsTranslations';
 import { extractConfiguredPrimaryParentGroupId } from '../helpers/sunburstLayout';
 import { useAppStore } from '../state/useAppStore';
 import { fetchGroups, type GroupFilter } from './groupCache';
-
-const loadedAt = Date.now();
+import { organigramQueryOptions } from './organigramQueryOptions';
 
 const translateGroupNames = (groups: Group[]) =>
 	groups.map((group) => ({
@@ -31,13 +30,13 @@ export const useGroups = () => {
 	}
 
 	return useQuery({
-		queryFn: async () => {
+		...organigramQueryOptions,
+		queryFn: async ({ signal }) => {
 			Logger.log('API: Fetching groups');
-			return fetchGroups(client, filter, loadedAt);
+			return fetchGroups(client, filter, signal);
 		},
 		// Host group mutations invalidate ['groups', 'filter']; keep our list under that prefix.
 		queryKey: ['groups', 'filter', 'organigram', filter],
-		refetchOnMount: 'always',
 		select: translateGroupNames,
 	});
 };

@@ -4,8 +4,6 @@ import { Maximize, Minus, Plus } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 
-import type { PreviewGraphNodeData } from '../../types/GraphNode';
-import type { Node } from '../../types/GraphTypes';
 import type { SunburstBaseColorDebugEntry, SunburstInteractionMeta } from '../../types/Sunburst';
 
 import { Constants } from '../../globals/Constants';
@@ -15,6 +13,7 @@ import { useGenerateReflowData } from '../../selectors/useGenerateReflowData';
 import { useAppStore } from '../../state/useAppStore';
 import { FloatingHeader } from '../FloatingHeader';
 import { WebGLGraphEngine } from './engine/WebGLGraphEngine';
+import { updateGraphView } from './updateGraphView';
 import { WebGLMinimap } from './WebGLMinimap';
 
 interface ContextMenuProps {
@@ -49,8 +48,6 @@ export const WebGLGraphView = React.memo(() => {
 	const setFocusNodeId = useAppStore((s) => s.setFocusNodeId);
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const isDarkMode = useIsDarkMode();
-	const savedCamera = useAppStore((s) => s.camera);
-	const saveCamera = useAppStore((s) => s.setCamera);
 
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const engineRef = useRef<null | WebGLGraphEngine>(null);
@@ -63,11 +60,12 @@ export const WebGLGraphView = React.memo(() => {
 	const lastPinchDistance = useRef<null | number>(null);
 	const lastTapTime = useRef<number>(0);
 	const isPanning = useRef(false);
-	const previousView = useRef<string | undefined>(undefined);
+	const previousSunburstRenderRingWidth = useRef<number | undefined>(undefined);
 
 	// Camera state for minimap reactivity
-	const cameraState = savedCamera ?? { x: 0, y: 0, zoom: 1 };
-	const setCameraState = saveCamera;
+	const cameraState = useAppStore((s) => s.camera) ?? { x: 0, y: 0, zoom: 1 };
+	const setCameraState = useAppStore((s) => s.setCamera);
+	const completeViewUpdate = useAppStore((s) => s.completeViewUpdate);
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
 	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
@@ -85,8 +83,6 @@ export const WebGLGraphView = React.memo(() => {
 		if (!canvas) return;
 
 		const eng = new WebGLGraphEngine(canvas);
-		const camera = useAppStore.getState().camera;
-		if (camera) eng.setCamera(camera);
 		engineRef.current = eng;
 		setEngine(eng);
 		eng.resize();
@@ -109,29 +105,17 @@ export const WebGLGraphView = React.memo(() => {
 	useEffect(() => {
 		const engine = engineRef.current;
 		if (!engine) return;
-
-		engine.setData(
-			data.nodes as Node<PreviewGraphNodeData>[],
-			data.edges,
-			showGroupTypes,
+		previousSunburstRenderRingWidth.current = updateGraphView({
+			data,
+			engine,
+			fitViewRequested: useAppStore.getState().presetFitPending,
 			isDarkMode,
-			data.sunburstRenderData,
-		);
-
-		if (data.nodes.length === 0) return;
-		const previous = previousView.current;
-		const camera = useAppStore.getState().camera;
-		// Only an explicit change of layout or start group requests a new framing.
-		// Refreshes, filtering and ring spacing preserve the user's camera.
-		if ((!previous && !camera) || (previous && previous !== data.viewKey)) {
-			engine.fitView(0.05);
-		} else if (!previous && camera) {
-			engine.setCamera(camera);
-		}
-		previousView.current = data.viewKey;
-		const cam = engine.getCamera();
-		setCameraState(cam);
-	}, [data.nodes, data.edges, data.sunburstRenderData, isDarkMode, showGroupTypes, data.viewKey, setCameraState]);
+			previousRingWidth: previousSunburstRenderRingWidth.current,
+			savedCamera: useAppStore.getState().camera,
+			setCamera: completeViewUpdate,
+			showGroupTypes,
+		});
+	}, [data, isDarkMode, showGroupTypes, completeViewUpdate]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
