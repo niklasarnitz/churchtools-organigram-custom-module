@@ -12,7 +12,8 @@
 				"Touch-Gesten bleiben im Organigramm: Verschieben und Pinch-Zoom bewegen die Grafik statt der Browserseite. Eine Prozentanzeige setzt den Zoom per Klick auf 100 % zurück und behält die Bildschirmmitte bei; die Gesamtansicht bleibt separat verfügbar.",
 				"SVG- und PDF-Exporte begrenzen lange Beschriftungen auf die Kartenbreite und verwenden zuverlässige Schriftmetriken, ohne Karten nachträglich zu vergrößern.",
 				"Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘.",
-				"Aktualisierungen erhalten die Abfrageeinstellungen des ChurchTools-Gruppencaches, verhindern das Überschreiben frischer Gruppen-IDs durch ältere Antworten und lassen unabhängige Personen- und Mitgliedercaches unverändert."
+				"Aktualisierungen erhalten die Abfrageeinstellungen des ChurchTools-Gruppencaches, verhindern das Überschreiben frischer Gruppen-IDs durch ältere Antworten und lassen unabhängige Personen- und Mitgliedercaches unverändert.",
+				"Die Rollen-Schnellaktionen ‚Nur Leitungsrollen‘ und ‚Alle Rollen‘ ersetzen die Rollenauswahl über alle Gruppentypen hinweg. Individuelle Anpassungen bleiben möglich; die Auswahl wird wie bisher mit der Ansicht und in Presets gespeichert."
 			]
 		},
 		{

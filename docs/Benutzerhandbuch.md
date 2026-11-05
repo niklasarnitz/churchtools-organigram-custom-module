@@ -64,6 +64,13 @@ Die **Ringbreite** ist für das Flat-Radial-Layout verfügbar und bestimmt den A
 - **Gruppen ausschließen** entfernt einzelne ausgewählte Gruppen.
 - **Gruppenrollen ausschließen** blendet ausgewählte Rollen aus. Diese Auswahl ist nur verfügbar, wenn Mitglieder angezeigt werden und die Berechtigung **Personen verwalten** vorhanden ist.
 
+Unter der Rollenauswahl stehen zwei Schnellaktionen zur Verfügung:
+
+- **Nur Leitungsrollen** schließt alle Rollen aus, die in ChurchTools nicht als Leitungsrolle konfiguriert sind.
+- **Alle Rollen** entfernt sämtliche Rollenausschlüsse.
+
+Beide Aktionen ersetzen die bisherige Rollenauswahl für **alle Gruppentypen**, auch für aktuell ausgeblendete. Andere Filter bleiben unverändert. Anschließend kann die Auswahl wie gewohnt einzeln angepasst werden; es wird kein dauerhafter Filtermodus aktiviert. Die Rollenauswahl wird mit der Ansicht und in Presets gespeichert.
+
 ### Weitere Filter
 
 - **Gruppenstatus auswählen** zeigt nur die ausgewählten Status. Sind keine Status ausgewählt, werden alle Status angezeigt.
