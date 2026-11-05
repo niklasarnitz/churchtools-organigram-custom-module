@@ -65,6 +65,7 @@ export const WebGLGraphView = React.memo(() => {
 	// Camera state for minimap reactivity
 	const cameraState = useAppStore((s) => s.camera) ?? { x: 0, y: 0, zoom: 1 };
 	const setCameraState = useAppStore((s) => s.setCamera);
+	const completeViewUpdate = useAppStore((s) => s.completeViewUpdate);
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
 	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
@@ -107,13 +108,14 @@ export const WebGLGraphView = React.memo(() => {
 		previousSunburstRenderRingWidth.current = updateGraphView({
 			data,
 			engine,
+			fitViewRequested: useAppStore.getState().presetFitPending,
 			isDarkMode,
 			previousRingWidth: previousSunburstRenderRingWidth.current,
 			savedCamera: useAppStore.getState().camera,
-			setCamera: setCameraState,
+			setCamera: completeViewUpdate,
 			showGroupTypes,
 		});
-	}, [data, isDarkMode, showGroupTypes, setCameraState]);
+	}, [data, isDarkMode, showGroupTypes, completeViewUpdate]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {

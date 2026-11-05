@@ -7,6 +7,7 @@ import type { WebGLGraphEngine } from './engine/WebGLGraphEngine';
 interface ViewUpdate {
 	data: { edges: Edge[]; isCalculating: boolean; nodes: Node[]; sunburstRenderData?: SunburstRenderData };
 	engine: Pick<WebGLGraphEngine, 'fitView' | 'getCamera' | 'setCamera' | 'setData'>;
+	fitViewRequested: boolean;
 	isDarkMode: boolean;
 	previousRingWidth: number | undefined;
 	savedCamera: Camera | undefined;
@@ -18,6 +19,7 @@ interface ViewUpdate {
 export function updateGraphView({
 	data,
 	engine,
+	fitViewRequested,
 	isDarkMode,
 	previousRingWidth,
 	savedCamera,
@@ -35,7 +37,9 @@ export function updateGraphView({
 	const ringWidth = data.sunburstRenderData?.ringWidth;
 	const changedRingWidth =
 		ringWidth !== undefined && previousRingWidth !== undefined && previousRingWidth !== ringWidth;
-	if (savedCamera) engine.setCamera(savedCamera);
+	// Input on the previous diagram must not cancel the pending preset fit.
+	if (fitViewRequested) engine.fitView(0.05);
+	else if (savedCamera) engine.setCamera(savedCamera);
 	else if (!changedRingWidth) engine.fitView(0.05);
 	setCamera(engine.getCamera());
 	return ringWidth;
