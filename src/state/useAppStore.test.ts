@@ -20,6 +20,7 @@ test('reload restores display settings and camera, but not transient operations'
 	const storage = memoryStorage();
 	const first = createAppStore(storage);
 	const actions = first.getState();
+	actions.setAllSettings({ layoutAlgorithm: LayoutAlgorithm.FLAT_RADIAL });
 	actions.setLayoutAlgorithm(LayoutAlgorithm.FLAT_RADIAL);
 	actions.setSunburstColorMode('group');
 	actions.setRadialRingDistance(510);
@@ -56,6 +57,7 @@ test('reload restores display settings and camera, but not transient operations'
 	expect(restored.isExporting).toBe(false);
 	expect(restored.isLayoutCalculating).toBe(false);
 	expect(restored.pendingExport).toBeUndefined();
+	expect(restored.presetFitPending).toBe(false);
 	expect(restored.focusNodeId).toBeUndefined();
 	expect(restored.baseUrl).toBeUndefined();
 });

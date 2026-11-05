@@ -44,6 +44,7 @@ interface GroupState {
 	collapsedNodeIds: string[];
 	commitFilters: () => void;
 	committedFilters: CommittedFilters | undefined;
+	completeViewUpdate: (camera: Camera) => void;
 	endLayoutCalculation: () => void;
 	excludedGroups: number[];
 	excludedGroupTypes: number[];
@@ -64,6 +65,7 @@ interface GroupState {
 
 	maxDepth: number | undefined;
 	pendingExport: PendingExport | undefined;
+	presetFitPending: boolean;
 	radialRingDistance: number;
 
 	renderer: RendererType;
@@ -185,6 +187,9 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 						showParentGroups: false,
 						sunburstColorMode: 'segment' as SunburstColorMode,
 					},
+					completeViewUpdate: (camera) => {
+						set({ camera, presetFitPending: false });
+					},
 					endLayoutCalculation: () => {
 						activeLayoutCalculations = Math.max(0, activeLayoutCalculations - 1);
 						if (activeLayoutCalculations === 0) {
@@ -212,6 +217,7 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 
 					maxDepth: undefined,
 					pendingExport: undefined,
+					presetFitPending: false,
 
 					radialRingDistance: 350,
 
@@ -222,7 +228,7 @@ export const createAppStore = (storage: StateStorage = viewSessionStorage) =>
 					selectedPresetName: '',
 
 					setAllSettings: (settings: Partial<UserSettings>) => {
-						setAndCommit({ ...settings, roleFiltersInitialized: true });
+						setAndCommit({ ...settings, presetFitPending: true, roleFiltersInitialized: true });
 					},
 					setBaseUrl: (url: string | undefined) => {
 						churchtoolsClient.setBaseUrl(url ?? '');
