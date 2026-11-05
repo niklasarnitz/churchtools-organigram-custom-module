@@ -5,6 +5,7 @@ import type { LayoutAlgorithm } from '../types/LayoutAlgorithm';
 import type { SunburstColorMode } from '../types/Sunburst';
 
 import { getUserSettings, saveUserSettings } from '../helpers/kvStore';
+import { organigramQueryOptions } from '../queries/organigramQueryOptions';
 
 export interface Preset {
 	name: string;
@@ -42,6 +43,7 @@ export const usePresets = () => {
 	const queryClient = useQueryClient();
 
 	const { data: storage, isLoading } = useQuery({
+		...organigramQueryOptions,
 		queryFn: () => getUserSettings<PresetStorage>(CATEGORY_SHORTY, CATEGORY_NAME),
 		queryKey: [SETTINGS_KEY],
 	});

@@ -5,6 +5,7 @@ import type { PersonMasterData } from '../types/PersonMasterData';
 
 import { Logger } from '../globals/Logger';
 import { translateNames } from '../helpers/churchToolsTranslations';
+import { organigramQueryOptions } from './organigramQueryOptions';
 
 const translateMasterData = (data: PersonMasterData): PersonMasterData => ({
 	...data,
@@ -15,6 +16,7 @@ const translateMasterData = (data: PersonMasterData): PersonMasterData => ({
 
 export const usePersonMasterData = () =>
 	useQuery({
+		...organigramQueryOptions,
 		queryFn: async () => {
 			Logger.log('API: Fetching person masterdata');
 

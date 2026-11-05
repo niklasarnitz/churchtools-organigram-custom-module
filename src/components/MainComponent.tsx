@@ -24,13 +24,6 @@ export const MainComponent = React.memo(() => {
 	const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
 	const setIsSidebarOpen = useAppStore((s) => s.setIsSidebarOpen);
 
-	// Automatically close sidebar on mobile on mount
-	useEffect(() => {
-		if (window.innerWidth < 768) {
-			setIsSidebarOpen(false);
-		}
-	}, [setIsSidebarOpen]);
-
 	// Queries - these always load (needed for sidebar filter options)
 	const groupsQuery = useGroups();
 	const groupTypesQuery = useGroupTypes();
@@ -60,7 +53,7 @@ export const MainComponent = React.memo(() => {
 	// Full loading including members/persons (only relevant after render requested)
 	const isGraphLoading = isBaseLoading || groupMembersQuery.isLoading || personsQuery.isLoading;
 
-	// Always default excluded roles to non-leader roles on page load
+	// Initialize role defaults only when no previous selection was restored.
 	useEffect(() => {
 		if (roleFiltersInitialized) return;
 

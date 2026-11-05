@@ -5,9 +5,11 @@ import type { GroupType } from '../types/GroupType';
 
 import { Logger } from '../globals/Logger';
 import { translateNames } from '../helpers/churchToolsTranslations';
+import { organigramQueryOptions } from './organigramQueryOptions';
 
 export const useGroupTypes = () =>
 	useQuery({
+		...organigramQueryOptions,
 		queryFn: async () => {
 			Logger.log('API: Fetching group types');
 

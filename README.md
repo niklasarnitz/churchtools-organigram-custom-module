@@ -63,7 +63,8 @@ only when exporting, rather than on startup.
 
 The host cache is in-memory and cannot survive a full ChurchTools page navigation. In local
 development, or on older frontends without the exposed client, the module falls back to its
-own session cache. No ChurchTools frontend packages are bundled to achieve cache sharing.
+own in-memory cache. Reloading refreshes the organigram data; only display settings are
+restored from session storage. No ChurchTools frontend packages are bundled to achieve cache sharing.
 
 ## Building for production
 

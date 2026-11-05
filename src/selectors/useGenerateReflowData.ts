@@ -141,6 +141,44 @@ const useCalculateReflowData = (enabled: boolean) => {
 		return { reflowEdges: edges, reflowNodes: nodesList };
 	}, [relations, nodes, groupTypesById, personsById, showGroupTypes, isVertical]);
 
+	// Identify pending work during render, before the layout effect can run.
+	// This prevents a preset's new display options from fitting the previous layout.
+	const layoutInputs = useMemo(
+		() => ({
+			enabled,
+			reflowNodes,
+			reflowEdges,
+			effectiveLayoutAlgorithm,
+			layoutAlgorithm,
+			centerNodeId,
+			radialRingDistance,
+			showParentGroups,
+			showGroupTypes,
+			sunburstColorMode,
+			relations,
+			hierarchiesByGroupId,
+			groupTypesById,
+			committedFilters,
+		}),
+		[
+			enabled,
+			reflowNodes,
+			reflowEdges,
+			effectiveLayoutAlgorithm,
+			layoutAlgorithm,
+			centerNodeId,
+			radialRingDistance,
+			showParentGroups,
+			showGroupTypes,
+			sunburstColorMode,
+			relations,
+			hierarchiesByGroupId,
+			groupTypesById,
+			committedFilters,
+		],
+	);
+	const [completedInputs, setCompletedInputs] = useState<object>();
+
 	useEffect(() => {
 		if (!enabled) return;
 		let active = true;
@@ -512,6 +550,7 @@ const useCalculateReflowData = (enabled: boolean) => {
 
 				if (active) {
 					setLayoutedData(result);
+					setCompletedInputs(layoutInputs);
 				}
 			} catch (error) {
 				Logger.error('[useGenerateReflowData] Layout calculation failed', {
@@ -533,6 +572,7 @@ const useCalculateReflowData = (enabled: boolean) => {
 			finishLayout();
 		};
 	}, [
+		layoutInputs,
 		enabled,
 		reflowNodes,
 		reflowEdges,
@@ -550,5 +590,8 @@ const useCalculateReflowData = (enabled: boolean) => {
 		groupTypesById,
 	]);
 
-	return { ...layoutedData, isCalculating };
+	return useMemo(
+		() => ({ ...layoutedData, isCalculating: !enabled || isCalculating || completedInputs !== layoutInputs }),
+		[layoutedData, enabled, isCalculating, completedInputs, layoutInputs],
+	);
 };

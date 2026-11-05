@@ -7,6 +7,7 @@ import { t } from '../helpers/churchToolsTranslations';
 import { extractConfiguredPrimaryParentGroupId } from '../helpers/sunburstLayout';
 import { useAppStore } from '../state/useAppStore';
 import { fetchGroups, type GroupFilter } from './groupCache';
+import { organigramQueryOptions } from './organigramQueryOptions';
 
 const translateGroupNames = (groups: Group[]) =>
 	groups.map((group) => ({
@@ -29,6 +30,7 @@ export const useGroups = () => {
 	}
 
 	return useQuery({
+		...organigramQueryOptions,
 		queryFn: async () => {
 			Logger.log('API: Fetching groups');
 			return fetchGroups(client, filter);
