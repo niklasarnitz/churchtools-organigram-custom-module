@@ -2,13 +2,11 @@ import type { QueryClient } from '@tanstack/react-query';
 
 const preparedClients = new WeakSet<QueryClient>();
 const organigramKeys = new Set([
-	'groupMembers',
 	'groupRoles',
 	'groupTypes',
 	'hierarchies',
 	'permissions',
 	'personMasterData',
-	'persons',
 	'presets',
 ]);
 
@@ -22,6 +20,10 @@ export function prepareQueryClientForSession(client: QueryClient): QueryClient {
 	void client.invalidateQueries({
 		predicate: ({ queryKey }) =>
 			organigramKeys.has(String(queryKey[0])) ||
+			((queryKey[0] === 'persons' || queryKey[0] === 'groupMembers') &&
+				queryKey.length === 2 &&
+				typeof queryKey[1] === 'string' &&
+				/^\d+(,\d+)*$/.test(queryKey[1])) ||
 			(queryKey[0] === 'groups' &&
 				(queryKey[1] === 'filter' || (queryKey[1] === 'single' && queryKey[3] === 'raw'))),
 		refetchType: 'none',

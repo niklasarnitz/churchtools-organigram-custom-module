@@ -325,7 +325,7 @@ export const ExclusionFilters = React.memo(() => {
 
 					<div className="flex flex-row items-center gap-x-2">
 						<Switch checked={hideIndirectSubgroups} onCheckedChange={setHideIndirectSubgroups} />
-						<span className="text-sm">Indirekte Gruppenzweige ausblenden</span>
+						<span className="text-sm">Untergruppen bei Gruppentypwechsel ausblenden</span>
 					</div>
 
 					<div className="flex flex-col gap-y-1">

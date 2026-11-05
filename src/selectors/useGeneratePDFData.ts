@@ -73,6 +73,11 @@ export const useGeneratePDFData = () => {
 		if (svg.nodeName.toLowerCase() === 'parsererror') {
 			return createInfoPDF('Die Organigramm-SVG konnte nicht fuer den PDF-Export vorbereitet werden.', PDF);
 		}
+		// svg2pdf cannot embed CSS/web fonts: use its built-in Helvetica explicitly.
+		// SVG card fitting uses the metrically compatible Arial, not the screen's Lato.
+		for (const text of svg.querySelectorAll('text')) {
+			text.style.fontFamily = 'helvetica';
+		}
 
 		// Read dimensions from viewBox or width/height attributes
 		const viewBox = svg.getAttribute('viewBox')?.split(' ').map(Number);

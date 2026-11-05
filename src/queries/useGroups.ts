@@ -31,9 +31,9 @@ export const useGroups = () => {
 
 	return useQuery({
 		...organigramQueryOptions,
-		queryFn: async () => {
+		queryFn: async ({ signal }) => {
 			Logger.log('API: Fetching groups');
-			return fetchGroups(client, filter);
+			return fetchGroups(client, filter, signal);
 		},
 		// Host group mutations invalidate ['groups', 'filter']; keep our list under that prefix.
 		queryKey: ['groups', 'filter', 'organigram', filter],

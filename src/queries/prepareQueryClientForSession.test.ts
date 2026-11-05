@@ -4,6 +4,7 @@ import { expect, spyOn, test } from 'bun:test';
 
 import { fetchGroups } from './groupCache';
 import { organigramQueryOptions } from './organigramQueryOptions';
+import { refreshNewsQueries } from './pollForNews';
 import { prepareQueryClientForSession } from './prepareQueryClientForSession';
 
 test('startup refreshes even fresh cached group IDs and entities, then reuses them within the session', async () => {
@@ -35,6 +36,75 @@ test('startup refreshes even fresh cached group IDs and entities, then reuses th
 	}
 });
 
+test('startup and news reloads bypass older in-flight ID requests and prevent late cache overwrites', async () => {
+	for (const invalidate of [
+		(client: QueryClient) => prepareQueryClientForSession(client),
+		(client: QueryClient) => refreshNewsQueries(client, [{ domainId: 1, domainType: 'group' }]),
+	]) {
+		const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+		const idsKey = ['groups', 'filter', 'ids', {}];
+		const older = Promise.withResolvers<number[]>();
+		const olderRequest = client
+			.fetchQuery({ queryFn: () => older.promise, queryKey: idsKey })
+			.catch(() => undefined);
+		const api = spyOn(churchtoolsClient, 'get')
+			.mockResolvedValueOnce([1])
+			.mockResolvedValueOnce([{ id: 1, name: 'Fresh' }]);
+		try {
+			await invalidate(client);
+			const loading = fetchGroups(client, {});
+			// A fresh request must start without waiting for the old host response.
+			expect(api).toHaveBeenCalledWith('/groups/ids', {});
+			expect((await loading).map((group) => group.id)).toEqual([1]);
+			older.resolve([2]);
+			await olderRequest;
+			expect(client.getQueryData<number[]>(idsKey)).toEqual([1]);
+		} finally {
+			older.resolve([2]);
+			await olderRequest;
+			api.mockRestore();
+			client.clear();
+		}
+	}
+});
+
+test('cancelled organigram refreshes cannot overwrite newer IDs or group entities', async () => {
+	for (const blockedEndpoint of ['/groups/ids', '/groups']) {
+		const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+		const idsKey = ['groups', 'filter', 'ids', {}];
+		const rawKey = ['groups', 'single', 1, 'raw'];
+		client.setQueryData(idsKey, [1]);
+		await client.invalidateQueries({ exact: true, queryKey: idsKey, refetchType: 'none' });
+		const started = Promise.withResolvers<boolean>();
+		const response = Promise.withResolvers<number[] | { id: number; name: string }[]>();
+		let blocked = false;
+		const api = spyOn(churchtoolsClient, 'get').mockImplementation((url) => {
+			if (url === blockedEndpoint && !blocked) {
+				blocked = true;
+				started.resolve(true);
+				return response.promise;
+			}
+			return Promise.resolve(url === '/groups/ids' ? [1] : [{ id: 1, name: 'Fresh' }]);
+		});
+		try {
+			const controller = new AbortController();
+			const older = fetchGroups(client, {}, controller.signal).catch(() => undefined);
+			await started.promise;
+			controller.abort();
+			await client.invalidateQueries({ exact: true, queryKey: idsKey, refetchType: 'none' });
+			expect((await fetchGroups(client, {})).map((group) => group.name)).toEqual(['Fresh']);
+			response.resolve(blockedEndpoint === '/groups/ids' ? [2] : [{ id: 1, name: 'Old' }]);
+			await older;
+			expect(client.getQueryData<number[]>(idsKey)).toEqual([1]);
+			expect(client.getQueryData<{ id: number; name: string }>(rawKey)).toEqual({ id: 1, name: 'Fresh' });
+		} finally {
+			response.resolve([]);
+			api.mockRestore();
+			client.clear();
+		}
+	}
+});
+
 test('startup invalidates all organigram data but preserves unrelated host caches and defaults', () => {
 	const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
 	const keys = [
@@ -48,7 +118,17 @@ test('startup invalidates all organigram data but preserves unrelated host cache
 		['personMasterData'],
 		['presets'],
 	];
-	const unrelated = [['calendar'], ['groups', 'single', 1, 'include', 'roles']];
+	const unrelated = [
+		['calendar'],
+		['groups', 'single', 1, 'include', 'roles'],
+		['persons'],
+		['persons', 1],
+		['persons', 'single', 1],
+		['persons', '1,2', 'details'],
+		['groupMembers'],
+		['groupMembers', 1],
+		['groupMembers', 'all'],
+	];
 	for (const key of [...keys, ...unrelated]) client.setQueryData(key, []);
 	const defaults = client.getDefaultOptions();
 	prepareQueryClientForSession(client);

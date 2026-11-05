@@ -55,8 +55,10 @@ export async function refreshNewsQueries(client: QueryClient, changes: NewsChang
 	await client.invalidateQueries(
 		{
 			predicate: ({ queryKey: key }) =>
-				key[0] === 'persons' ||
-				key[0] === 'groupMembers' ||
+				((key[0] === 'persons' || key[0] === 'groupMembers') &&
+					key.length === 2 &&
+					typeof key[1] === 'string' &&
+					/^\d+(,\d+)*$/.test(key[1])) ||
 				(groupIds.size > 0 &&
 					(key[0] === 'hierarchies' ||
 						(key[0] === 'groups' && key[1] === 'filter' && key[2] === 'organigram'))),

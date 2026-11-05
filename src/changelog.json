@@ -8,7 +8,11 @@
 				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt.",
 				"Poll for News verwendet zwei Sekunden überlappende Zeitfenster, um Änderungsmeldungen an sekundengenauen, gerundeten Zeitgrenzen zu erfassen. Nach jedem abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden.",
 				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe.",
-				"Wenn nach einer automatischen Aktualisierung keine Gruppen mehr sichtbar sind, wird auch die Zeichenfläche geleert, ohne Zoom oder Bildausschnitt zu verändern."
+				"Wenn nach einer automatischen Aktualisierung keine Gruppen mehr sichtbar sind, wird auch die Zeichenfläche geleert, ohne Zoom oder Bildausschnitt zu verändern.",
+				"Touch-Gesten bleiben im Organigramm: Verschieben und Pinch-Zoom bewegen die Grafik statt der Browserseite. Eine Prozentanzeige setzt den Zoom per Klick auf 100 % zurück und behält die Bildschirmmitte bei; die Gesamtansicht bleibt separat verfügbar.",
+				"SVG- und PDF-Exporte begrenzen lange Beschriftungen auf die Kartenbreite und verwenden zuverlässige Schriftmetriken, ohne Karten nachträglich zu vergrößern.",
+				"Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘.",
+				"Aktualisierungen erhalten die Abfrageeinstellungen des ChurchTools-Gruppencaches, verhindern das Überschreiben frischer Gruppen-IDs durch ältere Antworten und lassen unabhängige Personen- und Mitgliedercaches unverändert."
 			]
 		},
 		{
