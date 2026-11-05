@@ -2,6 +2,7 @@ import { Loader2, Menu, ShieldAlert, X } from 'lucide-react';
 import React, { useEffect } from 'react';
 
 import { Logger } from '../globals/Logger';
+import { usePollForNews } from '../hooks/usePollForNews';
 import { useGroupMembers } from '../queries/useGroupMembers';
 import { useGroupRoles } from '../queries/useGroupRoles';
 import { useGroups } from '../queries/useGroups';
@@ -17,6 +18,7 @@ import { Sidebar } from './Sidebar/Sidebar';
 import { Button } from './ui/button';
 
 export const MainComponent = React.memo(() => {
+	usePollForNews();
 	// Zustand
 	const setExcludedRoles = useAppStore((s) => s.setExcludedRoles);
 	const committedFilters = useAppStore((s) => s.committedFilters);

@@ -12,6 +12,7 @@ export interface GraphNode {
 export interface PreviewGraphNodeData {
 	color: ReturnType<typeof getColorForGroupType>;
 	group: Group;
+	groupTypeColor?: null | string;
 	groupTypeName: string;
 	id: number;
 	memberNamesByRoleId: Map<number, string[]>;

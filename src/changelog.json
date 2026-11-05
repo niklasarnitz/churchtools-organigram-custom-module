@@ -1,6 +1,17 @@
 {
 	"versions": [
 		{
+			"version": "1.10.0",
+			"date": "2026-11-05",
+			"changes": [
+				"Das Organigramm prüft alle fünf Sekunden per Poll for News auf Gruppen- und Personenänderungen und aktualisiert die Daten bei unveränderter Ansicht. Die Abfrage pausiert in ausgeblendeten Tabs und bei fehlender Verbindung.",
+				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt.",
+				"Poll for News verwendet zwei Sekunden überlappende Zeitfenster, um Änderungsmeldungen an sekundengenauen, gerundeten Zeitgrenzen zu erfassen. Nach jedem abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden.",
+				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe.",
+				"Wenn nach einer automatischen Aktualisierung keine Gruppen mehr sichtbar sind, wird auch die Zeichenfläche geleert, ohne Zoom oder Bildausschnitt zu verändern."
+			]
+		},
+		{
 			"version": "1.9.0",
 			"date": "2026-10-20",
 			"changes": [

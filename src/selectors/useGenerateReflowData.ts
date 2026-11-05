@@ -117,8 +117,12 @@ const useCalculateReflowData = (enabled: boolean) => {
 				data: {
 					color:
 						getColorForChurchToolsColor(node.group.information.color) ??
-						getColorForGroupType(node.group.information.groupTypeId),
+						getColorForGroupType(
+							node.group.information.groupTypeId,
+							groupTypesById[node.group.information.groupTypeId]?.color,
+						),
 					group: node.group,
+					groupTypeColor: groupTypesById[node.group.information.groupTypeId]?.color,
 					groupTypeName: groupTypesById[node.group.information.groupTypeId]?.name ?? 'Unknown',
 					id: node.group.id,
 					memberNamesByRoleId,
