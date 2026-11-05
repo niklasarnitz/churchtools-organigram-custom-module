@@ -268,8 +268,6 @@ export class WebGLGraphEngine {
 	};
 
 	private render() {
-		if (!this.activeRenderer.hasData()) return;
-
 		const ctx = this.ctx;
 		const rect = this.canvas.getBoundingClientRect();
 		const viewW = rect.width;
@@ -280,6 +278,7 @@ export class WebGLGraphEngine {
 		// Clear
 		ctx.fillStyle = this.isDarkMode ? '#020617' : '#ffffff';
 		ctx.fillRect(0, 0, viewW, viewH);
+		if (!this.activeRenderer.hasData()) return;
 
 		// Apply camera transform
 		ctx.save();

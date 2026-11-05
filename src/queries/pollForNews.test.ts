@@ -143,7 +143,12 @@ test('group news invalidates nested caches before refreshing active views and pr
 	for (const key of [idsKey, rawKey, otherRaw, includes, ['calendar']]) client.setQueryData(key, []);
 	const refreshed: string[] = [];
 	const unsubscribes = ['groups', 'hierarchies', 'groupMembers', 'persons'].map((name) => {
-		const key = name === 'groups' ? ['groups', 'filter', 'organigram', {}] : [name];
+		const key =
+			name === 'groups'
+				? ['groups', 'filter', 'organigram', {}]
+				: name === 'persons' || name === 'groupMembers'
+					? [name, '7,8']
+					: [name];
 		client.setQueryData(key, ['old']);
 		const observer = new QueryObserver(client, {
 			queryFn: () => {
@@ -175,15 +180,30 @@ test('group news invalidates nested caches before refreshing active views and pr
 
 test('person news refreshes memberships and persons; unrelated and empty news cause no invalidations', async () => {
 	const client = new QueryClient();
-	for (const key of ['persons', 'groupMembers', 'hierarchies', 'presets']) client.setQueryData([key], []);
+	const persons = ['persons', '7,8'];
+	const members = ['groupMembers', '7'];
+	const unrelated = [
+		['persons'],
+		['persons', 7],
+		['persons', 'single', 7],
+		['persons', '7,8', 'details'],
+		['groupMembers'],
+		['groupMembers', 7],
+		['groupMembers', 'all'],
+		['hierarchies'],
+		['presets'],
+	];
+	for (const key of [persons, members, ...unrelated]) client.setQueryData(key, []);
 	await refreshNewsQueries(client, []);
 	await refreshNewsQueries(client, [{ domainId: 7, domainType: 'appointment' }]);
-	expect(client.getQueryState(['persons'])?.isInvalidated).toBe(false);
+	expect(client.getQueryState(persons)?.isInvalidated).toBe(false);
 	await refreshNewsQueries(client, [{ domainId: 7, domainType: 'person' }]);
-	expect(client.getQueryState(['persons'])?.isInvalidated).toBe(true);
-	expect(client.getQueryState(['groupMembers'])?.isInvalidated).toBe(true);
-	expect(client.getQueryState(['hierarchies'])?.isInvalidated).toBe(false);
-	expect(client.getQueryState(['presets'])?.isInvalidated).toBe(false);
+	expect(client.getQueryState(persons)?.isInvalidated).toBe(true);
+	expect(client.getQueryState(members)?.isInvalidated).toBe(true);
+	for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated).toBe(false);
+	await refreshNewsQueries(client, [{ domainId: 7, domainType: 'group' }]);
+	for (const key of unrelated.filter((key) => key[0] !== 'hierarchies'))
+		expect(client.getQueryState(key)?.isInvalidated).toBe(false);
 	client.clear();
 });
 

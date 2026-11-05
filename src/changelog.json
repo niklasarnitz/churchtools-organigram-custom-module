@@ -1,10 +1,20 @@
 {
 	"versions": [
 		{
-			"version": "1.9.1",
-			"date": "2026-10-21",
+			"version": "1.10.0",
+			"date": "2026-11-05",
 			"changes": [
-				"PDF-Poster drucken das Bild rechts und unten bis in die bedruckbaren Klebelaschen weiter. Gleichseitige Passmarken über die gesamte bedruckbare Breite der Klebelaschen zeigen mit ihrer Spitze die Anlegekante; Überlappungen kaschieren leichte Klebeungenauigkeiten bei unveränderter Postergröße."
+				"Das Organigramm prüft alle fünf Sekunden per Poll for News auf Gruppen- und Personenänderungen und aktualisiert die Daten bei unveränderter Ansicht. Die Abfrage pausiert in ausgeblendeten Tabs und bei fehlender Verbindung.",
+				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt.",
+				"Poll for News verwendet zwei Sekunden überlappende Zeitfenster, um Änderungsmeldungen an sekundengenauen, gerundeten Zeitgrenzen zu erfassen. Nach jedem abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden.",
+				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe.",
+				"Wenn nach einer automatischen Aktualisierung keine Gruppen mehr sichtbar sind, wird auch die Zeichenfläche geleert, ohne Zoom oder Bildausschnitt zu verändern.",
+				"Touch-Gesten bleiben im Organigramm: Verschieben und Pinch-Zoom bewegen die Grafik statt der Browserseite. Eine Prozentanzeige setzt den Zoom per Klick auf 100 % zurück und behält die Bildschirmmitte bei; die Gesamtansicht bleibt separat verfügbar.",
+				"SVG- und PDF-Exporte begrenzen lange Beschriftungen auf die Kartenbreite und verwenden zuverlässige Schriftmetriken, ohne Karten nachträglich zu vergrößern.",
+				"Die Filteroption heißt jetzt verständlicher ‚Untergruppen bei Gruppentypwechsel ausblenden‘.",
+				"Aktualisierungen erhalten die Abfrageeinstellungen des ChurchTools-Gruppencaches, verhindern das Überschreiben frischer Gruppen-IDs durch ältere Antworten und lassen unabhängige Personen- und Mitgliedercaches unverändert.",
+				"Die Rollen-Schnellaktionen ‚Nur Leitungsrollen‘ und ‚Alle Rollen‘ ersetzen die Rollenauswahl über alle Gruppentypen hinweg. Individuelle Anpassungen bleiben möglich; die Auswahl wird wie bisher mit der Ansicht und in Presets gespeichert.",
+				"Der mehrseitige PDF-Posterexport zum Zusammenkleben wurde entfernt. Der normale einseitige PDF-Export bleibt erhalten."
 			]
 		},
 		{
@@ -15,13 +25,8 @@
 				"Presets werden alphabetisch sortiert angezeigt.",
 				"Beim Neuladen werden die Organigramm-Daten frisch vom Server abgerufen, während die gespeicherten Anzeigeeinstellungen erhalten bleiben.",
 				"Beim Wechsel der Sunburst-Farbeinstellung bleiben Zoom und Bildausschnitt unverändert.",
-				"Beim Preset-Wechsel wird der Bildausschnitt erst auf das fertig berechnete Layout angepasst.",
-				"Beim Reload werden veraltete Organigramm-Daten auch dann nachgeladen, wenn das ChurchTools-Frontend automatische Abfragen beim Einhängen deaktiviert.",
-				"Das Organigramm prüft alle fünf Sekunden per Poll for News auf Gruppen- und Personenänderungen und aktualisiert die Daten bei unveränderter Ansicht. Die Abfrage pausiert in ausgeblendeten Tabs und bei fehlender Verbindung.",
-				"Per Poll for News gemeldete Gruppen werden auch bei zwischenzeitlichen Cache-Aktualisierungen gezielt neu geladen; fehlgeschlagene Abrufe bleiben zur Wiederholung vorgemerkt.",
-				"Poll for News verwendet zwei Sekunden überlappende Zeitfenster, um Änderungsmeldungen an sekundengenauen, gerundeten Zeitgrenzen zu erfassen. Nach jedem abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden.",
-				"Gruppen ohne eigene Farbe verwenden die in ChurchTools konfigurierte Gruppentyp-Farbe. Auch der Sunburst-Farbmodus „Gruppentyp“ berücksichtigt diese statt einer aus der Typ-ID berechneten Farbe.",
-				"PDF-Posterexport mit A4/A3, proportionaler Zielgröße, Kachelvorschau, zwei einheitlichen Stapelschnitten und abschließender Montageübersicht samt Anleitung für waagerechte Streifen und Fixogum."
+				"Beim Preset-Wechsel wird der Bildausschnitt erst auf das fertig berechnete Layout angepasst. Zoom- und Verschiebeeingaben während der Berechnung können diese Anpassung nicht mehr verhindern.",
+				"Beim Reload werden veraltete Organigramm-Daten auch dann nachgeladen, wenn das ChurchTools-Frontend automatische Abfragen beim Einhängen deaktiviert."
 			]
 		},
 		{

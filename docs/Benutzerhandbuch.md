@@ -16,11 +16,14 @@ Im Organigramm stehen außerdem folgende Bedienelemente zur Verfügung:
 
 - **Gruppe suchen**: Suche über die Suchleiste oben oder mit `Strg+K` beziehungsweise `Cmd+K`.
 - **Zoom**: Mausrad, die Plus-/Minus-Schaltflächen oder `+` und `-`.
+- **Zoom-Prozentanzeige**: Zeigt den aktuellen Maßstab. Ein Klick setzt ihn auf 100 % (Originalgröße der Karten) zurück und behält die Bildschirmmitte bei.
 - **Verschieben**: Mit gedrückter Maustaste ziehen. Auf Touch-Geräten mit einem Finger verschieben.
 - **Ansicht einpassen**: Die Schaltfläche mit dem Vollbildsymbol setzt die Ansicht auf den verfügbaren Bereich zurück.
 - **Minimap**: Die Übersicht unten rechts zeigt die aktuelle Position und erlaubt eine schnelle Navigation.
 
 Ein einfacher Klick auf eine Gruppe markiert die Gruppe und ihren Unterbaum. Ein weiterer Klick auf die bereits markierte Gruppe hebt die Markierung wieder auf.
+
+Die Ansicht bleibt beim Neuladen im selben Browser-Tab erhalten, einschließlich Zoom, Bildausschnitt, Filtern und eingeklappten Gruppen. Es werden nur Anzeigeeinstellungen im Sitzungsspeicher gespeichert, keine Personen- oder Gruppendaten. Beim Start werden die Daten neu geladen. Solange der Tab sichtbar und die Verbindung verfügbar ist, werden Gruppen- und Personenänderungen über „Poll for News“ geprüft; auf jeden abgeschlossenen Abfrage- und Aktualisierungszyklus folgt eine Pause von fünf Sekunden. Automatische Aktualisierungen behalten den Bildausschnitt bei. Ein bewusst gewähltes neues Layout oder eine andere Startgruppe passt die Ansicht erneut ein.
 
 ## Presets
 
@@ -60,6 +63,13 @@ Die **Ringbreite** ist für das Flat-Radial-Layout verfügbar und bestimmt den A
 - **Gruppentypen ausschließen** entfernt alle Gruppen der ausgewählten Gruppentypen.
 - **Gruppen ausschließen** entfernt einzelne ausgewählte Gruppen.
 - **Gruppenrollen ausschließen** blendet ausgewählte Rollen aus. Diese Auswahl ist nur verfügbar, wenn Mitglieder angezeigt werden und die Berechtigung **Personen verwalten** vorhanden ist.
+
+Unter der Rollenauswahl stehen zwei Schnellaktionen zur Verfügung:
+
+- **Nur Leitungsrollen** schließt alle Rollen aus, die in ChurchTools nicht als Leitungsrolle konfiguriert sind.
+- **Alle Rollen** entfernt sämtliche Rollenausschlüsse.
+
+Beide Aktionen ersetzen die bisherige Rollenauswahl für **alle Gruppentypen**, auch für aktuell ausgeblendete. Andere Filter bleiben unverändert. Anschließend kann die Auswahl wie gewohnt einzeln angepasst werden; es wird kein dauerhafter Filtermodus aktiviert. Die Rollenauswahl wird mit der Ansicht und in Presets gespeichert.
 
 ### Weitere Filter
 

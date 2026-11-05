@@ -13,6 +13,7 @@ import { useGroupTypesById } from '../../selectors/useGroupTypesById';
 import { useAppStore } from '../../state/useAppStore';
 import { GroupStatus } from '../../types/GroupStatus';
 import { LayoutAlgorithm } from '../../types/LayoutAlgorithm';
+import { Button } from '../ui/button';
 import { Combobox } from '../ui/combobox';
 import { MultiSelect } from '../ui/multi-select';
 import { Switch } from '../ui/switch';
@@ -240,6 +241,34 @@ export const ExclusionFilters = React.memo(() => {
 					placeholder="Keine Gruppenrollen ausgeschlossen"
 					value={excludedRoles.map(String)}
 				/>
+				<div className="mt-2 flex flex-wrap gap-2">
+					<Button
+						disabled={rolesDisabled || !groupRoles?.length}
+						onClick={() => {
+							if (groupRoles) {
+								setExcludedRoles(
+									groupRoles.filter((role) => role.type !== 'leader').map((role) => String(role.id)),
+								);
+							}
+						}}
+						size="sm"
+						title="Ersetzt die Rollenauswahl für alle Gruppentypen durch Leitungsrollen"
+						variant="outline"
+					>
+						Nur Leitungsrollen
+					</Button>
+					<Button
+						disabled={rolesDisabled || !groupRoles?.length}
+						onClick={() => {
+							setExcludedRoles([]);
+						}}
+						size="sm"
+						title="Entfernt alle Rollenausschlüsse für alle Gruppentypen"
+						variant="outline"
+					>
+						Alle Rollen
+					</Button>
+				</div>
 			</div>
 
 			<div className="flex flex-col">
@@ -325,7 +354,7 @@ export const ExclusionFilters = React.memo(() => {
 
 					<div className="flex flex-row items-center gap-x-2">
 						<Switch checked={hideIndirectSubgroups} onCheckedChange={setHideIndirectSubgroups} />
-						<span className="text-sm">Indirekte Gruppenzweige ausblenden</span>
+						<span className="text-sm">Untergruppen bei Gruppentypwechsel ausblenden</span>
 					</div>
 
 					<div className="flex flex-col gap-y-1">

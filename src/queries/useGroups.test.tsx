@@ -1,6 +1,6 @@
 import { churchtoolsClient } from '@churchtools/churchtools-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect, spyOn, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { t } from '../helpers/churchToolsTranslations';
@@ -249,6 +249,39 @@ test('group loading reuses and populates the native cache, respects filters and 
 		churchtoolsClient.setBaseUrl(previousUrl ?? '');
 		client.clear();
 		await server.stop(true);
+	}
+});
+
+test('group loading preserves existing host ID freshness policies and query functions', async () => {
+	for (const staleTime of [Infinity, 60_000, () => Infinity]) {
+		const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+		const idsKey = ['groups', 'filter', 'ids', {}];
+		let hostFetches = 0;
+		const queryFn = () => {
+			hostFetches++;
+			return Promise.resolve([1]);
+		};
+		await client.fetchQuery({ queryFn, queryKey: idsKey, staleTime });
+		client.setQueryData(['groups', 'single', 1, 'raw'], { id: 1, name: 'Cached' });
+		const api = spyOn(churchtoolsClient, 'get').mockImplementation((url) =>
+			Promise.resolve(url === '/groups/ids' ? [1] : [{ id: 1, name: 'Fresh' }]),
+		);
+		try {
+			expect((await fetchGroups(client, {})).map((group) => group.id)).toEqual([1]);
+			expect(api.mock.calls.filter(([url]) => url === '/groups/ids')).toHaveLength(0);
+			await client.invalidateQueries({ exact: true, queryKey: idsKey, refetchType: 'none' });
+			await fetchGroups(client, {});
+			const query = client.getQueryCache().find({ exact: true, queryKey: idsKey });
+			expect(query && client.defaultQueryOptions({ ...query.options, queryKey: idsKey }).staleTime).toBe(
+				staleTime,
+			);
+			expect(query?.options.queryFn).toBe(queryFn);
+			await client.refetchQueries({ exact: true, queryKey: idsKey });
+			expect(hostFetches).toBe(2);
+		} finally {
+			api.mockRestore();
+			client.clear();
+		}
 	}
 });
 

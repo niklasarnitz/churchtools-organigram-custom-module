@@ -13,13 +13,30 @@ export type GroupFilter = Partial<
 // Keep news pending independently until our own group request succeeds.
 const pendingGroupNews = new WeakMap<QueryClient, Map<number, symbol>>();
 
-export async function fetchGroups(client: QueryClient, filter: GroupFilter): Promise<Group[]> {
+export async function fetchGroups(client: QueryClient, filter: GroupFilter, signal?: AbortSignal): Promise<Group[]> {
+	signal?.throwIfAborted();
 	// This is the group module's ID-list key. Never infer completeness from cached entities:
 	// they may come from just one page, a different filter, or contain now-invisible groups.
-	const ids = await client.fetchQuery({
-		queryFn: () => churchtoolsClient.get<number[]>('/groups/ids', filter),
-		queryKey: ['groups', 'filter', 'ids', filter],
-	});
+	const idsKey = ['groups', 'filter', 'ids', filter] as const;
+	const idsQuery = client.getQueryCache().find<number[]>({ exact: true, queryKey: idsKey });
+	const idsStaleTime = idsQuery && client.defaultQueryOptions({ ...idsQuery.options, queryKey: idsKey }).staleTime;
+	let ids: number[];
+	if (
+		idsQuery?.state.data !== undefined &&
+		!idsQuery.state.isInvalidated &&
+		!idsQuery.isStaleByTime(typeof idsStaleTime === 'function' ? idsStaleTime(idsQuery) : idsStaleTime)
+	) {
+		ids = idsQuery.state.data;
+	} else {
+		// fetchQuery would replace the host's options and may reuse a pre-invalidation
+		// request. Fetch directly, then cancel that exact request before publishing.
+		ids = await churchtoolsClient.get<number[]>('/groups/ids', filter);
+		signal?.throwIfAborted();
+		await client.cancelQueries({ exact: true, queryKey: idsKey });
+		signal?.throwIfAborted();
+		client.setQueryData(idsKey, ids);
+	}
+	signal?.throwIfAborted();
 	const rawKey = (id: number) => ['groups', 'single', id, 'raw'] as const;
 	const staleTime = client.getDefaultOptions().queries?.staleTime;
 	const maxAge = typeof staleTime === 'number' ? staleTime : 5 * 60 * 1000;
@@ -32,6 +49,7 @@ export async function fetchGroups(client: QueryClient, filter: GroupFilter): Pro
 
 	client.setQueryDefaults(['groups', 'single'], { gcTime: Infinity });
 	await fetchInBatches(missing, async (batch) => {
+		signal?.throwIfAborted();
 		const groups = await churchtoolsClient.get<Group[]>('/groups', {
 			...filter,
 			ids: batch,
@@ -40,6 +58,9 @@ export async function fetchGroups(client: QueryClient, filter: GroupFilter): Pro
 			include: '[]',
 			limit: 200,
 		});
+		// TanStack cancels a superseded organigram query, but these HTTP requests
+		// finish independently. Never publish their late IDs or entities.
+		signal?.throwIfAborted();
 		const returnedIds = new Set(groups.map((group) => group.id));
 		for (const id of batch) {
 			// A group may have disappeared or become invisible since the ID request.

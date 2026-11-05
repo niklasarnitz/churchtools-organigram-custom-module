@@ -65,6 +65,7 @@ export const WebGLGraphView = React.memo(() => {
 	// Camera state for minimap reactivity
 	const cameraState = useAppStore((s) => s.camera) ?? { x: 0, y: 0, zoom: 1 };
 	const setCameraState = useAppStore((s) => s.setCamera);
+	const completeViewUpdate = useAppStore((s) => s.completeViewUpdate);
 	const [engine, setEngine] = useState<null | WebGLGraphEngine>(null);
 	const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(null);
 	const [contextParentGroups, setContextParentGroups] = useState<SunburstInteractionMeta['parentGroups']>([]);
@@ -107,13 +108,14 @@ export const WebGLGraphView = React.memo(() => {
 		previousSunburstRenderRingWidth.current = updateGraphView({
 			data,
 			engine,
+			fitViewRequested: useAppStore.getState().presetFitPending,
 			isDarkMode,
 			previousRingWidth: previousSunburstRenderRingWidth.current,
 			savedCamera: useAppStore.getState().camera,
-			setCamera: setCameraState,
+			setCamera: completeViewUpdate,
 			showGroupTypes,
 		});
-	}, [data, isDarkMode, showGroupTypes, setCameraState]);
+	}, [data, isDarkMode, showGroupTypes, completeViewUpdate]);
 
 	// Focus on a specific node when requested
 	useEffect(() => {
@@ -145,7 +147,7 @@ export const WebGLGraphView = React.memo(() => {
 			const now = Date.now();
 			const timeSinceLastTap = now - lastTapTime.current;
 
-			if (timeSinceLastTap < 300 && activePointers.current.size === 0) {
+			if (e.pointerType === 'touch' && timeSinceLastTap < 300 && activePointers.current.size === 0) {
 				// Double tap detected
 				const rect = canvas.getBoundingClientRect();
 				const tapX = e.clientX - rect.left;
@@ -177,6 +179,7 @@ export const WebGLGraphView = React.memo(() => {
 			if (activePointers.current.size === 1) {
 				isPanning.current = true;
 			} else if (activePointers.current.size === 2) {
+				suppressNextClick.current = true;
 				isPanning.current = false; // Stop panning when starting pinch
 				const pointers = Array.from(activePointers.current.values());
 				lastPinchDistance.current = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
@@ -405,6 +408,15 @@ export const WebGLGraphView = React.memo(() => {
 		}
 	}, [updateCameraState]);
 
+	const handleResetZoom = useCallback(() => {
+		const engine = engineRef.current;
+		const rect = canvasRef.current?.getBoundingClientRect();
+		if (!engine || !rect) return;
+		const center = engine.screenToWorld(rect.width / 2, rect.height / 2);
+		engine.setCamera({ x: center.x - rect.width / 2, y: center.y - rect.height / 2, zoom: 1 });
+		updateCameraState();
+	}, [updateCameraState]);
+
 	const handleZoomIn = useCallback(() => {
 		const engine = engineRef.current;
 		if (!engine) return;
@@ -542,7 +554,7 @@ export const WebGLGraphView = React.memo(() => {
 				<FloatingHeader nodes={data.nodes} />
 			</div>
 			<canvas
-				className="size-full cursor-grab active:cursor-grabbing"
+				className="size-full cursor-grab touch-none active:cursor-grabbing"
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
 				onPointerCancel={handlePointerUp}
@@ -674,7 +686,9 @@ export const WebGLGraphView = React.memo(() => {
 			</Menu>
 
 			{/* Controls */}
-			<div className="absolute bottom-6 left-2 flex flex-col gap-2">
+			<div
+				className={`absolute bottom-6 flex-col gap-2 ${isSidebarOpen ? 'left-[22rem] hidden sm:flex' : 'left-2 flex'}`}
+			>
 				<button
 					className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
 					onClick={handleZoomIn}
@@ -688,6 +702,14 @@ export const WebGLGraphView = React.memo(() => {
 					title="Zoom Out"
 				>
 					<Minus className="size-5" />
+				</button>
+				<button
+					aria-label={`Zoom ${String(Math.round(cameraState.zoom * 100))} %, auf 100 % zurücksetzen`}
+					className="flex h-9 min-w-12 items-center justify-center rounded-full border border-slate-200 bg-white/80 px-2 text-xs text-slate-600 shadow-lg dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"
+					onClick={handleResetZoom}
+					title="Zoom auf 100 % zurücksetzen"
+				>
+					{Math.round(cameraState.zoom * 100)} %
 				</button>
 				<button
 					className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-lg backdrop-blur-md hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"

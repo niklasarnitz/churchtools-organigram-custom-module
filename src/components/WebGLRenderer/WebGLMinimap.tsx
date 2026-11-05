@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import type { Camera, WebGLGraphEngine } from './engine/WebGLGraphEngine';
 
 import { oklchToHex } from '../../globals/Colors';
+import { useGenerateReflowData } from '../../selectors/useGenerateReflowData';
 
 interface WebGLMinimapProps {
 	camera: Camera;
@@ -17,6 +18,7 @@ const MINIMAP_PADDING = 10;
 
 export const WebGLMinimap = React.memo(({ camera, engine, isDarkMode = false, onCameraChange }: WebGLMinimapProps) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const data = useGenerateReflowData();
 
 	const draw = useCallback(() => {
 		const canvas = canvasRef.current;
@@ -127,8 +129,13 @@ export const WebGLMinimap = React.memo(({ camera, engine, isDarkMode = false, on
 	}, [camera, engine, isDarkMode]);
 
 	useEffect(() => {
-		draw();
-	}, [draw]);
+		// The parent publishes completed layout data to the engine in its effect.
+		// Draw afterward, including empty refreshes that do not update the camera.
+		const frame = requestAnimationFrame(draw);
+		return () => {
+			cancelAnimationFrame(frame);
+		};
+	}, [data, draw]);
 
 	const handleMinimapClick = useCallback(
 		(e: React.MouseEvent) => {
